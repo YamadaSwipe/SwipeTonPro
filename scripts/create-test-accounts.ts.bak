@@ -1,0 +1,283 @@
+import { supabase } from '@/integrations/supabase/client';
+
+// Script de création de comptes de test réels pour SwipeTonPro
+// Simulation complète 06h35 - 09h00
+
+export async function createTestAccounts() {
+  console.log('🚀 DÉBUT CRÉATION COMPTES DE TEST RÉEL');
+  
+  try {
+    // 1. Créer compte Particulier de test
+    console.log('👤 Création compte Particulier...');
+    const { data: { user: particulerUser }, error: particulerError } = await supabase.auth.signUp({
+      email: 'particulier.test@swipetonpro.com',
+      password: 'Test123456!',
+      options: {
+        data: {
+          full_name: 'Jean Particulier',
+          phone: '+33612345678',
+          role: 'client'
+        }
+      }
+    });
+
+    if (particulerError) {
+      console.error('❌ Erreur création Particulier:', particulerError);
+      return;
+    }
+
+    console.log('✅ Particulier créé:', particulerUser?.id);
+
+    // Créer profil Particulier
+    const { error: particulerProfileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: particulerUser!.id,
+        email: 'particulier.test@swipetonpro.com',
+        full_name: 'Jean Particulier',
+        phone: '+33612345678',
+        role: 'client',
+        address: '123 Rue de la Test',
+        postal_code: '75001',
+        city: 'Paris',
+        latitude: 48.8566,
+        longitude: 2.3522
+      });
+
+    if (particulerProfileError) {
+      console.error('❌ Erreur profil Particulier:', particulerProfileError);
+    } else {
+      console.log('✅ Profil Particulier créé');
+    }
+
+    // 2. Créer compte Professionnel de test
+    console.log('👷 Création compte Professionnel...');
+    const { data: { user: proUser }, error: proError } = await supabase.auth.signUp({
+      email: 'pro.test@swipetonpro.com',
+      password: 'Test123456!',
+      options: {
+        data: {
+          full_name: 'Marie Professionnel',
+          phone: '+33687654321',
+          role: 'professional'
+        }
+      }
+    });
+
+    if (proError) {
+      console.error('❌ Erreur création Professionnel:', proError);
+      return;
+    }
+
+    console.log('✅ Professionnel créé:', proUser?.id);
+
+    // Créer profil Professionnel
+    const { error: proProfileError } = await supabase
+      .from('professionals')
+      .insert({
+        user_id: proUser!.id,
+        siret: '12345678901234',
+        company_name: 'BTP Test Services',
+        email: 'pro.test@swipetonpro.com',
+        phone: '+33687654321',
+        specialties: ['plomberie', 'électricité', 'maçonnerie'],
+        certifications: {
+          siret: '12345678901234',
+          assurance: 'Assurance Test',
+          rge: true
+        },
+        experience_years: 8,
+        coverage_radius: 50,
+        credits_balance: 10, // Donner des crédits pour tester
+        rating_average: 4.5,
+        rating_count: 25,
+        total_projects: 15,
+        certification_badge: true,
+        has_rge: true,
+        status: 'verified' // Directement validé pour les tests
+      });
+
+    if (proProfileError) {
+      console.error('❌ Erreur profil Professionnel:', proProfileError);
+    } else {
+      console.log('✅ Profil Professionnel créé avec 10 crédits');
+    }
+
+    // 3. Créer un projet de test
+    console.log('🏗 Création projet de test...');
+    const { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .insert({
+        // Utiliser les bons noms de champs selon la base de données
+        title: 'Rénovation complète cuisine - TEST',
+        description: 'Je souhaite rénover complètement ma cuisine de 15m². Installation de meubles de cuisine, carrelage au sol, peinture des murs, et changement des luminaires. Le budget est flexible pour un travail de qualité.',
+        category: 'Menuiserie',
+        location: '123 Rue de la Test',
+        city: 'Paris',
+        postal_code: '75001',
+        latitude: 48.8566,
+        longitude: 2.3522,
+        work_types: ['carpentry', 'painting'],
+        budget_min: 5000,
+        budget_max: 8000,
+        estimated_budget_min: 4500,
+        estimated_budget_max: 8500,
+        urgency: 'normal',
+        desired_start_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        desired_deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        property_type: 'appartement',
+        property_surface: 15,
+        property_address: '123 Rue de la Test',
+        photos: [],
+        ai_analysis: JSON.stringify({
+          estimated_cost: 6500,
+          duration_days: 7,
+          complexity: 'moyenne',
+          confidence_score: 0.85
+        }),
+        status: 'published', // Directement publié pour les tests
+        client_first_name: 'Jean',
+        client_last_name: 'Particulier',
+        client_email: 'particulier.test@swipetonpro.com',
+        client_phone: '+33612345678'
+      })
+      .select()
+      .single();
+
+    if (projectError) {
+      console.error('❌ Erreur création projet:', projectError);
+    } else {
+      console.log('✅ Projet créé:', projectData?.id);
+    }
+
+    // 4. Créer une candidature de test (le pro postule au projet)
+    console.log('📝 Création candidature de test...');
+    const { data: professionalData } = await supabase
+      .from('professionals')
+      .select('id')
+      .eq('user_id', proUser!.id)
+      .single();
+
+    if (professionalData) {
+      const { error: interestError } = await supabase
+        .from('project_interests')
+        .insert({
+          project_id: projectData!.id,
+          professional_id: professionalData.id,
+          status: 'pending',
+          message: 'Bonjour, je suis intéressé par votre projet de rénovation de cuisine. J\'ai 8 ans d\'expérience dans les travaux de menuiserie et je vous propose une intervention rapide et de qualité. Mon devis estimatif est de 6500€ pour la prestation complète. Je suis disponible dès la semaine prochaine. Bien cordialement, Marie',
+          proposed_price: 6500,
+          estimated_duration: 7,
+          client_interested: false
+        });
+
+      if (interestError) {
+        console.error('❌ Erreur création candidature:', interestError);
+      } else {
+        console.log('✅ Candidature créée');
+      }
+    }
+
+    // 5. Créer une conversation de test
+    console.log('💬 Création conversation de test...');
+    const { error: conversationError } = await supabase
+      .from('conversations')
+      .insert({
+        project_id: projectData!.id,
+        client_id: particulerUser!.id,
+        professional_id: professionalData!.id,
+        status: 'active',
+        client_unread_count: 0,
+        professional_unread_count: 0,
+        last_message_at: new Date().toISOString()
+      });
+
+    if (conversationError) {
+      console.error('❌ Erreur création conversation:', conversationError);
+    } else {
+      console.log('✅ Conversation créée');
+    }
+
+    // 6. Créer un message de test
+    console.log('📨 Création message de test...');
+    const { data: conversationData } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('project_id', projectData!.id)
+      .single();
+
+    if (conversationData) {
+      const { error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationData.id,
+          sender_id: particulerUser!.id,
+          content: 'Bonjour Marie, merci pour votre intérêt à mon projet. Votre profil me semble très pertinent. J\'aimerais discuter plus en détail des modalités et disponibilités. Quand seriez-vous disponible pour un premier rendez-vous ?',
+          is_read: false
+        });
+
+      if (messageError) {
+        console.error('❌ Erreur création message:', messageError);
+      } else {
+        console.log('✅ Message créé');
+      }
+    }
+
+    console.log('🎉 COMPTES DE TEST CRÉÉS AVEC SUCCÈS');
+    console.log('');
+    console.log('📋 RÉCAPITULATIF:');
+    console.log('👤 Particulier: particulier.test@swipetonpro.com / Test123456!');
+    console.log('👷 Professionnel: pro.test@swipetonpro.com / Test123456!');
+    console.log('🏗 Projet: Rénovation complète cuisine - TEST');
+    console.log('💰 Crédits Professionnel: 10');
+    console.log('📊 Statuts: Projet publié, Candidature en attente, Conversation active');
+    
+    return {
+      success: true,
+      particulerUser: particulerUser?.id,
+      proUser: proUser?.id,
+      projectId: projectData?.id,
+      testAccounts: {
+        particulier: {
+          email: 'particulier.test@swipetonpro.com',
+          password: 'Test123456!'
+        },
+        professionnel: {
+          email: 'pro.test@swipetonpro.com',
+          password: 'Test123456!',
+          credits: 10
+        }
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Erreur générale création comptes test:', error);
+    return { success: false, error };
+  }
+}
+
+// Fonction pour nettoyer les comptes de test
+export async function cleanupTestAccounts() {
+  console.log('🧹 NETTOYAGE COMPTES DE TEST...');
+  
+  try {
+    const emails = ['particulier.test@swipetonpro.com', 'pro.test@swipetonpro.com'];
+    
+    for (const email of emails) {
+      const { data: { users } } = await supabase.auth.admin.listUsers();
+      const user = users?.find(u => u.email === email);
+      
+      if (user) {
+        await supabase.auth.admin.deleteUser(user.id);
+        console.log(`✅ Utilisateur supprimé: ${email}`);
+      }
+    }
+    
+    console.log('🎉 NETTOYAGE TERMINÉ');
+    return { success: true };
+    
+  } catch (error) {
+    console.error('❌ Erreur nettoyage:', error);
+    return { success: false, error };
+  }
+}

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Email SwipeTonPro</title>
+</head>
+<body>
+    <h2>🧪 Test Email Configuration</h2>
+    <p>Cliquez sur ce bouton pour tester l'envoi d'email :</p>
+    
+    <button onclick="testEmail()" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+        📧 Envoyer Email Test
+    </button>
+    
+    <div id="result" style="margin-top: 20px; padding: 10px; border-radius: 5px;"></div>
+    
+    <script>
+        async function testEmail() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '⏳ Envoi en cours...';
+            resultDiv.style.background = '#fef3c7';
+            
+            try {
+                const response = await fetch('/api/test-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '✅ Email envoyé avec succès !<br>Message ID: ' + result.messageId;
+                    resultDiv.style.background = '#d1fae5';
+                    resultDiv.style.color = '#065f46';
+                } else {
+                    resultDiv.innerHTML = '❌ Erreur: ' + result.error;
+                    resultDiv.style.background = '#fee2e2';
+                    resultDiv.style.color = '#991b1b';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '❌ Erreur réseau: ' + error.message;
+                resultDiv.style.background = '#fee2e2';
+                resultDiv.style.color = '#991b1b';
+            }
+        }
+    </script>
+</body>
+</html>

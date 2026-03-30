@@ -1,0 +1,236 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700;900&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FORCER LE CHARGEMENT DES STYLES */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  font-family: 'Inter', sans-serif !important;
+  line-height: 1.6;
+}
+
+@layer base {
+  :root {
+    /* BTP Color Palette */
+    --background: 0 0% 100%;
+    --foreground: 220 15% 20%;
+    
+    /* Primary - Orange Sécurité/Chantier */
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Bleu Acier */
+    --secondary: 210 40% 35%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Accent - Jaune Attention */
+    --accent: 45 100% 51%;
+    --accent-foreground: 220 15% 20%;
+    
+    /* Neutral - Gris Béton */
+    --muted: 210 10% 93%;
+    --muted-foreground: 220 10% 40%;
+    --text-secondary: 220 10% 50%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 20%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 20%;
+    
+    --border: 210 15% 85%;
+    --input: 210 15% 85%;
+    --ring: 24 100% 50%;
+    
+    --radius: 0.25rem;
+    
+    /* Destruction */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Construction theme colors */
+    --concrete: 210 10% 75%;
+    --steel: 210 40% 45%;
+    --safety-orange: 24 100% 50%;
+    --warning-yellow: 45 100% 51%;
+    --construction-green: 140 60% 45%;
+    
+    /* Surface colors for gradients */
+    --surface: 0 0% 98%;
+    --surface-elevated: 210 10% 96%;
+  }
+
+  .dark {
+    --background: 220 20% 10%;
+    --foreground: 0 0% 95%;
+    
+    --primary: 24 100% 55%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 210 40% 25%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --accent: 45 100% 55%;
+    --accent-foreground: 220 15% 10%;
+    
+    --muted: 220 15% 20%;
+    --muted-foreground: 210 10% 65%;
+    --text-secondary: 210 10% 75%;
+    
+    --card: 220 20% 15%;
+    --card-foreground: 0 0% 95%;
+    
+    --popover: 220 20% 15%;
+    --popover-foreground: 0 0% 95%;
+    
+    --border: 220 15% 25%;
+    --input: 220 15% 25%;
+    --ring: 24 100% 55%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --concrete: 210 10% 35%;
+    --steel: 210 40% 35%;
+    --safety-orange: 24 100% 55%;
+    --warning-yellow: 45 100% 55%;
+    --construction-green: 140 60% 40%;
+    
+    /* Surface colors for gradients - DARK MODE */
+    --surface: 220 20% 8%;
+    --surface-elevated: 220 20% 12%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto Condensed', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  /* Construction-themed utilities */
+  .text-construction {
+    background: linear-gradient(135deg, hsl(var(--safety-orange)), hsl(var(--warning-yellow)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .bg-concrete {
+    background-color: hsl(var(--concrete));
+  }
+  
+  .bg-steel {
+    background-color: hsl(var(--steel));
+  }
+  
+  .border-construction {
+    border-color: hsl(var(--safety-orange));
+  }
+  
+  /* Grid pattern background (construction grid) */
+  .bg-construction-grid {
+    background-image: 
+      linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  
+  /* Concrete texture effect */
+  .bg-concrete-texture {
+    background-color: hsl(var(--concrete));
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23999' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  
+  /* Safety stripe pattern */
+  .bg-safety-stripes {
+    background: repeating-linear-gradient(
+      45deg,
+      hsl(var(--safety-orange)),
+      hsl(var(--safety-orange)) 10px,
+      hsl(var(--warning-yellow)) 10px,
+      hsl(var(--warning-yellow)) 20px
+    );
+  }
+  
+  /* Subtle pulse animation for emphasis */
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.75;
+      transform: scale(1.02);
+    }
+  }
+  
+  .animate-pulse-subtle {
+    animation: pulse-subtle 3s ease-in-out infinite;
+  }
+  
+  /* Fade in animations */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.8s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.8s ease-out;
+  }
+  
+  .animate-slide-down {
+    animation: slide-down 0.8s ease-out;
+  }
+}
