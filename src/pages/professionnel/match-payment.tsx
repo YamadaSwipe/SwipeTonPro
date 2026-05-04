@@ -1,29 +1,29 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import { loadStripe } from "@stripe/stripe-js";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
   PaymentElement,
   useStripe,
   useElements,
-} from "@stripe/react-stripe-js";
-import { supabase } from "@/integrations/supabase/client";
+} from '@stripe/react-stripe-js';
+import { supabase } from '@/integrations/supabase/client';
 import {
   createMatchPaymentIntent,
   confirmMatchPayment,
   checkPaymentStatus,
   getMatchPriceForBudget,
   MatchPricing,
-} from "@/services/matchPaymentService";
-import { Button } from "@/components/ui/button";
+} from '@/services/matchPaymentService';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Loader2,
   CheckCircle2,
@@ -32,13 +32,14 @@ import {
   Euro,
   MapPin,
   Tag,
-} from "lucide-react";
-import Link from "next/link";
-import { SEO } from "@/components/SEO";
-import { useToast } from "@/hooks/use-toast";
+  Shield,
+} from 'lucide-react';
+import Link from 'next/link';
+import { SEO } from '@/components/SEO';
+import { useToast } from '@/hooks/use-toast';
 
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
 );
 
 // ============================================
@@ -59,26 +60,50 @@ function CheckoutForm({
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [liabilityAccepted, setLiabilityAccepted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
+    if (!liabilityAccepted) {
+      setError(
+        'Vous devez accepter la clause de responsabilité pour continuer'
+      );
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Confirmer le paiement Stripe
-      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/professionnel/dashboard?payment_success=true`,
-        },
-        redirect: "if_required",
+      // 0. Enregistrer l'acceptation de la clause de responsabilité
+      await fetch('/api/record-liability-acceptance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          professionalId,
+          paymentIntentId: 'pending', // Sera mis à jour après le paiement
+          acceptedAt: new Date().toISOString(),
+          clause:
+            "Je comprends que Swipe Ton Pro est un intermédiaire technique et que les fonds sont gérés par Stripe. Je décharge la plateforme de toute responsabilité liée à l'exécution des travaux.",
+        }),
       });
 
+      // 1. Confirmer le paiement Stripe
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment(
+        {
+          elements,
+          confirmParams: {
+            return_url: `${window.location.origin}/professionnel/dashboard?payment_success=true`,
+          },
+          redirect: 'if_required',
+        }
+      );
+
       if (stripeError) {
-        setError(stripeError.message || "Erreur lors du paiement");
+        setError(stripeError.message || 'Erreur lors du paiement');
         return;
       }
 
@@ -99,7 +124,7 @@ function CheckoutForm({
         onSuccess();
       }
     } catch (err) {
-      setError("Une erreur est survenue lors du paiement");
+      setError('Une erreur est survenue lors du paiement');
       console.error(err);
     } finally {
       setLoading(false);
@@ -110,6 +135,41 @@ function CheckoutForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <PaymentElement />
 
+      {/* Clause de responsabilité */}
+      <Card className="bg-amber-50 border-amber-200">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-amber-600 mt-1 flex-shrink-0" />
+            <div className="flex-1">
+              <h4 className="font-semibold text-amber-800 mb-2">
+                Clause de responsabilité importante
+              </h4>
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={liabilityAccepted}
+                    onChange={(e) => setLiabilityAccepted(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
+                    required
+                  />
+                  <span className="text-sm text-amber-700 leading-relaxed">
+                    Je comprends que Swipe Ton Pro est un intermédiaire
+                    technique et que les fonds sont gérés par Stripe. Je
+                    décharge la plateforme de toute responsabilité liée à
+                    l'exécution des travaux.
+                  </span>
+                </label>
+                <div className="text-xs text-amber-600 bg-amber-100 p-2 rounded">
+                  <strong>Note :</strong> Cette clause est obligatoire pour
+                  continuer. Elle sera enregistrée avec horodatage.
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -119,7 +179,7 @@ function CheckoutForm({
 
       <Button
         type="submit"
-        disabled={!stripe || loading}
+        disabled={!stripe || loading || !liabilityAccepted}
         className="w-full"
         size="lg"
       >
@@ -160,11 +220,11 @@ export default function MatchPaymentPage() {
 
     if (!project_id || !professional_id) {
       toast({
-        title: "Erreur",
-        description: "Paramètres manquants",
-        variant: "destructive",
+        title: 'Erreur',
+        description: 'Paramètres manquants',
+        variant: 'destructive',
       });
-      router.push("/professionnel/browse-projects");
+      router.push('/professionnel/browse-projects');
       return;
     }
 
@@ -184,19 +244,19 @@ export default function MatchPaymentPage() {
       const { hasPaid } = await checkPaymentStatus(profId, projId);
       if (hasPaid) {
         setAlreadyPaid(true);
-        setTimeout(() => router.push("/professionnel/dashboard"), 2000);
+        setTimeout(() => router.push('/professionnel/dashboard'), 2000);
         return;
       }
 
       // 2. Récupérer les infos du projet
       const { data: projectData, error: projectError } = await supabase
-        .from("projects")
-        .select("id, title, city, category, budget_max, budget_min")
-        .eq("id", projId)
+        .from('projects')
+        .select('id, title, city, category, budget_max, budget_min')
+        .eq('id', projId)
         .single();
 
       if (projectError || !projectData) {
-        setError("Projet introuvable");
+        setError('Projet introuvable');
         setLoading(false);
         return;
       }
@@ -224,7 +284,7 @@ export default function MatchPaymentPage() {
   const handleSuccess = () => {
     setPaymentSuccess(true);
     setTimeout(() => {
-      router.push("/professionnel/dashboard?payment_success=true");
+      router.push('/professionnel/dashboard?payment_success=true');
     }, 2500);
   };
 
@@ -281,9 +341,7 @@ export default function MatchPaymentPage() {
               ✅ Email envoyé au client, à vous et au support
             </div>
             <Button asChild className="w-full">
-              <Link href="/professionnel/dashboard">
-                Accéder au projet →
-              </Link>
+              <Link href="/professionnel/dashboard">Accéder au projet →</Link>
             </Button>
           </CardContent>
         </Card>
@@ -356,14 +414,16 @@ export default function MatchPaymentPage() {
             <div className="bg-muted rounded-lg p-4 space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">{pricing.label}</span>
-                <span className="font-medium">{pricing.price_euros.toFixed(2)}€</span>
+                <span className="font-medium">
+                  {pricing.price_euros.toFixed(2)}€
+                </span>
               </div>
               {project?.budget_max && (
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Budget client</span>
                   <span className="font-medium flex items-center gap-1">
                     <Euro className="h-3.5 w-3.5" />
-                    {project.budget_max.toLocaleString("fr-FR")} €
+                    {project.budget_max.toLocaleString('fr-FR')} €
                   </span>
                 </div>
               )}
@@ -393,7 +453,7 @@ export default function MatchPaymentPage() {
               stripe={stripePromise}
               options={{
                 clientSecret,
-                appearance: { theme: "stripe" },
+                appearance: { theme: 'stripe' },
               }}
             >
               <CheckoutForm
@@ -405,8 +465,8 @@ export default function MatchPaymentPage() {
             </Elements>
 
             <p className="text-xs text-center text-muted-foreground">
-              Paiement sécurisé par Stripe. Vos données bancaires ne sont
-              jamais stockées sur nos serveurs.
+              Paiement sécurisé par Stripe. Vos données bancaires ne sont jamais
+              stockées sur nos serveurs.
             </p>
           </CardContent>
         </Card>

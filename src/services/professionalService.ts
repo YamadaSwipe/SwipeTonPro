@@ -1,9 +1,11 @@
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
-type Professional = Database["public"]["Tables"]["professionals"]["Row"];
-type ProfessionalInsert = Database["public"]["Tables"]["professionals"]["Insert"];
-type ProfessionalUpdate = Database["public"]["Tables"]["professionals"]["Update"];
+type Professional = Database['public']['Tables']['professionals']['Row'];
+type ProfessionalInsert =
+  Database['public']['Tables']['professionals']['Insert'];
+type ProfessionalUpdate =
+  Database['public']['Tables']['professionals']['Update'];
 
 // Type étendu pour inclure certifications
 type ProfessionalWithCertifications = Professional & {
@@ -14,21 +16,33 @@ export const professionalService = {
   /**
    * Get current professional profile
    */
-  async getCurrentProfessional(): Promise<{ data: any | null; error: Error | null }> {
+  async getCurrentProfessional(): Promise<{
+    data: any | null;
+    error: Error | null;
+  }> {
     try {
       // DÉSACTIVÉ TEMPORAIREMENT - BOUCLE INFINIE
-      console.log('Professional service désactivé temporairement pour éviter la boucle infinie');
-      return { data: null, error: new Error("Service désactivé temporairement") };
-      
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+      console.log(
+        'Professional service désactivé temporairement pour éviter la boucle infinie'
+      );
+      return {
+        data: null,
+        error: new Error('Service désactivé temporairement'),
+      };
+
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !user) {
-        return { data: null, error: new Error("Non authentifié") };
+        return { data: null, error: new Error('Non authentifié') };
       }
 
       const { data, error } = await supabase
-        .from("professionals")
-        .select(`
+        .from('professionals')
+        .select(
+          `
           id,
           company_name,
           experience_years,
@@ -36,29 +50,36 @@ export const professionalService = {
           user_id,
           created_at,
           updated_at
-        `)
-        .eq("user_id", user.id)
+        `
+        )
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (error || !data) {
-        console.log("Professional profile not found, redirecting to inscription");
-        return { data: null, error: error || new Error("Professional profile not found") };
+        console.log(
+          'Professional profile not found, redirecting to inscription'
+        );
+        return {
+          data: null,
+          error: error || new Error('Professional profile not found'),
+        };
       }
 
       // Flatten the response for easier usage
+      const anyData = data as any;
       const flattenedData = {
         ...data,
-        phone: data.user?.phone,
-        city: data.user?.city,
-        postal_code: data.user?.postal_code,
-        email: data.user?.email,
-        full_name: data.user?.full_name,
-        is_verified: data.status === 'verified'
+        phone: anyData.user?.phone,
+        city: anyData.user?.city,
+        postal_code: anyData.user?.postal_code,
+        email: anyData.user?.email,
+        full_name: anyData.user?.full_name,
+        is_verified: anyData.status === 'verified',
       };
 
       return { data: flattenedData, error: null };
     } catch (err) {
-      console.error("Error in getCurrentProfessional:", err);
+      console.error('Error in getCurrentProfessional:', err);
       return { data: null, error: err as Error };
     }
   },
@@ -66,21 +87,28 @@ export const professionalService = {
   /**
    * Create professional profile
    */
-  async createProfessional(professionalData: Omit<ProfessionalInsert, "user_id">): Promise<{ data: Professional | null; error: Error | null }> {
+  async createProfessional(
+    professionalData: Omit<ProfessionalInsert, 'user_id'>
+  ): Promise<{ data: Professional | null; error: Error | null }> {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !user) {
-        return { data: null, error: new Error("Non authentifié") };
+        return { data: null, error: new Error('Non authentifié') };
       }
 
       const { data, error } = await supabase
-        .from("professionals")
+        .from('professionals')
         .insert({
           ...professionalData,
-          user_id: user.id
+          user_id: user.id,
         })
-        .select("id, user_id, siret, company_name, specialties, experience_years, coverage_radius, credits_balance, rating_average, rating_count, total_projects, certification_badge, certification_date, insurance_expiry_date, has_rge, has_qualibat, has_qualibois, has_qualipac, has_qualipv, has_qualitenr, has_eco_artisan, other_certifications, status, created_at, updated_at")
+        .select(
+          'id, user_id, siret, company_name, specialties, experience_years, coverage_radius, credits_balance, rating_average, rating_count, total_projects, certification_badge, certification_date, insurance_expiry_date, has_rge, has_qualibat, has_qualibois, has_qualipac, has_qualipv, has_qualitenr, has_eco_artisan, other_certifications, status, created_at, updated_at'
+        )
         .single();
 
       // Envoyer les notifications aux équipes admin, support et TEAM
@@ -117,8 +145,8 @@ export const professionalService = {
                   </div>
                 </div>
               `,
-              type: 'admin'
-            })
+              type: 'admin',
+            }),
           });
 
           // Notification support
@@ -144,8 +172,8 @@ export const professionalService = {
                   </div>
                 </div>
               `,
-              type: 'support'
-            })
+              type: 'support',
+            }),
           });
 
           // Notification TEAM
@@ -172,20 +200,22 @@ export const professionalService = {
                   </div>
                 </div>
               `,
-              type: 'team'
-            })
+              type: 'team',
+            }),
           });
 
-          console.log("Notifications envoyées aux équipes admin, support et TEAM");
+          console.log(
+            'Notifications envoyées aux équipes admin, support et TEAM'
+          );
         } catch (notificationError) {
-          console.error("Erreur envoi notifications:", notificationError);
+          console.error('Erreur envoi notifications:', notificationError);
           // Ne pas bloquer l'inscription si les notifications échouent
         }
       }
 
       return { data: data as ProfessionalWithCertifications, error: null };
     } catch (err) {
-      console.error("Error in createProfessional:", err);
+      console.error('Error in createProfessional:', err);
       return { data: null, error: err as Error };
     }
   },
@@ -193,29 +223,36 @@ export const professionalService = {
   /**
    * Update professional profile
    */
-  async updateProfessional(updates: ProfessionalUpdate): Promise<{ data: Professional | null; error: Error | null }> {
+  async updateProfessional(
+    updates: ProfessionalUpdate
+  ): Promise<{ data: Professional | null; error: Error | null }> {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !user) {
-        return { data: null, error: new Error("Non authentifié") };
+        return { data: null, error: new Error('Non authentifié') };
       }
 
       const { data, error } = await supabase
-        .from("professionals")
+        .from('professionals')
         .update(updates)
-        .eq("user_id", user.id)
-        .select("id, user_id, siret, company_name, specialties, experience_years, coverage_radius, credits_balance, rating_average, rating_count, total_projects, certification_badge, certification_date, insurance_expiry_date, has_rge, has_qualibat, has_qualibois, has_qualipac, has_qualipv, has_qualitenr, has_eco_artisan, other_certifications, status, created_at, updated_at")
+        .eq('user_id', user.id)
+        .select(
+          'id, user_id, siret, company_name, specialties, experience_years, coverage_radius, credits_balance, rating_average, rating_count, total_projects, certification_badge, certification_date, insurance_expiry_date, has_rge, has_qualibat, has_qualibois, has_qualipac, has_qualipv, has_qualitenr, has_eco_artisan, other_certifications, status, created_at, updated_at'
+        )
         .single();
 
       if (error) {
-        console.error("Error updating professional:", error);
+        console.error('Error updating professional:', error);
         return { data: null, error: new Error(error.message) };
       }
 
       return { data: data as ProfessionalWithCertifications, error: null };
     } catch (err) {
-      console.error("Error in updateProfessional:", err);
+      console.error('Error in updateProfessional:', err);
       return { data: null, error: err as Error };
     }
   },
@@ -231,28 +268,36 @@ export const professionalService = {
     qualiPV?: { number: string; expiryDate: string; document?: string };
     qualiPAC?: { number: string; expiryDate: string; document?: string };
     qualiBois?: { number: string; expiryDate: string; document?: string };
-    other?: { name: string; number: string; expiryDate: string; document?: string }[];
+    other?: {
+      name: string;
+      number: string;
+      expiryDate: string;
+      document?: string;
+    }[];
   }): Promise<{ success: boolean; error: Error | null }> {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !user) {
-        return { success: false, error: new Error("Non authentifié") };
+        return { success: false, error: new Error('Non authentifié') };
       }
 
       const { error } = await supabase
-        .from("professionals")
+        .from('professionals')
         .update({ certifications })
-        .eq("user_id", user.id);
+        .eq('user_id', user.id);
 
       if (error) {
-        console.error("Error updating certifications:", error);
+        console.error('Error updating certifications:', error);
         return { success: false, error: new Error(error.message) };
       }
 
       return { success: true, error: null };
     } catch (err) {
-      console.error("Error in updateCertifications:", err);
+      console.error('Error in updateCertifications:', err);
       return { success: false, error: err as Error };
     }
   },
@@ -265,25 +310,32 @@ export const professionalService = {
   ): Promise<{ data: Professional[]; error: Error | null }> {
     try {
       let query = supabase
-        .from("professionals")
-        .select("id, user_id, siret, company_name, specialties, experience_years, coverage_radius, credits_balance, rating_average, rating_count, total_projects, certification_badge, certification_date, insurance_expiry_date, has_rge, has_qualibat, has_qualibois, has_qualipac, has_qualipv, has_qualitenr, has_eco_artisan, other_certifications, status, created_at, updated_at")
-        .eq("status", "verified");
+        .from('professionals')
+        .select(
+          'id, user_id, siret, company_name, specialties, experience_years, coverage_radius, credits_balance, rating_average, rating_count, total_projects, certification_badge, certification_date, insurance_expiry_date, has_rge, has_qualibat, has_qualibois, has_qualipac, has_qualipv, has_qualitenr, has_eco_artisan, other_certifications, status, created_at, updated_at'
+        )
+        .eq('status', 'verified');
 
       // Filtrer par certifications (vérifie que le champ existe dans le JSONB)
-      requiredCertifications.forEach(cert => {
-        query = query.not("certifications", "is", null).filter(`certifications->${cert}`, "neq", null);
+      requiredCertifications.forEach((cert) => {
+        query = query
+          .not('certifications', 'is', null)
+          .filter(`certifications->${cert}`, 'neq', null);
       });
 
       const { data, error } = await query;
 
       if (error) {
-        console.error("Error searching professionals:", error);
+        console.error('Error searching professionals:', error);
         return { data: [], error: new Error(error.message) };
       }
 
-      return { data: (data || []) as ProfessionalWithCertifications[], error: null };
+      return {
+        data: (data || []) as ProfessionalWithCertifications[],
+        error: null,
+      };
     } catch (err) {
-      console.error("Error in searchByCertifications:", err);
+      console.error('Error in searchByCertifications:', err);
       return { data: [], error: err as Error };
     }
   },
@@ -291,9 +343,12 @@ export const professionalService = {
   /**
    * Check if professional has specific certification
    */
-  hasCertification(professional: ProfessionalWithCertifications, certificationKey: string): boolean {
+  hasCertification(
+    professional: ProfessionalWithCertifications,
+    certificationKey: string
+  ): boolean {
     if (!professional.certifications) return false;
-    
+
     const certs = professional.certifications as Record<string, any>;
     return !!certs[certificationKey] && !!certs[certificationKey].number;
   },
@@ -301,33 +356,39 @@ export const professionalService = {
   /**
    * Upload document to storage
    */
-  async uploadDocument(file: File, documentType: "siret" | "insurance" | "portfolio"): Promise<{ data: { url: string } | null; error: Error | null }> {
+  async uploadDocument(
+    file: File,
+    documentType: 'siret' | 'insurance' | 'portfolio'
+  ): Promise<{ data: { url: string } | null; error: Error | null }> {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !user) {
-        return { data: null, error: new Error("Non authentifié") };
+        return { data: null, error: new Error('Non authentifié') };
       }
 
-      const fileExt = file.name.split(".").pop();
+      const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${documentType}_${Date.now()}.${fileExt}`;
 
       const { data, error } = await supabase.storage
-        .from("professional-documents")
+        .from('professional-documents')
         .upload(fileName, file);
 
       if (error) {
-        console.error("Error uploading document:", error);
+        console.error('Error uploading document:', error);
         return { data: null, error: new Error(error.message) };
       }
 
       const { data: urlData } = supabase.storage
-        .from("professional-documents")
+        .from('professional-documents')
         .getPublicUrl(data.path);
 
       return { data: { url: urlData.publicUrl }, error: null };
     } catch (err) {
-      console.error("Error in uploadDocument:", err);
+      console.error('Error in uploadDocument:', err);
       return { data: null, error: err as Error };
     }
   },
@@ -335,36 +396,44 @@ export const professionalService = {
   /**
    * Get professional statistics
    */
-  async getStats(): Promise<{ data: { total_bids: number; accepted_bids: number; credits_balance: number } | null; error: Error | null }> {
+  async getStats(): Promise<{
+    data: {
+      total_bids: number;
+      accepted_bids: number;
+      credits_balance: number;
+    } | null;
+    error: Error | null;
+  }> {
     try {
-      const { data: professional, error: profError } = await this.getCurrentProfessional();
-      
+      const { data: professional, error: profError } =
+        await this.getCurrentProfessional();
+
       if (profError || !professional) {
         return { data: null, error: profError };
       }
 
       const { count: totalBids } = await supabase
-        .from("bids")
-        .select("*", { count: "exact", head: true })
-        .eq("professional_id", professional.id);
+        .from('bids')
+        .select('*', { count: 'exact', head: true })
+        .eq('professional_id', professional.id);
 
       const { count: acceptedBids } = await supabase
-        .from("bids")
-        .select("*", { count: "exact", head: true })
-        .eq("professional_id", professional.id)
-        .eq("status", "accepted");
+        .from('bids')
+        .select('*', { count: 'exact', head: true })
+        .eq('professional_id', professional.id)
+        .eq('status', 'accepted');
 
       return {
         data: {
           total_bids: totalBids || 0,
           accepted_bids: acceptedBids || 0,
-          credits_balance: professional.credits_balance || 0
+          credits_balance: professional.credits_balance || 0,
         },
-        error: null
+        error: null,
       };
     } catch (err) {
-      console.error("Error in getStats:", err);
+      console.error('Error in getStats:', err);
       return { data: null, error: err as Error };
     }
-  }
+  },
 };

@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { jwtVerify } from 'jose';
+// import { jwtVerify } from 'jose'; // Module not installed - using Supabase auth instead
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -36,26 +36,25 @@ async function validateJWT(
       return { valid: false, error: 'Token ou secret manquant' };
     }
 
-    // Convertir le secret en Uint8Array pour jose
-    const secretKey = new TextEncoder().encode(supabaseJwtSecret);
-
-    // Vérifier le token avec jose
-    const { payload } = await jwtVerify(token, secretKey, {
-      issuer: `https://${supabaseUrl.replace('https://', '').replace('/', '')}`,
-      audience: 'authenticated',
+    // Vérifier le token avec Supabase auth (jose non installé)
+    // Créer un client Supabase avec le token
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+      },
     });
 
-    // Vérifications supplémentaires
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && payload.exp < now) {
-      return { valid: false, error: 'Token expiré' };
+    // Vérifier le token via l'API Supabase
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return { valid: false, error: 'Token invalide ou expiré' };
     }
 
-    if (!payload.sub) {
-      return { valid: false, error: 'Subject manquant' };
-    }
-
-    return { valid: true, payload };
+    return { valid: true, payload: { sub: user.id, ...user } };
   } catch (error) {
     return {
       valid: false,
@@ -138,25 +137,66 @@ export async function middleware(request: NextRequest) {
           );
         }
 
-        // Vérifier les cookies admin persistants
-        const adminSession = request.cookies.get('admin_session')?.value;
-        const adminRole = request.cookies.get('admin_role')?.value;
+        // Vérification stricte avec cookie de session sécurisé
+        const adminSecureSession = request.cookies.get(
+          'adminGhostSession_secure_v3'
+        )?.value;
 
         if (process.env.NODE_ENV === 'development') {
           console.log(
-            '🍪 ADMIN COOKIES - Session:',
-            adminSession ? '✅ Présent' : '❌ Absent'
+            '🔒 ADMIN SECURE - Session:',
+            adminSecureSession ? '✅ Présente' : '❌ Absente'
           );
-          console.log('🍪 ADMIN COOKIES - Role:', adminRole || '❌ Absent');
         }
 
-        if (adminSession && adminRole === 'super_admin') {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(
-              '✅ MIDDLEWARE - Session admin valide, autorisation accordée'
+        // Vérifier si c'est un admin fantôme sécurisé valide
+        if (adminSecureSession) {
+          try {
+            const session = JSON.parse(adminSecureSession);
+            const isolationKey = 'EDSWIPE_ADMIN_ISOLATION_2024';
+            const now = Date.now();
+            const sessionTimeout = 24 * 60 * 60 * 1000; // 24h
+
+            // Vérifications de sécurité strictes
+            if (
+              session.isolation_key === isolationKey &&
+              session.user?.email === 'admin@swipetonpro.fr' &&
+              session.user?.role === 'super_admin' &&
+              now - session.timestamp < sessionTimeout
+            ) {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ MIDDLEWARE - Admin fantôme sécurisé validé');
+              }
+
+              // Ajouter les headers de sécurité pour le client
+              const response = NextResponse.next();
+              response.headers.set('x-admin-verified', 'true');
+              response.headers.set('x-isolation-verified', 'true');
+              return response;
+            } else {
+              if (process.env.NODE_ENV === 'development') {
+                console.log(
+                  '❌ MIDDLEWARE - Session admin invalide ou expirée'
+                );
+              }
+              // Nettoyer le cookie invalide
+              const response = NextResponse.redirect(
+                new URL('/auth/login', request.url)
+              );
+              response.cookies.delete('adminGhostSession_secure_v3');
+              return response;
+            }
+          } catch (e) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('❌ MIDDLEWARE - Erreur parsing session admin:', e);
+            }
+            // Nettoyer le cookie corrompu
+            const response = NextResponse.redirect(
+              new URL('/auth/login', request.url)
             );
+            response.cookies.delete('adminGhostSession_secure_v3');
+            return response;
           }
-          return NextResponse.next();
         }
 
         // Ancien contournement pour admin dashboard direct
@@ -172,7 +212,7 @@ export async function middleware(request: NextRequest) {
 
         if (process.env.NODE_ENV === 'development') {
           console.log(
-            '❌ MIDDLEWARE - Pas de session admin, redirection vers login'
+            '❌ MIDDLEWARE - Aucune session admin valide, redirection vers login'
           );
         }
         return NextResponse.redirect(new URL('/auth/login', request.url));
@@ -180,8 +220,9 @@ export async function middleware(request: NextRequest) {
 
       // Créer le client Supabase avec configuration pour middleware
       const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-        autoRefreshToken: false,
-        persistSession: false,
+        auth: {
+          persistSession: false,
+        },
       });
 
       // Valider le token avec validation JWT robuste

@@ -2,7 +2,7 @@
  * @fileoverview Optimized Matching Service - Stable Architecture
  * @author Senior Architect
  * @version 2.0.0
- * 
+ *
  * Replaces problematic matchingService with a stable, optimized version
  */
 
@@ -30,140 +30,166 @@ export class MatchingServiceV2 {
    * Professional signals interest in a project
    * Fixed version that handles all database schema issues
    */
-  async signalInterest(projectId: string): Promise<{ data: any; error: Error | null }> {
+  async signalInterest(
+    projectId: string
+  ): Promise<{ data: any; error: Error | null }> {
     try {
-      console.log("🚀 Starting signalInterest for project:", projectId);
-      
+      console.log('🚀 Starting signalInterest for project:', projectId);
+
       // Get current user from CentralAuthService (SOURCE UNIQUE DE VÉRITÉ)
       const authService = CentralAuthService.getInstance();
-      const { user, professional, role, error: authError } = await authService.getAuthData();
-      
+      const {
+        user,
+        professional,
+        role,
+        error: authError,
+      } = await authService.getAuthData();
+
       if (authError) {
-        console.error("❌ Auth service error:", authError);
+        console.error('❌ Auth service error:', authError);
         return { data: null, error: new Error("Erreur d'authentification") };
       }
-      
+
       if (!user) {
-        console.error("❌ User not authenticated");
-        return { data: null, error: new Error("Utilisateur non connecté") };
+        console.error('❌ User not authenticated');
+        return { data: null, error: new Error('Utilisateur non connecté') };
       }
 
       if (role !== 'professional') {
-        console.error("❌ User is not a professional:", role);
-        return { data: null, error: new Error("Accès non autorisé - rôle invalide") };
+        console.error('❌ User is not a professional:', role);
+        return {
+          data: null,
+          error: new Error('Accès non autorisé - rôle invalide'),
+        };
       }
 
       if (!professional) {
-        console.error("❌ Professional profile not found");
-        return { data: null, error: new Error("Profil professionnel non trouvé") };
+        console.error('❌ Professional profile not found');
+        return {
+          data: null,
+          error: new Error('Profil professionnel non trouvé'),
+        };
       }
 
-      console.log("✅ User authenticated:", user.id);
-      console.log("✅ Professional validated:", professional.company_name);
+      console.log('✅ User authenticated:', user.id);
+      console.log('✅ Professional validated:', professional.company_name);
 
-      console.log("✅ Professional found:", professional.id);
+      console.log('✅ Professional found:', professional.id);
 
       // Check if already interested
       const { data: existingInterest, error: checkError } = await this.client
-        .from("project_interests")
-        .select("*")
-        .eq("project_id", projectId)
-        .eq("professional_id", professional.id)
+        .from('project_interests')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('professional_id', professional.id)
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error("❌ Error checking existing interest:", checkError);
+        console.error('❌ Error checking existing interest:', checkError);
         return { data: null, error: checkError };
       }
 
       if (existingInterest) {
-        console.log("⚠️ Interest already exists");
-        return { data: null, error: new Error("Vous avez déjà signalé votre intérêt pour ce projet") };
+        console.log('⚠️ Interest already exists');
+        return {
+          data: null,
+          error: new Error(
+            'Vous avez déjà signalé votre intérêt pour ce projet'
+          ),
+        };
       }
 
-      console.log("✅ No existing interest, creating new one...");
+      console.log('✅ No existing interest, creating new one...');
 
       // Insert the interest
       const { data, error } = await this.client
-        .from("project_interests")
+        .from('project_interests')
         .insert({
           project_id: projectId,
           professional_id: professional.id,
-          status: "interested"
+          status: 'interested',
         })
         .select()
         .single();
 
       if (error) {
-        console.error("❌ Error inserting interest:", error);
+        console.error('❌ Error inserting interest:', error);
         throw error;
       }
 
-      console.log("✅ Interest created successfully:", data);
+      console.log('✅ Interest created successfully:', data);
 
       // Get project details for notification
       const { data: project } = await this.client
-        .from("projects")
-        .select("title, client_id")
-        .eq("id", projectId)
+        .from('projects')
+        .select('title, client_id')
+        .eq('id', projectId)
         .single();
 
       // Send notification to client using our optimized service
       if (project?.client_id) {
-        console.log("📧 Sending interest notification...");
+        console.log('📧 Sending interest notification...');
         await this._sendInterestNotification({
           userId: project.client_id,
           projectId: projectId,
           projectName: project.title,
-          professionalId: professional.id
+          professionalId: professional.id,
         });
       }
 
       // APPEL API POUR NOTIFICATIONS EMAIL (Client + Admin)
-      console.log("📧 Sending email notifications via new API...");
+      console.log('📧 Sending email notifications via new API...');
       try {
         // Récupérer le token d'authentification
-        const { data: { session } } = await this.client.auth.getSession();
-        
+        const {
+          data: { session },
+        } = await this.client.auth.getSession();
+
         if (!session || !session.access_token) {
-          console.warn("⚠️ No session found, skipping email notifications");
+          console.warn('⚠️ No session found, skipping email notifications');
         } else {
-          const response = await fetch("/api/notifications/send-interest-email", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({
-              projectId: projectId,
-              professionalId: professional.id
-            })
-          });
+          const response = await fetch(
+            '/api/notifications/send-interest-email',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                projectId: projectId,
+                professionalId: professional.id,
+              }),
+            }
+          );
 
           if (response.ok) {
             const result = await response.json();
-            console.log("✅ Email notifications sent successfully:", result);
+            console.log('✅ Email notifications sent successfully:', result);
           } else {
-            console.error("❌ Failed to send email notifications:", await response.text());
+            console.error(
+              '❌ Failed to send email notifications:',
+              await response.text()
+            );
           }
         }
       } catch (emailError) {
-        console.error("❌ Error sending email notifications:", emailError);
+        console.error('❌ Error sending email notifications:', emailError);
         // Continuer même si les emails échouent
       }
 
       // Notify nearby professionals about this project (non-blocking)
-      console.log("📍 Notifying nearby professionals...");
+      console.log('📍 Notifying nearby professionals...');
       try {
         await geoMatchingService.notifyNearbyProfessionals(projectId, 30);
       } catch (geoError) {
-        console.warn("⚠️ Could not notify nearby professionals:", geoError);
+        console.warn('⚠️ Could not notify nearby professionals:', geoError);
         // Continue even if geo notification fails
       }
 
       return { data, error: null };
     } catch (err) {
-      console.error("Error in signalInterest:", err);
+      console.error('Error in signalInterest:', err);
       return { data: null, error: err as Error };
     }
   }
@@ -179,31 +205,32 @@ export class MatchingServiceV2 {
     professionalId: string;
   }): Promise<void> {
     try {
-      console.log("🔔 Creating in-app notification:", data);
-      
+      console.log('🔔 Creating in-app notification:', data);
+
       const notificationData = {
         user_id: data.userId,
-        title: "Nouveau professionnel intéressé",
+        title: 'Nouveau professionnel intéressé',
         message: `Un professionnel a montré de l'intérêt pour votre projet "${data.projectName}"`,
-        type: "new_interest",
+        type: 'new_interest',
         data: {
           project_id: data.projectId,
-          professional_id: data.professionalId
-        }
+          professional_id: data.professionalId,
+        },
       };
 
-      console.log("📧 Notification data:", notificationData);
-      
-      const { error } = await databaseService.createNotification(notificationData);
+      console.log('📧 Notification data:', notificationData);
+
+      const { error } =
+        await databaseService.createNotification(notificationData);
 
       if (error) {
-        console.error("❌ Notification error:", error);
+        console.error('❌ Notification error:', error);
         // Don't throw - notification failure shouldn't break the interest signal
       } else {
-        console.log("✅ Notification sent successfully");
+        console.log('✅ Notification sent successfully');
       }
     } catch (notifError) {
-      console.warn("⚠️ Erreur notification (non critique):", notifError);
+      console.warn('⚠️ Erreur notification (non critique):', notifError);
       // Never throw here - notification is secondary to the main action
     }
   }
@@ -214,8 +241,9 @@ export class MatchingServiceV2 {
   async getProjectInterests(projectId: string) {
     try {
       const { data, error } = await this.client
-        .from("project_interests")
-        .select(`
+        .from('project_interests')
+        .select(
+          `
           *,
           professional:professionals!project_interests_professional_id_fkey(
             id,
@@ -223,9 +251,10 @@ export class MatchingServiceV2 {
             user_id,
             profiles!professionals_user_id_fkey(full_name, avatar_url)
           )
-        `)
-        .eq("project_id", projectId)
-        .order("created_at", { ascending: false });
+        `
+        )
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
       return { data, error };
     } catch (err) {
@@ -239,8 +268,9 @@ export class MatchingServiceV2 {
   async getProfessionalInterests(professionalId: string) {
     try {
       const { data, error } = await this.client
-        .from("project_interests")
-        .select(`
+        .from('project_interests')
+        .select(
+          `
           *,
           project:projects!project_interests_project_id_fkey(
             id,
@@ -252,9 +282,10 @@ export class MatchingServiceV2 {
             status,
             created_at
           )
-        `)
-        .eq("professional_id", professionalId)
-        .order("created_at", { ascending: false });
+        `
+        )
+        .eq('professional_id', professionalId)
+        .order('created_at', { ascending: false });
 
       return { data, error };
     } catch (err) {
@@ -265,12 +296,15 @@ export class MatchingServiceV2 {
   /**
    * Update interest status
    */
-  async updateInterestStatus(interestId: string, status: 'interested' | 'not_interested' | 'maybe') {
+  async updateInterestStatus(
+    interestId: string,
+    status: 'interested' | 'not_interested' | 'maybe'
+  ) {
     try {
       const { data, error } = await this.client
-        .from("project_interests")
+        .from('project_interests')
         .update({ status })
-        .eq("id", interestId)
+        .eq('id', interestId)
         .select()
         .single();
 
@@ -286,9 +320,9 @@ export class MatchingServiceV2 {
   async deleteInterest(interestId: string) {
     try {
       const { data, error } = await this.client
-        .from("project_interests")
+        .from('project_interests')
         .delete()
-        .eq("id", interestId);
+        .eq('id', interestId);
 
       return { data, error };
     } catch (err) {
@@ -301,11 +335,12 @@ export class MatchingServiceV2 {
    */
   async getNearbyProfessionals(projectId: string, maxDistanceKm: number = 50) {
     try {
-      const { professionals, error } = await geoMatchingService.findNearbyProfessionals(
-        projectId,
-        maxDistanceKm,
-        20
-      );
+      const { professionals, error } =
+        await geoMatchingService.findNearbyProfessionals(
+          projectId,
+          maxDistanceKm,
+          20
+        );
 
       return { data: professionals, error };
     } catch (err) {
@@ -316,15 +351,18 @@ export class MatchingServiceV2 {
   /**
    * Accept a professional for a project
    */
-  async acceptProfessional(projectId: string, professionalId: string): Promise<{ data: any; error: Error | null }> {
+  async acceptProfessional(
+    projectId: string,
+    professionalId: string
+  ): Promise<{ data: any; error: Error | null }> {
     try {
       // Update project status
       const { data: project, error: updateError } = await this.client
         .from('projects')
-        .update({ 
+        .update({
           status: 'in_progress',
           assigned_professional_id: professionalId,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', projectId)
         .select()
@@ -340,7 +378,10 @@ export class MatchingServiceV2 {
         .eq('professional_id', professionalId);
 
       // Send acceptance notifications
-      await emailNotificationService.sendAcceptanceNotification(projectId, professionalId);
+      await emailNotificationService.sendAcceptanceNotification(
+        projectId,
+        professionalId
+      );
 
       return { data: project, error: null };
     } catch (err) {
@@ -361,14 +402,14 @@ export class MatchingServiceV2 {
     try {
       // Create planning entry
       const { data: planning, error: planningError } = await this.client
-        .from('project_planning')
+        .from('project_planning' as any)
         .insert({
           project_id: projectId,
           professional_id: professionalId,
           date: planningDate,
           time: planningTime,
           status: 'scheduled',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -393,14 +434,17 @@ export class MatchingServiceV2 {
   /**
    * Complete a project
    */
-  async completeProject(projectId: string, professionalId: string): Promise<{ data: any; error: Error | null }> {
+  async completeProject(
+    projectId: string,
+    professionalId: string
+  ): Promise<{ data: any; error: Error | null }> {
     try {
       // Update project status
       const { data: project, error: updateError } = await this.client
         .from('projects')
-        .update({ 
+        .update({
           status: 'completed',
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
         })
         .eq('id', projectId)
         .select()
@@ -409,7 +453,10 @@ export class MatchingServiceV2 {
       if (updateError) throw updateError;
 
       // Send completion notifications
-      await emailNotificationService.sendCompletionNotification(projectId, professionalId);
+      await emailNotificationService.sendCompletionNotification(
+        projectId,
+        professionalId
+      );
 
       return { data: project, error: null };
     } catch (err) {
@@ -423,23 +470,28 @@ export class MatchingServiceV2 {
   async getProfessionalStats(professionalId: string) {
     try {
       const { data: interests, error: interestsError } = await this.client
-        .from("project_interests")
-        .select("status, created_at")
-        .eq("professional_id", professionalId);
+        .from('project_interests')
+        .select('status, created_at')
+        .eq('professional_id', professionalId);
 
       if (interestsError) throw interestsError;
 
       const stats = {
         total: interests?.length || 0,
-        interested: interests?.filter(i => i.status === 'interested').length || 0,
-        maybe: interests?.filter(i => i.status === 'maybe').length || 0,
-        not_interested: interests?.filter(i => i.status === 'not_interested').length || 0,
-        thisMonth: interests?.filter(i => {
-          const createdAt = new Date(i.created_at);
-          const now = new Date();
-          return createdAt.getMonth() === now.getMonth() && 
-                 createdAt.getFullYear() === now.getFullYear();
-        }).length || 0
+        interested:
+          interests?.filter((i) => i.status === 'interested').length || 0,
+        maybe: interests?.filter((i) => i.status === 'maybe').length || 0,
+        not_interested:
+          interests?.filter((i) => i.status === 'not_interested').length || 0,
+        thisMonth:
+          interests?.filter((i) => {
+            const createdAt = new Date(i.created_at);
+            const now = new Date();
+            return (
+              createdAt.getMonth() === now.getMonth() &&
+              createdAt.getFullYear() === now.getFullYear()
+            );
+          }).length || 0,
       };
 
       return { data: stats, error: null };

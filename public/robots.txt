@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://swipetonpro.fr/sitemap.xml
+
+# Disallow admin routes
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/reset-password
+
+# Crawl delay for bots
+Crawl-delay: 10

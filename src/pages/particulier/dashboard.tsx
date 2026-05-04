@@ -43,6 +43,8 @@ import {
   Bell,
   AlertTriangle,
   FileText,
+  Download,
+  Edit,
 } from 'lucide-react';
 // import { authService } from "@/services/authService"; // Plus utilisé
 import { projectService } from '@/services/projectService';
@@ -212,12 +214,12 @@ function ParticulierDashboardContent() {
               .length || 0,
           totalSpent:
             projectsArray?.reduce(
-              (sum: number, p: Project) => sum + (p.budget || 0),
+              (sum: number, p: Project) => sum + ((p as any).budget || 0),
               0
             ) || 0,
           totalAIBudget:
             projectsArray?.reduce(
-              (sum: number, p: Project) => sum + (p.ai_budget || 0),
+              (sum: number, p: Project) => sum + ((p as any).ai_budget || 0),
               0
             ) || 0,
         };
@@ -684,11 +686,63 @@ function ParticulierDashboardContent() {
                         </div>
                       </div>
 
-                      <Link href={`/particulier/projects/${project.id}`}>
-                        <Button variant="outline" className="w-full">
-                          Voir les détails
-                        </Button>
-                      </Link>
+                      <div className="space-y-2">
+                        {/* Actions pour l'accord mutuel si le projet est matché */}
+                        {project.status === 'matched' && (
+                          <div className="flex gap-2">
+                            {project.accord_status === 'generated' ? (
+                              <div className="flex gap-2 w-full">
+                                <Link
+                                  href={`/particulier/accord-mutuel/${project.id}`}
+                                  className="flex-1"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                    Modifier
+                                  </Button>
+                                </Link>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    window.open(
+                                      `/api/download-accord-pdf?projectId=${project.id}`
+                                    )
+                                  }
+                                  className="flex-1"
+                                >
+                                  <Download className="w-3 h-3 mr-1" />
+                                  PDF
+                                </Button>
+                              </div>
+                            ) : (
+                              <Link
+                                href={`/particulier/accord-mutuel/${project.id}`}
+                                className="w-full"
+                              >
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full"
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Créer l'accord
+                                </Button>
+                              </Link>
+                            )}
+                          </div>
+                        )}
+
+                        <Link href={`/particulier/projects/${project.id}`}>
+                          <Button variant="outline" className="w-full">
+                            Voir les détails
+                          </Button>
+                        </Link>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

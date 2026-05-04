@@ -40,6 +40,8 @@ import {
   Home,
   Bell,
   AlertTriangle,
+  FileText,
+  Download,
 } from 'lucide-react';
 
 // Désactiver SSR pour cette page
@@ -103,9 +105,10 @@ function ProfessionalDashboardContent() {
 
         const { supabase } = await import('@/integrations/supabase/client');
 
+        // Charger les projets via project_interests (projects n'a pas professional_id)
         const { data, error } = await supabase
-          .from('projects')
-          .select('*')
+          .from('project_interests')
+          .select('project_id, project:projects(*)')
           .eq('professional_id', professionalId)
           .order('created_at', { ascending: false });
 
@@ -119,14 +122,17 @@ function ProfessionalDashboardContent() {
           throw error;
         }
 
+        const projects =
+          data?.map((item: any) => item.project).filter(Boolean) || [];
+
         if (process.env.NODE_ENV === 'development') {
           console.log(
             '✅ ProfessionalDashboard: Projects loaded successfully',
-            { count: data?.length }
+            { count: projects.length }
           );
         }
 
-        return data || [];
+        return projects;
       },
 
       async loadPendingInterests(professionalId: string) {
@@ -227,7 +233,7 @@ function ProfessionalDashboardContent() {
               (sum: number, p: Project) => sum + (p.budget || 0),
               0
             ) || 0,
-          averageRating: professional.rating || 0,
+          averageRating: professional.rating_average || 0,
           responseRate: 85, // À calculer depuis la base
           pendingBids: pendingInterestsData?.length || 0,
           totalViews:
@@ -629,13 +635,43 @@ function ProfessionalDashboardContent() {
                         </div>
 
                         <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
-                          <span>{project.work_type || 'Autre'}</span>
+                          <span>
+                            {project.work_types?.join(', ') || 'Autre'}
+                          </span>
                           <span>
                             {new Date(project.created_at).toLocaleDateString(
                               'fr-FR'
                             )}
                           </span>
                         </div>
+
+                        {/* Actions pour l'accord mutuel si le projet est matché */}
+                        {project.status === 'matched' && (
+                          <div className="mt-3 pt-3 border-t">
+                            {project.accord_status === 'generated' ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    window.open(
+                                      `/api/download-accord-pdf?projectId=${project.id}`
+                                    )
+                                  }
+                                  className="flex-1"
+                                >
+                                  <Download className="w-3 h-3 mr-1" />
+                                  Accord PDF
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="text-center text-xs text-muted-foreground">
+                                <FileText className="w-3 h-3 mr-1 inline" />
+                                Accord en préparation
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Link>
                   </Card>

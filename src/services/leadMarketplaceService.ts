@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
 export interface LeadForSale {
   id: string;
@@ -21,7 +21,7 @@ export interface LeadForSale {
     name: string;
   };
   project_details: {
-    work_type: string;
+    work_types: string[];
     surface?: number;
     rooms?: number;
     specific_requirements?: string;
@@ -57,37 +57,42 @@ export const leadMarketplaceService = {
   }): Promise<{ data: LeadForSale[] | null; error: Error | null }> {
     try {
       let query = (supabase as any)
-        .from("leads_for_sale")
-        .select("*")
-        .eq("is_available", true)
-        .order("qualification_score", { ascending: false });
+        .from('leads_for_sale')
+        .select('*')
+        .eq('is_available', true)
+        .order('qualification_score', { ascending: false });
 
       if (filters?.category) {
-        query = query.eq("category", filters.category);
+        query = query.eq('category', filters.category);
       }
       if (filters?.city) {
-        query = query.eq("city", filters.city);
+        query = query.eq('city', filters.city);
       }
       if (filters?.minBudget) {
-        query = query.gte("budget_min", filters.minBudget);
+        query = query.gte('budget_min', filters.minBudget);
       }
       if (filters?.maxBudget) {
-        query = query.lte("budget_max", filters.maxBudget);
+        query = query.lte('budget_max', filters.maxBudget);
       }
       if (filters?.qualificationLevel) {
-        const scoreRange = filters.qualificationLevel === 'hot' ? [70, 100] : 
-                          filters.qualificationLevel === 'warm' ? [40, 69] : [0, 39];
-        query = query.gte("qualification_score", scoreRange[0])
-                     .lte("qualification_score", scoreRange[1]);
+        const scoreRange =
+          filters.qualificationLevel === 'hot'
+            ? [70, 100]
+            : filters.qualificationLevel === 'warm'
+              ? [40, 69]
+              : [0, 39];
+        query = query
+          .gte('qualification_score', scoreRange[0])
+          .lte('qualification_score', scoreRange[1]);
       }
       if (filters?.urgency) {
-        query = query.eq("urgency", filters.urgency);
+        query = query.eq('urgency', filters.urgency);
       }
 
       const { data, error } = await query;
       return { data, error: error as Error };
     } catch (error) {
-      console.error("Erreur récupération leads:", error);
+      console.error('Erreur récupération leads:', error);
       return { data: null, error: error as Error };
     }
   },
@@ -95,21 +100,27 @@ export const leadMarketplaceService = {
   /**
    * Mettre un lead en vente
    */
-  async putLeadForSale(leadId: string, price: number, maxSales: number = 3): Promise<{ success: boolean; error?: string }> {
+  async putLeadForSale(
+    leadId: string,
+    price: number,
+    maxSales: number = 3
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Récupérer les informations du lead
       const { data: lead, error: leadError } = await (supabase as any)
-        .from("leads")
-        .select(`
+        .from('leads')
+        .select(
+          `
           *,
-          project:projects(id, title, category, city, budget_min, budget_max, description, work_type),
+          project:projects(id, title, category, city, budget_min, budget_max, description, work_types),
           client:profiles(id, email, phone, full_name)
-        `)
-        .eq("id", leadId)
+        `
+        )
+        .eq('id', leadId)
         .single();
 
       if (leadError || !lead) {
-        throw new Error("Lead non trouvé");
+        throw new Error('Lead non trouvé');
       }
 
       // Préparer les données pour la vente
@@ -117,53 +128,58 @@ export const leadMarketplaceService = {
         id: lead.id,
         project_id: lead.project_id,
         client_id: lead.client_id,
-        title: lead.project?.title || "Projet sans titre",
-        category: lead.project?.category || "Autre",
-        city: lead.project?.city || "Non spécifié",
+        title: lead.project?.title || 'Projet sans titre',
+        category: lead.project?.category || 'Autre',
+        city: lead.project?.city || 'Non spécifié',
         budget_min: lead.project?.budget_min || 0,
         budget_max: lead.project?.budget_max || 0,
         qualification_score: lead.qualification_score || 0,
-        status: lead.status === 'hot' ? 'hot' : lead.status === 'qualified' ? 'warm' : 'cold',
+        status:
+          lead.status === 'hot'
+            ? 'hot'
+            : lead.status === 'qualified'
+              ? 'warm'
+              : 'cold',
         urgency: lead.urgency || 'medium',
-        timeline: lead.timeline || "Non spécifié",
-        description: lead.project?.description || "",
+        timeline: lead.timeline || 'Non spécifié',
+        description: lead.project?.description || '',
         contact_info: {
-          email: lead.client?.email || "",
-          phone: lead.client?.phone || "",
-          name: lead.client?.full_name || "Client"
+          email: lead.client?.email || '',
+          phone: lead.client?.phone || '',
+          name: lead.client?.full_name || 'Client',
         },
         project_details: {
-          work_type: lead.project?.work_type || "",
+          work_types: lead.project?.work_types || [],
           surface: 0, // À implémenter
           rooms: 0, // À implémenter
-          specific_requirements: "" // À implémenter
+          specific_requirements: '', // À implémenter
         },
         created_at: lead.created_at,
         price: price,
         is_available: true,
         sold_count: 0,
-        max_sales: maxSales
+        max_sales: maxSales,
       };
 
       // Insérer dans la table des leads à vendre
       const { error: insertError } = await (supabase as any)
-        .from("leads_for_sale")
+        .from('leads_for_sale')
         .insert(leadForSale);
 
       if (insertError) throw insertError;
 
       // Mettre à jour le statut du lead original
       await (supabase as any)
-        .from("leads")
-        .update({ 
+        .from('leads')
+        .update({
           status: 'for_sale',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq("id", leadId);
+        .eq('id', leadId);
 
       return { success: true };
     } catch (error) {
-      console.error("Erreur mise en vente lead:", error);
+      console.error('Erreur mise en vente lead:', error);
       return { success: false, error: (error as Error).message };
     }
   },
@@ -171,23 +187,27 @@ export const leadMarketplaceService = {
   /**
    * Acheter un lead
    */
-  async purchaseLead(leadId: string, buyerId: string, purchasePrice: number): Promise<{ success: boolean; error?: string; purchaseId?: string }> {
+  async purchaseLead(
+    leadId: string,
+    buyerId: string,
+    purchasePrice: number
+  ): Promise<{ success: boolean; error?: string; purchaseId?: string }> {
     try {
       // Vérifier que le lead est disponible
       const { data: lead, error: leadError } = await (supabase as any)
-        .from("leads_for_sale")
-        .select("*")
-        .eq("id", leadId)
-        .eq("is_available", true)
+        .from('leads_for_sale')
+        .select('*')
+        .eq('id', leadId)
+        .eq('is_available', true)
         .single();
 
       if (leadError || !lead) {
-        throw new Error("Lead non disponible");
+        throw new Error('Lead non disponible');
       }
 
       // Vérifier que le nombre de ventes n'est pas dépassé
       if (lead.sold_count >= lead.max_sales) {
-        throw new Error("Ce lead a atteint son nombre maximum de ventes");
+        throw new Error('Ce lead a atteint son nombre maximum de ventes');
       }
 
       // Créer l'enregistrement d'achat
@@ -197,11 +217,11 @@ export const leadMarketplaceService = {
         purchase_price: purchasePrice,
         payment_status: 'pending',
         purchased_at: new Date().toISOString(),
-        contact_details_revealed: false
+        contact_details_revealed: false,
       };
 
       const { data: purchase, error: purchaseError } = await (supabase as any)
-        .from("lead_purchases")
+        .from('lead_purchases')
         .insert(purchaseData)
         .select()
         .single();
@@ -215,17 +235,17 @@ export const leadMarketplaceService = {
       const isStillAvailable = newSoldCount < lead.max_sales;
 
       await (supabase as any)
-        .from("leads_for_sale")
+        .from('leads_for_sale')
         .update({
           sold_count: newSoldCount,
           is_available: isStillAvailable,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq("id", leadId);
+        .eq('id', leadId);
 
       return { success: true, purchaseId: purchase.id };
     } catch (error) {
-      console.error("Erreur achat lead:", error);
+      console.error('Erreur achat lead:', error);
       return { success: false, error: (error as Error).message };
     }
   },
@@ -233,45 +253,49 @@ export const leadMarketplaceService = {
   /**
    * Confirmer le paiement et révéler les informations de contact
    */
-  async confirmPaymentAndRevealContact(purchaseId: string): Promise<{ success: boolean; error?: string; contactInfo?: any }> {
+  async confirmPaymentAndRevealContact(
+    purchaseId: string
+  ): Promise<{ success: boolean; error?: string; contactInfo?: any }> {
     try {
       // Récupérer les détails de l'achat
       const { data: purchase, error: purchaseError } = await (supabase as any)
-        .from("lead_purchases")
-        .select(`
+        .from('lead_purchases')
+        .select(
+          `
           *,
           lead:leads_for_sale(id, title, contact_info, project_details)
-        `)
-        .eq("id", purchaseId)
+        `
+        )
+        .eq('id', purchaseId)
         .single();
 
       if (purchaseError || !purchase) {
-        throw new Error("Achat non trouvé");
+        throw new Error('Achat non trouvé');
       }
 
       // Simuler le paiement (dans un vrai système, on intégrerait Stripe ici)
       const paymentSuccessful = true; // Simulation
 
       if (!paymentSuccessful) {
-        throw new Error("Paiement échoué");
+        throw new Error('Paiement échoué');
       }
 
       // Mettre à jour le statut du paiement
       await (supabase as any)
-        .from("lead_purchases")
+        .from('lead_purchases')
         .update({
           payment_status: 'completed',
           contact_details_revealed: true,
-          access_granted_at: new Date().toISOString()
+          access_granted_at: new Date().toISOString(),
         })
-        .eq("id", purchaseId);
+        .eq('id', purchaseId);
 
-      return { 
-        success: true, 
-        contactInfo: purchase.lead?.contact_info 
+      return {
+        success: true,
+        contactInfo: purchase.lead?.contact_info,
       };
     } catch (error) {
-      console.error("Erreur confirmation paiement:", error);
+      console.error('Erreur confirmation paiement:', error);
       return { success: false, error: (error as Error).message };
     }
   },
@@ -279,20 +303,24 @@ export const leadMarketplaceService = {
   /**
    * Récupérer les achats d'un professionnel
    */
-  async getBuyerPurchases(buyerId: string): Promise<{ data: any[] | null; error: Error | null }> {
+  async getBuyerPurchases(
+    buyerId: string
+  ): Promise<{ data: any[] | null; error: Error | null }> {
     try {
       const { data, error } = await (supabase as any)
-        .from("lead_purchases")
-        .select(`
+        .from('lead_purchases')
+        .select(
+          `
           *,
           lead:leads_for_sale(id, title, category, city, budget_max, price)
-        `)
-        .eq("buyer_id", buyerId)
-        .order("purchased_at", { ascending: false });
+        `
+        )
+        .eq('buyer_id', buyerId)
+        .order('purchased_at', { ascending: false });
 
       return { data, error: error as Error };
     } catch (error) {
-      console.error("Erreur récupération achats:", error);
+      console.error('Erreur récupération achats:', error);
       return { data: null, error: error as Error };
     }
   },
@@ -302,7 +330,7 @@ export const leadMarketplaceService = {
    */
   calculateRecommendedPrice(lead: any): number {
     const basePrice = 50; // Prix de base
-    
+
     // Ajustement selon le score de qualification
     const scoreMultiplier = lead.qualification_score / 100;
     const priceFromScore = basePrice * (1 + scoreMultiplier);
@@ -312,9 +340,14 @@ export const leadMarketplaceService = {
     const priceFromBudget = basePrice * Math.min(budgetMultiplier, 5); // Max 5x
 
     // Ajustement selon l'urgence
-    const urgencyMultiplier = lead.urgency === 'urgent' ? 1.5 : 
-                           lead.urgency === 'high' ? 1.2 : 
-                           lead.urgency === 'medium' ? 1.0 : 0.8;
+    const urgencyMultiplier =
+      lead.urgency === 'urgent'
+        ? 1.5
+        : lead.urgency === 'high'
+          ? 1.2
+          : lead.urgency === 'medium'
+            ? 1.0
+            : 0.8;
 
     const finalPrice = Math.max(
       basePrice,
@@ -338,37 +371,46 @@ export const leadMarketplaceService = {
   }> {
     try {
       const { data: leads, error } = await (supabase as any)
-        .from("leads_for_sale")
-        .select("*");
+        .from('leads_for_sale')
+        .select('*');
 
       if (error || !leads) {
         throw error;
       }
 
       const totalLeads = leads.length;
-      const availableLeads = leads.filter(lead => lead.is_available).length;
+      const availableLeads = leads.filter((lead) => lead.is_available).length;
       const soldLeads = leads.reduce((sum, lead) => sum + lead.sold_count, 0);
-      const totalRevenue = leads.reduce((sum, lead) => sum + (lead.price * lead.sold_count), 0);
+      const totalRevenue = leads.reduce(
+        (sum, lead) => sum + lead.price * lead.sold_count,
+        0
+      );
       const averagePrice = totalLeads > 0 ? totalRevenue / soldLeads : 0;
 
       // Calculer les catégories et villes les plus populaires
-      const categoryCounts = leads.reduce((acc, lead) => {
-        acc[lead.category] = (acc[lead.category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const categoryCounts = leads.reduce(
+        (acc, lead) => {
+          acc[lead.category] = (acc[lead.category] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
-      const cityCounts = leads.reduce((acc, lead) => {
-        acc[lead.city] = (acc[lead.city] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const cityCounts = leads.reduce(
+        (acc, lead) => {
+          acc[lead.city] = (acc[lead.city] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const topCategories = Object.entries(categoryCounts)
-        .sort(([,a], [,b]) => (b as number) - (a as number))
+        .sort(([, a], [, b]) => (b as number) - (a as number))
         .slice(0, 5)
         .map(([category, count]) => ({ category, count: count as number }));
 
       const topCities = Object.entries(cityCounts)
-        .sort(([,a], [,b]) => (b as number) - (a as number))
+        .sort(([, a], [, b]) => (b as number) - (a as number))
         .slice(0, 5)
         .map(([city, count]) => ({ city, count: count as number }));
 
@@ -379,10 +421,10 @@ export const leadMarketplaceService = {
         totalRevenue,
         averagePrice,
         topCategories,
-        topCities
+        topCities,
       };
     } catch (error) {
-      console.error("Erreur statistiques marketplace:", error);
+      console.error('Erreur statistiques marketplace:', error);
       return {
         totalLeads: 0,
         availableLeads: 0,
@@ -390,8 +432,8 @@ export const leadMarketplaceService = {
         totalRevenue: 0,
         averagePrice: 0,
         topCategories: [],
-        topCities: []
+        topCities: [],
       };
     }
-  }
+  },
 };

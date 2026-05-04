@@ -5,7 +5,7 @@ import { chatService } from '@/services/chatService';
 import { emailService } from '@/services/emailService';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-01-27.acacia',
+  apiVersion: '2025-02-24.acacia',
 });
 
 export async function POST(request: NextRequest) {
@@ -28,23 +28,33 @@ export async function POST(request: NextRequest) {
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        await handleCheckoutSessionCompleted(
+          event.data.object as Stripe.Checkout.Session
+        );
         break;
 
       case 'checkout.session.expired':
-        await handleCheckoutSessionExpired(event.data.object as Stripe.Checkout.Session);
+        await handleCheckoutSessionExpired(
+          event.data.object as Stripe.Checkout.Session
+        );
         break;
 
       case 'payment_intent.succeeded':
-        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+        await handlePaymentIntentSucceeded(
+          event.data.object as Stripe.PaymentIntent
+        );
         break;
 
       case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        await handlePaymentIntentFailed(
+          event.data.object as Stripe.PaymentIntent
+        );
         break;
 
       case 'invoice.payment_succeeded':
-        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
+        await handleInvoicePaymentSucceeded(
+          event.data.object as Stripe.Invoice
+        );
         break;
 
       case 'invoice.payment_failed':
@@ -62,7 +72,9 @@ export async function POST(request: NextRequest) {
   return new Response('OK');
 }
 
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+async function handleCheckoutSessionCompleted(
+  session: Stripe.Checkout.Session
+) {
   console.log('Checkout session completed:', session.id);
 
   try {
@@ -80,9 +92,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     // Mettre à jour le statut du paiement
     const { error: updateError } = await supabase
       .from('match_payments')
-      .update({ 
+      .update({
         status: 'paid',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', paiementId);
 
@@ -95,16 +107,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     if (projectId) {
       await supabase
         .from('projects')
-        .update({ 
+        .update({
           status: 'in_progress',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', projectId);
     }
 
     // Débloquer le chat complet
     if (clientId && professionalId && projectId) {
-      const { data: conversation } = await chatService.getOrCreateConversation(projectId, professionalId);
+      const { data: conversation } = await chatService.getOrCreateConversation(
+        projectId,
+        professionalId
+      );
       if (conversation) {
         await chatService.activateConversation(conversation.id);
       }
@@ -138,9 +153,9 @@ async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
     // Mettre à jour le statut du paiement
     await supabase
       .from('match_payments')
-      .update({ 
+      .update({
         status: 'expired',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', paiementId);
 
@@ -148,9 +163,9 @@ async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
     if (projectId) {
       await supabase
         .from('projects')
-        .update({ 
+        .update({
           status: 'pending',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', projectId);
     }
@@ -166,12 +181,14 @@ async function handleCheckoutSessionExpired(session: Stripe.Checkout.Session) {
   }
 }
 
-async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+async function handlePaymentIntentSucceeded(
+  paymentIntent: Stripe.PaymentIntent
+) {
   console.log('Payment intent succeeded:', paymentIntent.id);
 
   try {
     const paiementId = paymentIntent.metadata?.paiement_id;
-    
+
     if (!paiementId) {
       console.error('Missing paiement_id in payment intent metadata');
       return;
@@ -200,10 +217,11 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
     // Mettre à jour le statut du paiement
     await supabase
       .from('match_payments')
-      .update({ 
+      .update({
         status: 'failed',
         updated_at: new Date().toISOString(),
-        error_message: paymentIntent.last_payment_error?.message || 'Payment failed'
+        error_message:
+          paymentIntent.last_payment_error?.message || 'Payment failed',
       })
       .eq('id', paiementId);
 
@@ -211,9 +229,9 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
     if (projectId) {
       await supabase
         .from('projects')
-        .update({ 
+        .update({
           status: 'pending',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', projectId);
     }
@@ -234,17 +252,23 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   // Pour les paiements récurrents si nécessaire
 }
 
-async function sendPaymentSuccessEmails(clientId: string, professionalId: string, projectId: string) {
+async function sendPaymentSuccessEmails(
+  clientId: string,
+  professionalId: string,
+  projectId: string
+) {
   try {
     // Récupérer les informations du projet
     const { data: projet } = await supabase
       .from('projects')
-      .select(`
+      .select(
+        `
         id,
         title,
         client:profiles!projects_client_id_fkey(email, full_name),
         assigned_professional:profiles!projects_assigned_to_fkey(email, full_name)
-      `)
+      `
+      )
       .eq('id', projectId)
       .single();
 
@@ -254,8 +278,13 @@ async function sendPaymentSuccessEmails(clientId: string, professionalId: string
     }
 
     // Récupérer l'email du professionnel depuis assigned_professional
-    const professionalEmail = projet.assigned_professional?.[0]?.email;
-    const professionalName = projet.assigned_professional?.[0]?.full_name;
+    const assignedProf = projet.assigned_professional as unknown as Array<{
+      email: string;
+      full_name: string;
+    }>;
+    const clientData = projet.client as unknown as Array<{ full_name: string }>;
+    const professionalEmail = assignedProf?.[0]?.email;
+    const professionalName = assignedProf?.[0]?.full_name;
 
     // Envoyer l'email au professionnel
     await emailService.sendEmail({
@@ -277,7 +306,7 @@ async function sendPaymentSuccessEmails(clientId: string, professionalId: string
           <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #155724; margin-top: 0;">📋 Détails du projet</h3>
             <p><strong>Titre:</strong> ${projet.title}</p>
-            <p><strong>Client:</strong> ${projet.client?.full_name}</p>
+            <p><strong>Client:</strong> ${clientData?.[0]?.full_name}</p>
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
@@ -291,7 +320,7 @@ async function sendPaymentSuccessEmails(clientId: string, professionalId: string
         <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px;">
           <p>Cet email a été envoyé via SwipeTonPro</p>
         </div>
-      </div>`
+      </div>`,
     });
 
     console.log('Payment success emails sent');
@@ -300,10 +329,18 @@ async function sendPaymentSuccessEmails(clientId: string, professionalId: string
   }
 }
 
-async function sendPaymentExpiredEmails(clientId: string, professionalId: string, projectId: string) {
+async function sendPaymentExpiredEmails(
+  clientId: string,
+  professionalId: string,
+  projectId: string
+) {
   try {
     // Simplifié - juste un log pour l'instant
-    console.log('Payment expired emails would be sent for:', { clientId, professionalId, projectId });
+    console.log('Payment expired emails would be sent for:', {
+      clientId,
+      professionalId,
+      projectId,
+    });
   } catch (error) {
     console.error('Error sending payment expired emails:', error);
   }

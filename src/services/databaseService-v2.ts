@@ -1,8 +1,8 @@
 /**
  * @fileoverview Simplified Database Service - Performance Optimized
- * @author Senior Architect  
+ * @author Senior Architect
  * @version 2.0.0
- * 
+ *
  * Simplified, stable database service that fixes all field mapping issues
  */
 
@@ -35,7 +35,7 @@ export class DatabaseServiceV2 {
         .select('*')
         .eq('id', id)
         .single();
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -51,7 +51,7 @@ export class DatabaseServiceV2 {
         .from('profiles')
         .select('*')
         .eq('email', email);
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -64,7 +64,9 @@ export class DatabaseServiceV2 {
   async upsertProfile(data: any) {
     const validation = SchemaValidator.validateProfile(data);
     if (!validation.valid) {
-      throw new Error(`Profile validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(
+        `Profile validation failed: ${validation.errors.join(', ')}`
+      );
     }
 
     try {
@@ -74,26 +76,26 @@ export class DatabaseServiceV2 {
         .select('id')
         .eq('email', data.email)
         .single();
-      
+
       if (existing) {
         // Update existing profile
-        const { data, error } = await this.client
+        const { data: resultData, error } = await this.client
           .from('profiles')
           .update(data)
           .eq('id', existing.id)
           .select()
           .single();
-        
-        return { data, error };
+
+        return { data: resultData, error };
       } else {
         // Create new profile
-        const { data, error } = await this.client
+        const { data: resultData, error } = await this.client
           .from('profiles')
           .insert(data)
           .select()
           .single();
-        
-        return { data, error };
+
+        return { data: resultData, error };
       }
     } catch (err) {
       return { data: null, error: err as Error };
@@ -114,12 +116,13 @@ export class DatabaseServiceV2 {
     offset?: number;
   }) {
     try {
-      let query = this.client.from('projects').select('*');
-      
+      let query = (this.client as any).from('projects').select('*');
+
       if (filters) {
         if (filters.status) query = query.eq('status', filters.status);
         if (filters.client_id) query = query.eq('client_id', filters.client_id);
-        if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to);
+        if (filters.assigned_to)
+          query = query.eq('assigned_to', filters.assigned_to);
         if (filters.category) query = query.eq('category', filters.category);
         if (filters.limit) query = query.limit(filters.limit);
         if (filters.offset) query = query.offset(filters.offset);
@@ -142,7 +145,7 @@ export class DatabaseServiceV2 {
         .select('*')
         .eq('id', id)
         .single();
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -155,7 +158,9 @@ export class DatabaseServiceV2 {
   async createProject(data: any) {
     const validation = SchemaValidator.validateProject(data);
     if (!validation.valid) {
-      throw new Error(`Project validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(
+        `Project validation failed: ${validation.errors.join(', ')}`
+      );
     }
 
     try {
@@ -175,7 +180,7 @@ export class DatabaseServiceV2 {
         .insert(mappedData)
         .select()
         .single();
-      
+
       return { data: result, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -194,7 +199,7 @@ export class DatabaseServiceV2 {
         .select('*')
         .eq('user_id', userId)
         .single();
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -211,7 +216,7 @@ export class DatabaseServiceV2 {
         .select('*')
         .eq('id', id)
         .single();
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -227,14 +232,16 @@ export class DatabaseServiceV2 {
     try {
       const { data, error } = await this.client
         .from('conversations')
-        .select(`
+        .select(
+          `
           *,
           client:profiles!conversations_client_id_fkey(full_name, avatar_url),
           professional:profiles!conversations_professional_id_fkey(full_name, avatar_url)
-        `)
+        `
+        )
         .or(`client_id.eq.${userId},professional_id.eq.${userId}`)
         .order('updated_at', { ascending: false });
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -248,12 +255,13 @@ export class DatabaseServiceV2 {
    */
   async getUnreadMessages(userId: string) {
     try {
-      const { data, error } = await this.client
+      const client = this.client as any;
+      const { data, error } = await client
         .from('messages')
         .select('id')
         .eq('receiver_id', userId)
         .is('read_at', null);
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -267,9 +275,9 @@ export class DatabaseServiceV2 {
     try {
       const { data, error } = await this.client
         .from('messages')
-        .update({ read_at: new Date().toISOString() })
+        .update({ read_at: new Date().toISOString() } as any)
         .in('id', messageIds);
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };
@@ -289,26 +297,26 @@ export class DatabaseServiceV2 {
     data?: any;
   }) {
     try {
-      console.log("🔔 Creating notification:", data);
-      
+      console.log('🔔 Creating notification:', data);
+
       // Remove read field - it doesn't exist in notifications table
       const { read, ...notificationData } = data as any;
-      
-      const { result, error } = await this.client
+
+      const { data: result, error } = await this.client
         .from('notifications')
         .insert(notificationData)
         .select()
         .single();
-      
+
       if (error) {
-        console.error("❌ Error creating notification:", error);
+        console.error('❌ Error creating notification:', error);
         return { data: null, error };
       }
-      
-      console.log("✅ Notification created successfully:", result);
+
+      console.log('✅ Notification created successfully:', result);
       return { data: result, error: null };
     } catch (err) {
-      console.error("❌ Exception creating notification:", err);
+      console.error('❌ Exception creating notification:', err);
       return { data: null, error: err as Error };
     }
   }
@@ -323,11 +331,11 @@ export class DatabaseServiceV2 {
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
-      
+
       if (limit) {
         query = query.limit(limit);
       }
-      
+
       const { data, error } = await query;
       return { data, error };
     } catch (err) {
@@ -358,7 +366,7 @@ export class DatabaseServiceV2 {
         throw new Error('Interest already recorded for this project');
       }
 
-      const { result, error } = await this.client
+      const { data: resultData, error } = await this.client
         .from('project_interests')
         .insert({
           ...data,
@@ -366,8 +374,8 @@ export class DatabaseServiceV2 {
         })
         .select()
         .single();
-      
-      return { data: result, error };
+
+      return { data: resultData, error };
     } catch (err) {
       return { data: null, error: err as Error };
     }
@@ -382,7 +390,7 @@ export class DatabaseServiceV2 {
         .from('project_interests')
         .select('*')
         .eq('project_id', projectId);
-      
+
       return { data, error };
     } catch (err) {
       return { data: null, error: err as Error };

@@ -2,7 +2,7 @@
  * @fileoverview Lazy Loading System - Memory Optimization
  * @author Senior Architect
  * @version 1.0.0
- * 
+ *
  * Dynamically imports modules to reduce initial memory footprint
  */
 
@@ -10,20 +10,22 @@
 export const lazyComponents = {
   // Admin components
   AdminDashboard: () => import('@/components/admin/AdminDashboard'),
-  AdminUsers: () => import('@/components/admin/AdminUsers'),
-  AdminRoles: () => import('@/components/admin/AdminRoles'),
-  
-  // Chat components  
+  // Commented out - modules don't exist yet
+  // AdminUsers: () => import('@/components/admin/AdminUsers'),
+  // AdminRoles: () => import('@/components/admin/AdminRoles'),
+
+  // Chat components
   ChatWindow: () => import('@/components/chat/ChatWindow'),
   ConversationList: () => import('@/components/chat/ConversationList'),
-  
+
   // Professional components
   ProjectCard: () => import('@/components/professional/ProjectCard'),
   CreditBalance: () => import('@/components/professional/CreditBalance'),
-  
+
   // Heavy UI components
-  DataTable: () => import('@/components/ui/data-table'),
-  RichTextEditor: () => import('@/components/ui/rich-text-editor'),
+  // Commented out - modules don't exist yet
+  // DataTable: () => import('@/components/ui/data-table'),
+  // RichTextEditor: () => import('@/components/ui/rich-text-editor'),
 };
 
 // Services loaded on demand
@@ -32,22 +34,22 @@ export const lazyServices = {
   analyticsService: () => import('@/services/analyticsService'),
   notificationService: () => import('@/services/notificationService'),
   chatService: () => import('@/services/chatService'),
-  
+
   // Admin services
   adminService: () => import('@/services/adminService'),
-  crmService: () => import('@/services/crmService'),
+  // crmService: () => import('@/services/crmService'), // Module doesn't exist
 };
 
 // Utils loaded on demand
 export const lazyUtils = {
   // Heavy utilities
-  pdfGenerator: () => import('@/utils/pdfGenerator'),
-  excelExporter: () => import('@/utils/excelExporter'),
-  imageProcessor: () => import('@/utils/imageProcessor'),
-  
+  // Commented out - modules don't exist yet
+  // pdfGenerator: () => import('@/utils/pdfGenerator'),
+  // excelExporter: () => import('@/utils/excelExporter'),
+  // imageProcessor: () => import('@/utils/imageProcessor'),
   // Formatters
-  currencyFormatter: () => import('@/utils/formatters/currency'),
-  dateFormatter: () => import('@/utils/formatters/date'),
+  // currencyFormatter: () => import('@/utils/formatters/currency'),
+  // dateFormatter: () => import('@/utils/formatters/date'),
 };
 
 /**
@@ -77,8 +79,8 @@ export function preloadCriticalModules() {
     () => import('@/services/databaseService-v2'),
     () => import('@/hooks/useAuth'),
   ];
-  
-  critical.forEach(importFn => {
+
+  critical.forEach((importFn) => {
     importFn().catch(() => {
       // Ignore preload errors
     });
@@ -104,16 +106,17 @@ export class MemoryMonitor {
       const memUsage = process.memoryUsage();
       const used = Math.round(memUsage.heapUsed / 1024 / 1024);
       const total = Math.round(memUsage.heapTotal / 1024 / 1024);
-      
+
       console.log(`🧠 Memory: ${used}MB / ${total}MB`);
-      
+
       // Alert if memory usage is high
-      if (used > 1024) { // 1GB
+      if (used > 1024) {
+        // 1GB
         console.warn('⚠️ High memory usage detected:', used, 'MB');
         this.cleanup();
       }
     }, intervalMs);
-    
+
     this.intervals.push(interval);
   }
 

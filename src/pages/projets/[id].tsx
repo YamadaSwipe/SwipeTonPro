@@ -1,26 +1,29 @@
-import { SEO } from "@/components/SEO";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  MapPin, 
-  Euro, 
-  Calendar, 
-  Clock, 
+import { SEO } from '@/components/SEO';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  MapPin,
+  Euro,
+  Calendar,
+  Clock,
   ArrowLeft,
   Star,
   CheckCircle,
-  Shield
-} from "lucide-react";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
-import type { Database } from "@/integrations/supabase/types";
+  Shield,
+  Lock,
+  Info,
+  Bell,
+} from 'lucide-react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import type { Database } from '@/integrations/supabase/types';
 
-type Project = Database["public"]["Tables"]["projects"]["Row"] & {
+type Project = Database['public']['Tables']['projects']['Row'] & {
   // Removed sensitive client and professional info for public view
 };
 
@@ -29,9 +32,11 @@ export default function ProjectDetailPage() {
   const { id } = router.query;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
   const [isProfessional, setIsProfessional] = useState(false);
+  const [showEscrowInfo, setShowEscrowInfo] = useState(false);
+  const [escrowNotified, setEscrowNotified] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -42,10 +47,10 @@ export default function ProjectDetailPage() {
 
   const checkAuth = async () => {
     const { user, role } = useAuth();
-    console.log("USER:", user?.id);
-    console.log("ROLE:", role);
+    console.log('USER:', user?.id);
+    console.log('ROLE:', role);
     setUser(user);
-    
+
     if (user) {
       // Check if user is professional
       const { data: professional } = await supabase
@@ -53,7 +58,7 @@ export default function ProjectDetailPage() {
         .select('*')
         .eq('user_id', user.id)
         .single();
-      
+
       setIsProfessional(!!professional);
     }
   };
@@ -65,8 +70,9 @@ export default function ProjectDetailPage() {
 
       // Only load basic project info for public view
       const { data, error } = await supabase
-        .from("projects")
-        .select(`
+        .from('projects')
+        .select(
+          `
           id,
           title,
           description,
@@ -80,18 +86,63 @@ export default function ProjectDetailPage() {
           photos,
           ai_analysis,
           created_at,
-          updated_at
-        `)
-        .eq("id", projectId)
+          updated_at,
+          payment_security_option,
+          escrow_notified
+        `
+        )
+        .eq('id', projectId)
         .single();
 
       if (error) throw error;
       setProject(data as any);
+      setEscrowNotified(data.escrow_notified || false);
     } catch (err: any) {
-      console.error("Error loading project:", err);
+      console.error('Error loading project:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const notifyEscrowOption = async () => {
+    if (!user || !project) return;
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          escrow_notified: true,
+          escrow_notified_at: new Date().toISOString(),
+          escrow_notified_by: user.id,
+        })
+        .eq('id', project.id);
+
+      if (error) throw error;
+
+      setEscrowNotified(true);
+
+      // Notifier les professionnels intéressés
+      const { data: interests } = await supabase
+        .from('project_interests')
+        .select('professional_id')
+        .eq('project_id', project.id)
+        .eq('status', 'pending');
+
+      if (interests && interests.length > 0) {
+        // Envoyer notification aux professionnels
+        await fetch('/api/notify-escrow-option', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: project.id,
+            professionalIds: interests.map((i) => i.professional_id),
+            paymentOption: project.payment_security_option,
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('Erreur notification séquestration:', error);
     }
   };
 
@@ -105,7 +156,11 @@ export default function ProjectDetailPage() {
 
   if (error || !project) {
     const currentProjectId = Array.isArray(id) ? id[0] : id;
-    console.log("Debug - Project data:", { project, error, projectId: currentProjectId });
+    console.log('Debug - Project data:', {
+      project,
+      error,
+      projectId: currentProjectId,
+    });
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -128,11 +183,11 @@ export default function ProjectDetailPage() {
 
   return (
     <>
-      <SEO 
+      <SEO
         title={`${project.title} - SwipeTonPro`}
         description={project.description}
       />
-      
+
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
@@ -143,13 +198,16 @@ export default function ProjectDetailPage() {
                 Retour à l'accueil
               </Button>
             </Link>
-            
+
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold mb-2">{project.title}</h1>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary">{project.category}</Badge>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  <Badge
+                    variant="outline"
+                    className="bg-primary/10 text-primary border-primary/20"
+                  >
                     {project.city}
                   </Badge>
                   {project.urgency === 'high' && (
@@ -187,14 +245,14 @@ export default function ProjectDetailPage() {
                       <div>
                         <p className="text-sm text-text-muted">Budget estimé</p>
                         <p className="font-semibold">
-                          {project.estimated_budget_min && project.estimated_budget_max
+                          {project.estimated_budget_min &&
+                          project.estimated_budget_max
                             ? `${project.estimated_budget_min.toLocaleString()}€ - ${project.estimated_budget_max.toLocaleString()}€`
                             : project.estimated_budget_max
                               ? `Jusqu'à ${project.estimated_budget_max.toLocaleString()}€`
                               : project.estimated_budget_min
                                 ? `À partir de ${project.estimated_budget_min.toLocaleString()}€`
-                                : 'Budget à définir'
-                          }
+                                : 'Budget à définir'}
                         </p>
                       </div>
                     </div>
@@ -202,9 +260,7 @@ export default function ProjectDetailPage() {
                       <Clock className="w-5 h-5 text-primary" />
                       <div>
                         <p className="text-sm text-text-muted">Durée estimée</p>
-                        <p className="font-semibold">
-                          Non spécifiée
-                        </p>
+                        <p className="font-semibold">Non spécifiée</p>
                       </div>
                     </div>
                   </div>
@@ -222,47 +278,64 @@ export default function ProjectDetailPage() {
                       {typeof project.ai_analysis === 'object' ? (
                         <>
                           {(project.ai_analysis as any)?.estimated_cost && (
-                            <p>Coût estimé: {(project.ai_analysis as any).estimated_cost}€</p>
+                            <p>
+                              Coût estimé:{' '}
+                              {(project.ai_analysis as any).estimated_cost}€
+                            </p>
                           )}
                           {(project.ai_analysis as any)?.duration_days && (
-                            <p>Durée: {(project.ai_analysis as any).duration_days} jours</p>
+                            <p>
+                              Durée:{' '}
+                              {(project.ai_analysis as any).duration_days} jours
+                            </p>
                           )}
                           {(project.ai_analysis as any)?.complexity && (
-                            <p>Complexité: {(project.ai_analysis as any).complexity}</p>
+                            <p>
+                              Complexité:{' '}
+                              {(project.ai_analysis as any).complexity}
+                            </p>
                           )}
                         </>
                       ) : (
-                        <p className="whitespace-pre-wrap">{project.ai_analysis}</p>
+                        <p className="whitespace-pre-wrap">
+                          {project.ai_analysis}
+                        </p>
                       )}
                     </div>
                     <p className="text-xs text-text-muted italic mt-2">
-                      * À titre indicatif, ne peut être prise pour valeur contractuelle
+                      * À titre indicatif, ne peut être prise pour valeur
+                      contractuelle
                     </p>
                   </CardContent>
                 </Card>
               )}
 
               {/* Photos */}
-              {project.photos && Array.isArray(project.photos) && project.photos.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Photos du projet</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {project.photos.map((photo, index) => (
-                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                          <img
-                            src={photo as string}
-                            alt={`Photo ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {project.photos &&
+                Array.isArray(project.photos) &&
+                project.photos.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Photos du projet</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {project.photos.map((photo, index) => (
+                          <div
+                            key={index}
+                            className="relative aspect-square rounded-lg overflow-hidden"
+                          >
+                            <img
+                              src={photo as string}
+                              alt={`Photo ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
             </div>
 
             {/* Sidebar */}
@@ -270,16 +343,19 @@ export default function ProjectDetailPage() {
               {/* CTA Card */}
               <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
                 <CardContent className="p-6 text-center">
-                  <h3 className="text-lg font-semibold mb-2">Intéressé par ce projet ?</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Intéressé par ce projet ?
+                  </h3>
                   <p className="text-sm text-text-secondary mb-4">
-                    {isProfessional 
-                      ? "Postulez dès maintenant pour ce projet"
-                      : "Inscrivez-vous pour postuler à ce projet"
-                    }
+                    {isProfessional
+                      ? 'Postulez dès maintenant pour ce projet'
+                      : 'Inscrivez-vous pour postuler à ce projet'}
                   </p>
-                  
+
                   {isProfessional ? (
-                    <Link href={`/professionnel/dashboard?project=${project.id}`}>
+                    <Link
+                      href={`/professionnel/dashboard?project=${project.id}`}
+                    >
                       <Button className="w-full gradient-primary text-white">
                         Postuler à ce projet
                       </Button>
@@ -325,7 +401,9 @@ export default function ProjectDetailPage() {
                     <div>
                       <p className="text-sm text-text-muted">Publié le</p>
                       <p className="font-medium">
-                        {new Date(project.created_at).toLocaleDateString('fr-FR')}
+                        {new Date(project.created_at).toLocaleDateString(
+                          'fr-FR'
+                        )}
                       </p>
                     </div>
                   </div>
@@ -333,11 +411,84 @@ export default function ProjectDetailPage() {
                     <CheckCircle className="w-4 h-4 text-success" />
                     <div>
                       <p className="text-sm text-text-muted">Type de travaux</p>
-                      <p className="font-medium">{project.work_types}</p>
+                      <p className="font-medium">
+                        {project.work_types?.join(', ') || 'Non spécifié'}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Escrow Payment Option */}
+              {project.payment_security_option && (
+                <Card className="bg-purple-50 border-purple-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Lock className="w-5 h-5 text-purple-600 mt-1 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-purple-800 mb-2">
+                          Paiement séquestré disponible
+                        </h4>
+                        <p className="text-sm text-purple-700 mb-3">
+                          Option:{' '}
+                          {project.payment_security_option === 'deposit_only'
+                            ? 'Acompte uniquement'
+                            : project.payment_security_option === 'full_amount'
+                              ? 'Montant total'
+                              : project.payment_security_option === 'milestones'
+                                ? 'Versement par paliers'
+                                : 'Non spécifiée'}
+                        </p>
+
+                        {user && !isProfessional && (
+                          <div className="space-y-2">
+                            {!escrowNotified ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={notifyEscrowOption}
+                                className="w-full text-purple-700 border-purple-300 hover:bg-purple-100"
+                              >
+                                <Bell className="w-4 h-4 mr-2" />
+                                Notifier les professionnels
+                              </Button>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-2 rounded">
+                                <CheckCircle className="w-4 h-4" />
+                                Professionnels notifiés
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setShowEscrowInfo(!showEscrowInfo)}
+                          className="text-purple-600 hover:text-purple-700 mt-2"
+                        >
+                          <Info className="w-4 h-4 mr-1" />
+                          {showEscrowInfo ? 'Masquer' : 'En savoir plus'}
+                        </Button>
+
+                        {showEscrowInfo && (
+                          <div className="mt-3 p-3 bg-purple-100 rounded text-xs text-purple-700">
+                            <p className="font-medium mb-1">
+                              Protection des fonds garantie :
+                            </p>
+                            <ul className="space-y-1">
+                              <li>• Fonds bloqués via opérateur partenaire</li>
+                              <li>• Libération par étapes validées</li>
+                              <li>• Médiation en cas de litige</li>
+                              <li>• Choix final après discussion</li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Trust Badge */}
               <Card className="bg-success/5 border-success/20">
@@ -347,7 +498,8 @@ export default function ProjectDetailPage() {
                   </div>
                   <h4 className="font-semibold mb-1">Service sécurisé</h4>
                   <p className="text-xs text-text-secondary">
-                    Plateforme de mise en relation sécurisée avec paiement protégé
+                    Plateforme de mise en relation sécurisée avec paiement
+                    protégé
                   </p>
                 </CardContent>
               </Card>

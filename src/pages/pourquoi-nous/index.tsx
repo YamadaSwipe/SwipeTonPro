@@ -1,12 +1,12 @@
-import { SEO } from "@/components/SEO";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Shield, 
-  Heart, 
-  Users, 
-  HardHat, 
-  CheckCircle, 
+import { SEO } from '@/components/SEO';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Shield,
+  Heart,
+  Users,
+  HardHat,
+  CheckCircle,
   Star,
   Award,
   Lock,
@@ -14,19 +14,43 @@ import {
   TrendingUp,
   MessageSquare,
   Clock,
-  MapPin
-} from "lucide-react";
-import Link from "next/link";
+  MapPin,
+  ArrowLeft,
+  Home,
+} from 'lucide-react';
+import Link from 'next/link';
 
 export default function PourquoiNous() {
   return (
     <>
-      <SEO 
+      <SEO
         title="Pourquoi Nous - SwipeTonPro"
         description="Découvrez pourquoi SwipeTonPro est la meilleure plateforme pour trouver des artisans et des projets de travaux. Sécurité, transparence et matching mutuel."
       />
-      
+
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+        {/* Header */}
+        <div className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-card/90">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <Link
+                href="/"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Retour à l'accueil
+              </Link>
+
+              <Link href="/">
+                <Button className="bg-gradient-to-r from-orange-600 to-amber-600 text-white font-semibold hover:shadow-lg transition-all">
+                  <Home className="mr-2 h-4 w-4" />
+                  Accueil
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Hero Section */}
         <section className="py-16 px-4">
           <div className="container mx-auto max-w-4xl text-center">
@@ -45,7 +69,9 @@ export default function PourquoiNous() {
         <section className="py-16 px-4">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Nos Valeurs Fondamentales</h2>
+              <h2 className="text-3xl font-bold mb-4">
+                Nos Valeurs Fondamentales
+              </h2>
               <p className="text-lg text-slate-600">
                 Ce qui nous différencie des autres plateformes
               </p>
@@ -63,7 +89,8 @@ export default function PourquoiNous() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-600">
-                    Protection complète pour particuliers et artisans avec vérification d'identité et contrôle qualité.
+                    Protection complète pour particuliers et artisans avec
+                    vérification d'identité et contrôle qualité.
                   </p>
                 </CardContent>
               </Card>
@@ -79,7 +106,8 @@ export default function PourquoiNous() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-600">
-                    Chaque partie choisit librement. Plus de contacts forcés ou d'appels commerciaux intempestifs.
+                    Chaque partie choisit librement. Plus de contacts forcés ou
+                    d'appels commerciaux intempestifs.
                   </p>
                 </CardContent>
               </Card>
@@ -95,23 +123,25 @@ export default function PourquoiNous() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-600">
-                    Gagnez du temps avec des projets qualifiés et des artisans sérieux uniquement.
+                    Gagnez du temps avec des projets qualifiés et des artisans
+                    sérieux uniquement.
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="text-center border-0 shadow-lg">
                 <CardHeader>
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Award className="w-8 h-8 text-green-600" />
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Lock className="w-8 h-8 text-purple-600" />
                   </div>
                   <CardTitle className="text-xl font-bold text-slate-900">
-                    Qualité
+                    Paiement Séquestré
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-600">
-                    Artisans certifiés et vérifiés. Système de notation transparent pour garantir la qualité.
+                    Protection de vos fonds via notre opérateur partenaire.
+                    Acompte et travaux sécurisés, déblocage par étapes validées.
                   </p>
                 </CardContent>
               </Card>
@@ -123,7 +153,9 @@ export default function PourquoiNous() {
         <section className="py-16 px-4 bg-white">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">SwipeTonPro vs Autres Plateformes</h2>
+              <h2 className="text-3xl font-bold mb-4">
+                SwipeTonPro vs Autres Plateformes
+              </h2>
               <p className="text-lg text-slate-600">
                 Une approche radicalement différente
               </p>
@@ -133,9 +165,15 @@ export default function PourquoiNous() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="text-left p-4 font-semibold text-slate-900">Fonctionnalité</th>
-                    <th className="text-center p-4 font-semibold text-orange-600">SwipeTonPro</th>
-                    <th className="text-center p-4 font-semibold text-slate-600">Autres Plateformes</th>
+                    <th className="text-left p-4 font-semibold text-slate-900">
+                      Fonctionnalité
+                    </th>
+                    <th className="text-center p-4 font-semibold text-orange-600">
+                      SwipeTonPro
+                    </th>
+                    <th className="text-center p-4 font-semibold text-slate-600">
+                      Autres Plateformes
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -149,7 +187,9 @@ export default function PourquoiNous() {
                     </td>
                   </tr>
                   <tr className="border-b bg-gray-50">
-                    <td className="p-4 text-slate-900">Pas d'appels commerciaux</td>
+                    <td className="p-4 text-slate-900">
+                      Pas d'appels commerciaux
+                    </td>
                     <td className="text-center p-4">
                       <CheckCircle className="w-6 h-6 text-green-500 mx-auto" />
                     </td>
@@ -158,7 +198,9 @@ export default function PourquoiNous() {
                     </td>
                   </tr>
                   <tr className="border-b">
-                    <td className="p-4 text-slate-900">Vérification artisans</td>
+                    <td className="p-4 text-slate-900">
+                      Vérification artisans
+                    </td>
                     <td className="text-center p-4">
                       <CheckCircle className="w-6 h-6 text-green-500 mx-auto" />
                     </td>
@@ -167,7 +209,9 @@ export default function PourquoiNous() {
                     </td>
                   </tr>
                   <tr className="border-b bg-gray-50">
-                    <td className="p-4 text-slate-900">Gratuit pour particuliers</td>
+                    <td className="p-4 text-slate-900">
+                      Gratuit pour particuliers
+                    </td>
                     <td className="text-center p-4">
                       <CheckCircle className="w-6 h-6 text-green-500 mx-auto" />
                     </td>
@@ -175,8 +219,21 @@ export default function PourquoiNous() {
                       <span className="text-yellow-500">⚠</span>
                     </td>
                   </tr>
+                  <tr className="border-b bg-purple-50">
+                    <td className="p-4 text-slate-900 font-semibold text-purple-700">
+                      Paiement séquestré
+                    </td>
+                    <td className="text-center p-4">
+                      <CheckCircle className="w-6 h-6 text-purple-500 mx-auto" />
+                    </td>
+                    <td className="text-center p-4">
+                      <span className="text-red-500">✗</span>
+                    </td>
+                  </tr>
                   <tr className="border-b">
-                    <td className="p-4 text-slate-900">Dialogue limité au début</td>
+                    <td className="p-4 text-slate-900">
+                      Dialogue limité au début
+                    </td>
                     <td className="text-center p-4">
                       <CheckCircle className="w-6 h-6 text-green-500 mx-auto" />
                     </td>
@@ -185,7 +242,9 @@ export default function PourquoiNous() {
                     </td>
                   </tr>
                   <tr className="border-b bg-gray-50">
-                    <td className="p-4 text-slate-900">Notation transparente</td>
+                    <td className="p-4 text-slate-900">
+                      Notation transparente
+                    </td>
                     <td className="text-center p-4">
                       <CheckCircle className="w-6 h-6 text-green-500 mx-auto" />
                     </td>
@@ -213,37 +272,51 @@ export default function PourquoiNous() {
                     Pour les Particuliers
                   </h3>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-semibold text-slate-900">Plus de spam commercial</h4>
-                      <p className="text-slate-600 text-sm">Finis les appels et emails non sollicités</p>
+                      <h4 className="font-semibold text-slate-900">
+                        Plus de spam commercial
+                      </h4>
+                      <p className="text-slate-600 text-sm">
+                        Finis les appels et emails non sollicités
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-semibold text-slate-900">Artisans vérifiés</h4>
-                      <p className="text-slate-600 text-sm">Professionnels certifiés et notés</p>
+                      <h4 className="font-semibold text-slate-900">
+                        Artisans vérifiés
+                      </h4>
+                      <p className="text-slate-600 text-sm">
+                        Professionnels certifiés et notés
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-semibold text-slate-900">Choix total</h4>
-                      <p className="text-slate-600 text-sm">Décidez avec qui échanger et travailler</p>
+                      <h4 className="font-semibold text-slate-900">
+                        Choix total
+                      </h4>
+                      <p className="text-slate-600 text-sm">
+                        Décidez avec qui échanger et travailler
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
                     <div>
                       <h4 className="font-semibold text-slate-900">Gratuit</h4>
-                      <p className="text-slate-600 text-sm">Publiez vos projets sans aucun frais</p>
+                      <p className="text-slate-600 text-sm">
+                        Publiez vos projets sans aucun frais
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -259,37 +332,53 @@ export default function PourquoiNous() {
                     Pour les Artisans
                   </h3>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-semibold text-slate-900">Projets qualifiés</h4>
-                      <p className="text-slate-600 text-sm">Accès à des demandes réelles et sérieuses</p>
+                      <h4 className="font-semibold text-slate-900">
+                        Projets qualifiés
+                      </h4>
+                      <p className="text-slate-600 text-sm">
+                        Accès à des demandes réelles et sérieuses
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-semibold text-slate-900">Pas de perte de temps</h4>
-                      <p className="text-slate-600 text-sm">Contactez uniquement les projets qui vous intéressent</p>
+                      <h4 className="font-semibold text-slate-900">
+                        Pas de perte de temps
+                      </h4>
+                      <p className="text-slate-600 text-sm">
+                        Contactez uniquement les projets qui vous intéressent
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-semibold text-slate-900">Coût maîtrisé</h4>
-                      <p className="text-slate-600 text-sm">Payez uniquement pour les contacts qui vous intéressent</p>
+                      <h4 className="font-semibold text-slate-900">
+                        Coût maîtrisé
+                      </h4>
+                      <p className="text-slate-600 text-sm">
+                        Payez uniquement pour les contacts qui vous intéressent
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-1" />
                     <div>
-                      <h4 className="font-semibold text-slate-900">Visibilité locale</h4>
-                      <p className="text-slate-600 text-sm">Projets près de votre zone d'intervention</p>
+                      <h4 className="font-semibold text-slate-900">
+                        Visibilité locale
+                      </h4>
+                      <p className="text-slate-600 text-sm">
+                        Projets près de votre zone d'intervention
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -307,16 +396,23 @@ export default function PourquoiNous() {
             <p className="text-xl text-orange-50 mb-8">
               Des milliers de particuliers et artisans nous font déjà confiance
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/particulier">
-                <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 px-8 py-4 rounded-full">
+                <Button
+                  size="lg"
+                  className="bg-white text-orange-600 hover:bg-orange-50 px-8 py-4 rounded-full"
+                >
                   <Users className="w-5 h-5 mr-2" />
                   Je suis un particulier
                 </Button>
               </Link>
               <Link href="/professionnel">
-                <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 px-8 py-4 rounded-full">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-white text-white hover:bg-white/10 px-8 py-4 rounded-full"
+                >
                   <HardHat className="w-5 h-5 mr-2" />
                   Je suis un artisan
                 </Button>

@@ -4,7 +4,11 @@ import { notificationService } from '@/services/notificationService';
 import { authService } from '@/services/authService';
 import { supabaseQueue } from '@/utils/supabaseQueue';
 import axios from 'axios';
-import { getAdminProjectValidationNotificationHtml, getProjectApprovedNotificationHtml, getProjectRejectedNotificationHtml } from '@/lib/projectEmailTemplates';
+import {
+  getAdminProjectValidationNotificationHtml,
+  getProjectApprovedNotificationHtml,
+  getProjectRejectedNotificationHtml,
+} from '@/lib/projectEmailTemplates';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
@@ -28,118 +32,139 @@ type SimpleProject = {
 };
 
 export const projectService = {
-  async getUserProjects(): Promise<{ data: SimpleProject[] | null, error: Error | null }> {
+  async getUserProjects(): Promise<{
+    data: SimpleProject[] | null;
+    error: Error | null;
+  }> {
     try {
       const session = await authService.getCurrentSession();
-      if (!session?.user) return { data: null, error: new Error("User not authenticated") };
+      if (!session?.user)
+        return { data: null, error: new Error('User not authenticated') };
 
-      console.log("🔍 Recherche projets pour user_id:", session.user.id);
+      console.log('🔍 Recherche projets pour user_id:', session.user.id);
 
       const { data, error } = await supabase
         .from('projects')
-        .select('id, title, status, budget_max, budget_min, estimated_budget_max, estimated_budget_min, created_at, category, city, bids_count, ai_analysis, validation_status')
+        .select(
+          'id, title, status, budget_max, budget_min, estimated_budget_max, estimated_budget_min, created_at, category, city, bids_count, ai_analysis, validation_status'
+        )
         .eq('client_id', session.user.id)
         .order('created_at', { ascending: false });
 
-      console.log("📊 Résultat projets:", { 
-        count: data?.length || 0, 
-        projects: data?.map((p: any) => ({ id: p.id, title: p.title, status: p.status, validation_status: p.validation_status })) || [],
-        error 
+      console.log('📊 Résultat projets:', {
+        count: data?.length || 0,
+        projects:
+          data?.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            status: p.status,
+            validation_status: p.validation_status,
+          })) || [],
+        error,
       });
 
       // Debug détaillé si aucun projet trouvé
       if (data && data.length === 0) {
-        console.log("🔍 Aucun projet trouvé, vérification user_id:", session.user.id);
-        
+        console.log(
+          '🔍 Aucun projet trouvé, vérification user_id:',
+          session.user.id
+        );
+
         // Vérifier s'il y a des projets dans la table
         const { count, error: countError } = await supabase
           .from('projects')
           .select('*', { count: 'exact', head: true });
-        
-        console.log("📈 Total projets dans la base:", count, countError);
+
+        console.log('📈 Total projets dans la base:', count, countError);
       }
 
       if (error) {
-        console.error("🔍 Erreur Supabase détaillée:", error);
-        console.error("🔍 Code erreur:", error.code);
-        console.error("🔍 Message erreur:", error.message);
-        console.error("🔍 Details erreur:", error.details);
-        console.error("🔍 Hint erreur:", error.hint);
+        console.error('🔍 Erreur Supabase détaillée:', error);
+        console.error('🔍 Code erreur:', error.code);
+        console.error('🔍 Message erreur:', error.message);
+        console.error('🔍 Details erreur:', error.details);
+        console.error('🔍 Hint erreur:', error.hint);
       }
-      
+
       return { data, error };
     } catch (error) {
-      console.error("🔍 Erreur catch:", error);
+      console.error('🔍 Erreur catch:', error);
       return { data: null, error: error as Error };
     }
   },
 
-  async getAvailableProjects(filters?: any): Promise<{ data: Project[] | null, error: Error | null }> {
+  async getAvailableProjects(
+    filters?: any
+  ): Promise<{ data: Project[] | null; error: Error | null }> {
     try {
-      console.log("🔍 Début getAvailableProjects avec filtres:", filters);
-      
+      console.log('🔍 Début getAvailableProjects avec filtres:', filters);
+
+      // SECURITÉ: Ne jamais exposer les coordonnées client aux pros avant paiement
       let query = (supabase as any)
         .from('projects')
-        .select('*, client:profiles!projects_client_id_fkey(*)')
+        .select(
+          `
+          id, title, description, category, work_types, 
+          city, postal_code, status, created_at, updated_at,
+          estimated_budget_min, estimated_budget_max,
+          desired_start_period, urgency, surface, property_type,
+          ai_analysis, ai_estimation, is_featured, is_urgent,
+          client:profiles!projects_client_id_fkey(full_name)
+        `
+        )
         .eq('status', 'published')
         .order('created_at', { ascending: false });
 
-      console.log("🔍 Requête de base construite avec relation explicite");
+      console.log('🔍 Requête de base construite avec relation explicite');
 
       if (filters?.workType) {
-        query = query.eq('work_type', filters.workType);
-        console.log("🔍 Filtre work_type appliqué:", filters.workType);
+        query = query.contains('work_types', [filters.workType]);
+        console.log('🔍 Filtre work_types appliqué:', filters.workType);
       }
       if (filters?.city) {
         query = query.eq('city', filters.city);
-        console.log("🔍 Filtre city appliqué:", filters.city);
+        console.log('🔍 Filtre city appliqué:', filters.city);
       }
       if (filters?.maxBudget) {
         query = query.lte('budget_max', filters.maxBudget);
-        console.log("🔍 Filtre maxBudget appliqué:", filters.maxBudget);
+        console.log('🔍 Filtre maxBudget appliqué:', filters.maxBudget);
       }
 
-      console.log("🔍 Exécution de la requête...");
+      console.log('🔍 Exécution de la requête...');
       const { data, error } = await query;
-      
-      console.log("🔍 Résultat requête:", { data, error });
-      console.log("🔍 Nombre de projets:", data?.length || 0);
-      
-      // Debug détaillé des projets récupérés
+
+      console.log('🔍 Résultat requête:', { data, error });
+      console.log('🔍 Nombre de projets:', data?.length || 0);
+
+      // Debug minimal sans données sensibles
       if (data && data.length > 0) {
-        console.log("🔍 Projets récupérés avec détails:");
-        data.forEach((project, index) => {
-          console.log(`🔍 Projet ${index + 1}:`, {
-            id: project.id,
-            title: project.title,
-            status: project.status,
-            client_id: project.client_id,
-            client_email: project.client?.email,
-            validation_status: project.validation_status
-          });
-        });
+        console.log('🔍 Projets récupérés:', data.length);
       }
-      
+
       if (error) {
-        console.error("🔍 Erreur Supabase détaillée:", error);
-        console.error("🔍 Code erreur:", error.code);
-        console.error("🔍 Message erreur:", error.message);
-        console.error("🔍 Details erreur:", error.details);
-        console.error("🔍 Hint erreur:", error.hint);
+        console.error('🔍 Erreur Supabase détaillée:', error);
+        console.error('🔍 Code erreur:', error.code);
+        console.error('🔍 Message erreur:', error.message);
+        console.error('🔍 Details erreur:', error.details);
+        console.error('🔍 Hint erreur:', error.hint);
       }
-      
+
       return { data, error };
     } catch (error) {
-      console.error("🔍 Erreur catch:", error);
+      console.error('🔍 Erreur catch:', error);
       return { data: null, error: error as Error };
     }
   },
 
-  async getProjectsForValidation(): Promise<{ data: any[] | null, error: Error | null }> {
+  async getProjectsForValidation(): Promise<{
+    data: any[] | null;
+    error: Error | null;
+  }> {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select(`
+        .select(
+          `
           id, 
           title, 
           description, 
@@ -153,8 +178,9 @@ export const projectService = {
           is_urgent, 
           created_at,
           client_id,
-          client:profiles!projects_client_id_fkey(email)
-        `)
+          client:profiles!projects_client_id_fkey(full_name)
+        `
+        )
         .in('status', ['pending', 'published'])
         .order('created_at', { ascending: false });
 
@@ -164,14 +190,17 @@ export const projectService = {
     }
   },
 
-  async updateProjectValidation(projectId: string, validationData: {
-    action: 'approve' | 'reject' | 'feature' | 'urgent';
-    validated_by?: string;
-    notes?: string | null;
-  }): Promise<{ data: any | null, error: Error | null }> {
+  async updateProjectValidation(
+    projectId: string,
+    validationData: {
+      action: 'approve' | 'reject' | 'feature' | 'urgent';
+      validated_by?: string;
+      notes?: string | null;
+    }
+  ): Promise<{ data: any | null; error: Error | null }> {
     try {
       const updates: any = {
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       switch (validationData.action) {
@@ -209,7 +238,11 @@ export const projectService = {
       if (error) throw error;
 
       // Envoyer les notifications
-      await this.sendValidationNotifications(projectId, validationData.action, data);
+      await this.sendValidationNotifications(
+        projectId,
+        validationData.action,
+        data
+      );
 
       return { data, error: null };
     } catch (error) {
@@ -217,45 +250,52 @@ export const projectService = {
     }
   },
 
-  async sendValidationNotifications(projectId: string, action: string, projectData: any): Promise<void> {
+  async sendValidationNotifications(
+    projectId: string,
+    action: string,
+    projectData: any
+  ): Promise<void> {
     try {
       const project = projectData;
-      
+
       switch (action) {
         case 'approve':
           // Notifier le client que son projet est approuvé
-          await axios.post("/api/send-email", {
+          await axios.post('/api/send-email', {
             to: project.client_email,
             subject: `Votre projet "${project.title}" a été approuvé !`,
             html: this.getProjectApprovedEmailHtml(project.title, project.id),
-            type: 'noreply'
+            type: 'noreply',
           });
           break;
         case 'reject':
           // Notifier le client que son projet est rejeté
-          await axios.post("/api/send-email", {
+          await axios.post('/api/send-email', {
             to: project.client_email,
             subject: `Votre projet "${project.title}" a été rejeté`,
-            html: this.getProjectRejectedEmailHtml(project.title, projectData.notes),
-            type: 'noreply'
+            html: this.getProjectRejectedEmailHtml(
+              project.title,
+              projectData.notes
+            ),
+            type: 'noreply',
           });
           break;
         case 'feature':
           // Notifier le client que son projet est en vedette
-          await axios.post("/api/send-email", {
+          await axios.post('/api/send-email', {
             to: project.client_email,
             subject: `Votre projet "${project.title}" est maintenant en vedette !`,
             html: this.getProjectFeaturedEmailHtml(project.title, project.id),
-            type: 'noreply'
+            type: 'noreply',
           });
           break;
         case 'urgent':
           // Notifier le client que son projet est marqué comme urgent
-          await axios.post("/api/send-email", {
+          await axios.post('/api/send-email', {
             to: project.client_email,
             subject: `Votre projet "${project.title}" est maintenant urgent !`,
             html: this.getProjectUrgentEmailHtml(project.title, project.id),
-            type: 'noreply'
+            type: 'noreply',
           });
           break;
       }
@@ -264,7 +304,9 @@ export const projectService = {
     }
   },
 
-  async getProjectById(projectId: string): Promise<{ data: any | null, error: Error | null }> {
+  async getProjectById(
+    projectId: string
+  ): Promise<{ data: any | null; error: Error | null }> {
     try {
       const { data, error } = await supabase
         .from('projects')
@@ -281,8 +323,10 @@ export const projectService = {
   async createProject(projectData: any): Promise<any> {
     try {
       // Récupérer l'utilisateur courant
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         throw new Error('Utilisateur non authentifié');
       }
@@ -295,7 +339,7 @@ export const projectService = {
         validation_status: 'approved',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        ai_estimation: `Estimation IA pour ${projectData.title}: Budget ${projectData.estimated_budget_min || projectData.budget_min || 0}€ - ${projectData.estimated_budget_max || projectData.budget_max || 0}€. Catégorie: ${projectData.category}. Localisation: ${projectData.city}.`
+        ai_estimation: `Estimation IA pour ${projectData.title}: Budget ${projectData.estimated_budget_min || projectData.budget_min || 0}€ - ${projectData.estimated_budget_max || projectData.budget_max || 0}€. Catégorie: ${projectData.category}. Localisation: ${projectData.city}.`,
       };
 
       // Insérer le projet
@@ -306,13 +350,16 @@ export const projectService = {
         .single();
 
       if (error) throw error;
-      
+
       if (!newProject) {
         throw new Error('Échec de la création du projet');
       }
 
       // Envoyer une notification aux admins pour validation (uniquement si le projet n'est pas déjà publié)
-      if (projectToInsert.status === 'draft' || projectToInsert.validation_status === 'pending') {
+      if (
+        projectToInsert.status === 'draft' ||
+        projectToInsert.validation_status === 'pending'
+      ) {
         try {
           // Récupérer l'email du client
           const { data: profileData } = await supabase
@@ -324,43 +371,57 @@ export const projectService = {
           const clientEmail = profileData?.email || user.email || '';
 
           // Construire l'URL du dashboard admin
-          const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+          const baseUrl =
+            typeof window !== 'undefined'
+              ? window.location.origin
+              : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
           const adminDashboardUrl = `${baseUrl}/admin/projects-validation`;
 
           // Envoyer une notification au support pour validation
-            try {
-              await axios.post("/api/send-email", {
-                to: "support@swipetonpro.fr",
-                subject: `📋 Nouveau projet en attente de validation - ${newProject.title}`,
-                html: getAdminProjectValidationNotificationHtml(
-                  newProject.title,
-                  newProject.id,
-                  newProject.description,
-                  adminDashboardUrl
-                ),
-                type: 'noreply'
-              });
-              console.log("✅ Email de notification support envoyé");
-            } catch (emailError) {
-              console.error('❌ Erreur envoi email support (configuration manquante):', emailError);
-              // Ne pas bloquer la création du projet si l'email n'est pas envoyé
-            }
+          try {
+            await axios.post('/api/send-email', {
+              to: 'support@swipetonpro.fr',
+              subject: `📋 Nouveau projet en attente de validation - ${newProject.title}`,
+              html: getAdminProjectValidationNotificationHtml(
+                newProject.title,
+                newProject.id,
+                newProject.description,
+                adminDashboardUrl
+              ),
+              type: 'noreply',
+            });
+            console.log('✅ Email de notification support envoyé');
+          } catch (emailError) {
+            console.error(
+              '❌ Erreur envoi email support (configuration manquante):',
+              emailError
+            );
+            // Ne pas bloquer la création du projet si l'email n'est pas envoyé
+          }
         } catch (notifError) {
-          console.error("❌ Erreur lors de l'envoi de la notification admin:", notifError);
+          console.error(
+            "❌ Erreur lors de l'envoi de la notification admin:",
+            notifError
+          );
           // Ne pas bloquer la création du projet si l'email n'est pas envoyé
         }
       } else {
-        console.log("✅ Projet publié automatiquement - pas de notification admin nécessaire");
+        console.log(
+          '✅ Projet publié automatiquement - pas de notification admin nécessaire'
+        );
       }
 
       return newProject;
     } catch (error) {
-      console.error("Error creating project:", error);
+      console.error('Error creating project:', error);
       throw error;
     }
   },
 
-  async uploadProjectImages(projectId: string, files: File[]): Promise<{ data: string[] | null, error: Error | null }> {
+  async uploadProjectImages(
+    projectId: string,
+    files: File[]
+  ): Promise<{ data: string[] | null; error: Error | null }> {
     try {
       const uploadedUrls: string[] = [];
 
@@ -374,12 +435,12 @@ export const projectService = {
           .upload(fileName, file);
 
         if (error) throw error;
-        
+
         // Obtenir l'URL publique
-        const { data: { publicUrl } } = supabase.storage
-          .from('project-images')
-          .getPublicUrl(fileName);
-        
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('project-images').getPublicUrl(fileName);
+
         uploadedUrls.push(publicUrl);
       }
 
@@ -397,7 +458,10 @@ export const projectService = {
     }
   },
 
-  async getPendingProjects(): Promise<{ data: Project[] | null, error: Error | null }> {
+  async getPendingProjects(): Promise<{
+    data: Project[] | null;
+    error: Error | null;
+  }> {
     try {
       const query = supabase
         .from('projects')
@@ -412,7 +476,11 @@ export const projectService = {
     }
   },
 
-  async updateProjectStatus(projectId: string, newStatus: string, rejectionReason?: string): Promise<{ data: Project | null, error: Error | null }> {
+  async updateProjectStatus(
+    projectId: string,
+    newStatus: string,
+    rejectionReason?: string
+  ): Promise<{ data: Project | null; error: Error | null }> {
     try {
       // D'abord, récupérer le projet et ses infos avant la mise à jour
       const { data: projectBefore } = await supabase
@@ -426,7 +494,7 @@ export const projectService = {
         .from('projects')
         .update({
           status: newStatus as any,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', projectId)
         .select()
@@ -448,21 +516,27 @@ export const projectService = {
 
           if (newStatus === 'active' && clientEmail) {
             // Projet approuvé - envoyer email de congratulations
-            const baseUrl = typeof window !== 'undefined' ? window.location.origin : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+            const baseUrl =
+              typeof window !== 'undefined'
+                ? window.location.origin
+                : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
             const projectUrl = `${baseUrl}/projets/${projectId}`;
 
-            await axios.post("/api/send-email", {
+            await axios.post('/api/send-email', {
               to: clientEmail,
               subject: `✅ Votre projet "${projectBefore.title}" a été approuvé!`,
-              html: getProjectApprovedNotificationHtml(projectBefore.title, projectUrl),
-              type: "noreply",
+              html: getProjectApprovedNotificationHtml(
+                projectBefore.title,
+                projectUrl
+              ),
+              type: 'noreply',
             });
 
             console.log("✅ Email d'approbation envoyé à", clientEmail);
 
             // Envoyer au TEAM pour qualification et appel
-            await axios.post("/api/send-email", {
-              to: "team@swipetonpro.fr",
+            await axios.post('/api/send-email', {
+              to: 'team@swipetonpro.fr',
               subject: `🚀 Projet qualifié à appeler - ${projectBefore.title}`,
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -516,23 +590,28 @@ export const projectService = {
                   </div>
                 </div>
               `,
-              type: 'noreply'
+              type: 'noreply',
             });
-            console.log("✅ Email de qualification envoyé à la TEAM");
-
+            console.log('✅ Email de qualification envoyé à la TEAM');
           } else if (newStatus === 'rejected' && clientEmail) {
             // Projet rejeté - envoyer email de notification
-            await axios.post("/api/send-email", {
+            await axios.post('/api/send-email', {
               to: clientEmail,
               subject: `📋 Avis concernant votre projet "${projectBefore.title}"`,
-              html: getProjectRejectedNotificationHtml(projectBefore.title, rejectionReason),
-              type: "noreply",
+              html: getProjectRejectedNotificationHtml(
+                projectBefore.title,
+                rejectionReason
+              ),
+              type: 'noreply',
             });
 
-            console.log("✅ Email de rejet envoyé à", clientEmail);
+            console.log('✅ Email de rejet envoyé à', clientEmail);
           }
         } catch (emailError) {
-          console.error("⚠️ Erreur lors de l'envoi de l'email de notification:", emailError);
+          console.error(
+            "⚠️ Erreur lors de l'envoi de l'email de notification:",
+            emailError
+          );
           // Ne pas bloquer la mise à jour si l'email échoue
         }
       }
@@ -541,5 +620,5 @@ export const projectService = {
     } catch (error) {
       return { data: null, error: error as Error };
     }
-  }
+  },
 };

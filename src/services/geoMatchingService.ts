@@ -2,7 +2,7 @@
  * @fileoverview Geolocation-based Matching Service
  * @author Senior Architect
  * @version 1.0.0
- * 
+ *
  * Advanced matching service with real geolocation calculations
  */
 
@@ -12,15 +12,22 @@ import { getSupabaseClient } from '@/lib/database/core';
 /**
  * Calculate distance between two coordinates using Haversine formula
  */
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
   const R = 6371; // Earth's radius in kilometers
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
@@ -50,25 +57,34 @@ export class GeoMatchingService {
       // Get project details with coordinates
       const { data: project, error: projectError } = await this.client
         .from('projects')
-        .select('id, title, category, city, postal_code, latitude, longitude, estimated_budget_min, estimated_budget_max')
+        .select(
+          'id, title, category, city, postal_code, latitude, longitude, estimated_budget_min, estimated_budget_max'
+        )
         .eq('id', projectId)
         .single();
 
       if (projectError || !project) {
-        return { professionals: [], error: projectError || new Error('Projet non trouvé') };
+        return {
+          professionals: [],
+          error: projectError || new Error('Projet non trouvé'),
+        };
       }
 
       // If project has no coordinates, use geocoding (simplified)
       const projectCoords = await this._getProjectCoordinates(project);
-      
+
       if (!projectCoords) {
-        return { professionals: [], error: new Error('Coordonnées du projet non disponibles') };
+        return {
+          professionals: [],
+          error: new Error('Coordonnées du projet non disponibles'),
+        };
       }
 
       // Get all active professionals with their coordinates
       const { data: professionals, error: prosError } = await this.client
         .from('professionals')
-        .select(`
+        .select(
+          `
           id,
           user_id,
           company_name,
@@ -87,27 +103,28 @@ export class GeoMatchingService {
             latitude,
             longitude
           )
-        `)
+        `
+        )
         .eq('status', 'verified');
 
       if (prosError) {
-      console.error('❌ Supabase error fetching professionals:', prosError);
-      return { professionals: [], error: prosError };
-    }
+        console.error('❌ Supabase error fetching professionals:', prosError);
+        return { professionals: [], error: prosError };
+      }
 
-    if (!professionals || professionals.length === 0) {
-      console.log('ℹ️ No professionals found in database');
-      return { professionals: [], error: null };
-    }
+      if (!professionals || professionals.length === 0) {
+        console.log('ℹ️ No professionals found in database');
+        return { professionals: [], error: null };
+      }
 
-    console.log(`✅ Found ${professionals.length} professionals in database`);
+      console.log(`✅ Found ${professionals.length} professionals in database`);
 
       // Calculate distances and filter
       const nearbyProfessionals = (professionals || [])
-        .map(pro => {
+        .map((pro) => {
           const proCoords = {
             latitude: pro.profiles.latitude,
-            longitude: pro.profiles.longitude
+            longitude: pro.profiles.longitude,
           };
 
           if (!proCoords.latitude || !proCoords.longitude) {
@@ -131,13 +148,14 @@ export class GeoMatchingService {
             withinCoverage: distance <= (pro.coverage_radius || 30), // Fallback to 30km
             rating: pro.rating_average || 0, // Fallback for rating
             experience_years: pro.experience_years || 0, // Fallback for experience
-            specialties: pro.specialties || [] // Fallback for specialties
+            specialties: pro.specialties || [], // Fallback for specialties
           };
         })
-        .filter(pro => 
-          pro.distance !== null && 
-          pro.distance <= maxDistanceKm &&
-          pro.score > 20 // Minimum score threshold
+        .filter(
+          (pro) =>
+            pro.distance !== null &&
+            pro.distance <= maxDistanceKm &&
+            pro.score > 20 // Minimum score threshold
         )
         .sort((a, b) => b.score - a.score) // Sort by score (highest first)
         .slice(0, limit);
@@ -152,12 +170,14 @@ export class GeoMatchingService {
   /**
    * Get project coordinates (with fallback geocoding)
    */
-  private async _getProjectCoordinates(project: any): Promise<{ latitude: number; longitude: number } | null> {
+  private async _getProjectCoordinates(
+    project: any
+  ): Promise<{ latitude: number; longitude: number } | null> {
     // If coordinates exist, use them
     if (project.latitude && project.longitude) {
       return {
         latitude: parseFloat(project.latitude),
-        longitude: parseFloat(project.longitude)
+        longitude: parseFloat(project.longitude),
       };
     }
 
@@ -184,7 +204,9 @@ export class GeoMatchingService {
   /**
    * Simple postal code geocoding (fallback)
    */
-  private _geocodePostalCode(postalCode: string): { latitude: number; longitude: number } | null {
+  private _geocodePostalCode(
+    postalCode: string
+  ): { latitude: number; longitude: number } | null {
     // Simplified French postal code coordinates
     const postalCodeCoords: { [key: string]: { lat: number; lng: number } } = {
       '75001': { lat: 48.86, lng: 2.34 }, // Paris
@@ -201,9 +223,9 @@ export class GeoMatchingService {
       '75012': { lat: 48.84, lng: 2.37 },
       '75013': { lat: 48.83, lng: 2.36 },
       '75014': { lat: 48.84, lng: 2.32 },
-      '75015': { lat: 48.84, lng: 2.30 },
+      '75015': { lat: 48.84, lng: 2.3 },
       '75016': { lat: 48.85, lng: 2.28 },
-      '75017': { lat: 48.88, lng: 2.30 },
+      '75017': { lat: 48.88, lng: 2.3 },
       '75018': { lat: 48.89, lng: 2.34 },
       '75019': { lat: 48.89, lng: 2.38 },
       '75020': { lat: 48.86, lng: 2.39 },
@@ -211,18 +233,19 @@ export class GeoMatchingService {
       '69001': { lat: 45.76, lng: 4.84 }, // Lyon
       '69002': { lat: 45.76, lng: 4.85 },
       // Marseille
-      '13001': { lat: 43.30, lng: 5.38 },
-      '13002': { lat: 43.30, lng: 5.39 },
+      '13001': { lat: 43.3, lng: 5.38 },
+      '13002': { lat: 43.3, lng: 5.39 },
       // Bordeaux
       '33000': { lat: 44.84, lng: -0.58 },
       // Toulouse
-      '31000': { lat: 43.60, lng: 1.44 },
+      '31000': { lat: 43.6, lng: 1.44 },
       // Nice
-      '06000': { lat: 43.70, lng: 7.27 },
+      '06000': { lat: 43.7, lng: 7.27 },
     };
 
     const dept = postalCode.slice(0, 2);
-    const coords = postalCodeCoords[postalCode] || postalCodeCoords[dept + '001'];
+    const coords =
+      postalCodeCoords[postalCode] || postalCodeCoords[dept + '001'];
 
     if (coords) {
       return { latitude: coords.lat, longitude: coords.lng };
@@ -234,11 +257,15 @@ export class GeoMatchingService {
   /**
    * Calculate comprehensive matching score
    */
-  private _calculateMatchingScore(project: any, professional: any, distance: number): number {
+  private _calculateMatchingScore(
+    project: any,
+    professional: any,
+    distance: number
+  ): number {
     let score = 0;
 
     // Distance score (40% weight)
-    const distanceScore = Math.max(0, 100 - (distance * 2)); // 2 points per km
+    const distanceScore = Math.max(0, 100 - distance * 2); // 2 points per km
     score += distanceScore * 0.4;
 
     // Coverage radius bonus (10% weight)
@@ -247,12 +274,19 @@ export class GeoMatchingService {
     }
 
     // Specialities matching (25% weight)
-    if (professional.specialities && professional.specialities.includes(project.category)) {
+    if (
+      professional.specialities &&
+      professional.specialities.includes(project.category)
+    ) {
       score += 100 * 0.25;
-    } else if (professional.specialities && professional.specialities.some((spec: string) => 
-      spec.toLowerCase().includes(project.category.toLowerCase()) ||
-      project.category.toLowerCase().includes(spec.toLowerCase())
-    )) {
+    } else if (
+      professional.specialities &&
+      professional.specialities.some(
+        (spec: string) =>
+          spec.toLowerCase().includes(project.category.toLowerCase()) ||
+          project.category.toLowerCase().includes(spec.toLowerCase())
+      )
+    ) {
       score += 70 * 0.25;
     }
 
@@ -275,17 +309,24 @@ export class GeoMatchingService {
     maxDistanceKm: number = 30
   ): Promise<{ notified: number; error: Error | null }> {
     try {
-      console.log("🔔 notifyNearbyProfessionals called for project:", projectId);
-      
-      const { professionals, error } = await this.findNearbyProfessionals(projectId, maxDistanceKm, 10);
-      
+      console.log(
+        '🔔 notifyNearbyProfessionals called for project:',
+        projectId
+      );
+
+      const { professionals, error } = await this.findNearbyProfessionals(
+        projectId,
+        maxDistanceKm,
+        10
+      );
+
       if (error) {
-        console.error("❌ Error in findNearbyProfessionals:", error);
+        console.error('❌ Error in findNearbyProfessionals:', error);
         return { notified: 0, error };
       }
 
       if (!professionals || professionals.length === 0) {
-        console.log("ℹ️ No professionals found to notify");
+        console.log('ℹ️ No professionals found to notify');
         return { notified: 0, error: null };
       }
 
@@ -296,7 +337,10 @@ export class GeoMatchingService {
       for (const professional of professionals) {
         if (professional.withinCoverage && professional.score > 50) {
           // Create notification for professional
-          await this._createProjectNotification(professional.user_id, projectId);
+          await this._createProjectNotification(
+            professional.user_id,
+            projectId
+          );
           notifiedCount++;
         }
       }
@@ -311,7 +355,10 @@ export class GeoMatchingService {
   /**
    * Create project notification for professional
    */
-  private async _createProjectNotification(userId: string, projectId: string): Promise<void> {
+  private async _createProjectNotification(
+    userId: string,
+    projectId: string
+  ): Promise<void> {
     try {
       // Get project details
       const { data: project } = await this.client
@@ -322,14 +369,14 @@ export class GeoMatchingService {
 
       const notificationData = {
         user_id: userId,
-        title: "Nouveau projet près de chez vous",
+        title: 'Nouveau projet près de chez vous',
         message: `Un nouveau projet "${project?.title}" (${project?.category}) est disponible à ${project?.city}`,
-        type: "new_project_nearby",
+        type: 'new_project_nearby',
         data: {
           project_id: projectId,
           category: project?.category,
-          city: project?.city
-        }
+          city: project?.city,
+        },
       };
 
       await databaseService.createNotification(notificationData);
@@ -352,10 +399,12 @@ export class GeoMatchingService {
       // Get professional coordinates and coverage radius
       const { data: professional, error: proError } = await this.client
         .from('professionals')
-        .select(`
+        .select(
+          `
           coverage_radius,
           profiles!inner(latitude, longitude)
-        `)
+        `
+        )
         .eq('id', professionalId)
         .single();
 
@@ -367,13 +416,17 @@ export class GeoMatchingService {
         .select('id, latitude, longitude, category, status')
         .eq('status', 'published');
 
-      if (!projects || !professional.profiles.latitude || !professional.profiles.longitude) {
+      if (
+        !projects ||
+        !professional.profiles.latitude ||
+        !professional.profiles.longitude
+      ) {
         return null;
       }
 
       const proCoords = {
         latitude: professional.profiles.latitude,
-        longitude: professional.profiles.longitude
+        longitude: professional.profiles.longitude,
       };
 
       const coverageRadius = professional.coverage_radius || 50;
@@ -382,13 +435,13 @@ export class GeoMatchingService {
       let totalDistance = 0;
       let validDistanceCount = 0;
 
-      projects.forEach(project => {
+      projects.forEach((project) => {
         if (project.latitude && project.longitude) {
           const distance = calculateDistance(
-            proCoords.latitude,
-            proCoords.longitude,
-            parseFloat(project.latitude),
-            parseFloat(project.longitude)
+            Number(proCoords.latitude),
+            Number(proCoords.longitude),
+            parseFloat(project.latitude as any),
+            parseFloat(project.longitude as any)
           );
 
           if (distance <= coverageRadius) {
@@ -403,8 +456,14 @@ export class GeoMatchingService {
       return {
         totalProjects: projects.length,
         nearbyProjects: nearbyCount,
-        averageDistance: validDistanceCount > 0 ? Math.round((totalDistance / validDistanceCount) * 10) / 10 : 0,
-        coverageRate: projects.length > 0 ? Math.round((nearbyCount / projects.length) * 100) : 0
+        averageDistance:
+          validDistanceCount > 0
+            ? Math.round((totalDistance / validDistanceCount) * 10) / 10
+            : 0,
+        coverageRate:
+          projects.length > 0
+            ? Math.round((nearbyCount / projects.length) * 100)
+            : 0,
       };
     } catch (err) {
       console.error('Error getting service area stats:', err);

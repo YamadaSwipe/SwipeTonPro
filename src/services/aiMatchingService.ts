@@ -59,7 +59,11 @@ interface MatchingScore {
     response_time_match: number;
   };
   confidence: number;
-  recommendation: 'highly_recommended' | 'recommended' | 'consider' | 'not_recommended';
+  recommendation:
+    | 'highly_recommended'
+    | 'recommended'
+    | 'consider'
+    | 'not_recommended';
 }
 
 export const aiMatchingService = {
@@ -90,7 +94,10 @@ export const aiMatchingService = {
         urgency: project.urgency || 'medium',
         timeline: (project as any).timeline || '',
         skills: requiredSkills,
-        experience: this.getRequiredExperience(project.category, project.budget_max),
+        experience: this.getRequiredExperience(
+          project.category,
+          project.budget_max
+        ),
         rating: this.getMinimumRating(project.budget_max),
         availability: this.getRequiredAvailability(project.urgency),
         distance: this.getMaxDistance(project.urgency),
@@ -113,13 +120,14 @@ export const aiMatchingService = {
     try {
       const criteria = await this.analyzeProject(projectId);
       if (!criteria) {
-        throw new Error('Impossible d\'analyser le projet');
+        throw new Error("Impossible d'analyser le projet");
       }
 
       // Récupérer les professionnels disponibles
       const { data: professionals, error } = await (supabase as any)
         .from('professionals')
-        .select(`
+        .select(
+          `
           *,
           profiles!inner(
             full_name,
@@ -127,7 +135,8 @@ export const aiMatchingService = {
             phone,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('verified', true)
         .eq('status', 'active');
 
@@ -135,10 +144,11 @@ export const aiMatchingService = {
 
       // Calculer le score de matching pour chaque professionnel
       const scores: MatchingScore[] = [];
-      
+
       for (const professional of professionals || []) {
         const score = await this.calculateMatchingScore(criteria, professional);
-        if (score.score > 20) { // Filtrer les scores trop bas
+        if (score.score > 20) {
+          // Filtrer les scores trop bas
           scores.push(score);
         }
       }
@@ -161,25 +171,45 @@ export const aiMatchingService = {
     professional: ProfessionalProfile
   ): Promise<MatchingScore> {
     // Skills matching (30%)
-    const skillsMatch = this.calculateSkillsMatch(criteria.skills, professional.specialities);
-    
+    const skillsMatch = this.calculateSkillsMatch(
+      criteria.skills,
+      professional.specialities
+    );
+
     // Location matching (25%)
-    const locationMatch = this.calculateLocationMatch(criteria.location, professional);
-    
+    const locationMatch = this.calculateLocationMatch(
+      criteria.location,
+      professional
+    );
+
     // Budget matching (15%)
-    const budgetMatch = this.calculateBudgetMatch(criteria.budget, professional);
-    
+    const budgetMatch = this.calculateBudgetMatch(
+      criteria.budget,
+      professional
+    );
+
     // Availability matching (15%)
-    const availabilityMatch = this.calculateAvailabilityMatch(criteria.availability, professional);
-    
+    const availabilityMatch = this.calculateAvailabilityMatch(
+      criteria.availability,
+      professional
+    );
+
     // Experience matching (10%)
-    const experienceMatch = this.calculateExperienceMatch(criteria.experience, professional.experience_years);
-    
+    const experienceMatch = this.calculateExperienceMatch(
+      criteria.experience,
+      professional.experience_years
+    );
+
     // Rating matching (5%)
-    const ratingMatch = this.calculateRatingMatch(criteria.rating, professional.rating);
-    
+    const ratingMatch = this.calculateRatingMatch(
+      criteria.rating,
+      professional.rating
+    );
+
     // Response time matching (5%)
-    const responseTimeMatch = this.calculateResponseTimeMatch(professional.response_time);
+    const responseTimeMatch = this.calculateResponseTimeMatch(
+      professional.response_time
+    );
 
     const breakdown = {
       skills_match: skillsMatch,
@@ -192,12 +222,12 @@ export const aiMatchingService = {
     };
 
     // Score pondéré
-    const totalScore = 
-      skillsMatch * 0.30 +
+    const totalScore =
+      skillsMatch * 0.3 +
       locationMatch * 0.25 +
       budgetMatch * 0.15 +
       availabilityMatch * 0.15 +
-      experienceMatch * 0.10 +
+      experienceMatch * 0.1 +
       ratingMatch * 0.05 +
       responseTimeMatch * 0.05;
 
@@ -221,22 +251,98 @@ export const aiMatchingService = {
    */
   extractSkillsFromText(text: string): string[] {
     const skillKeywords = {
-      plomberie: ['plomberie', 'robinet', 'fuite', 'canalisation', 'chauffe-eau', 'wc', 'douche', 'baignoire'],
-      electricite: ['électricité', 'électricien', 'prise', 'disjoncteur', 'tableau', 'câblage', 'eclairage', 'lampe'],
-      chauffage: ['chauffage', 'chaudière', 'radiateur', 'climatisation', 'pompe à chaleur', 'thermostat'],
-      menuiserie: ['menuiserie', 'porte', 'fenêtre', 'volet', 'placard', 'armoire', 'bois', 'agencement'],
-      maçonnerie: ['maçonnerie', 'mur', 'cloison', 'placo', 'plâtre', 'dalle', 'fondation', 'béton'],
-      peinture: ['peinture', 'peintre', 'couleur', 'enduit', 'satiné', 'mat', 'brillant', 'préparation'],
-      couverture: ['couverture', 'toit', 'tuile', 'ardoise', 'gouttière', 'zinc', 'étanchéité'],
-      carrelage: ['carrelage', 'carreau', 'faïence', 'salle de bain', 'cuisine', 'sol', 'pose'],
-      jardin: ['jardin', 'paysagiste', 'pelouse', 'terrasse', 'clôture', 'plantation', 'entretien'],
+      plomberie: [
+        'plomberie',
+        'robinet',
+        'fuite',
+        'canalisation',
+        'chauffe-eau',
+        'wc',
+        'douche',
+        'baignoire',
+      ],
+      electricite: [
+        'électricité',
+        'électricien',
+        'prise',
+        'disjoncteur',
+        'tableau',
+        'câblage',
+        'eclairage',
+        'lampe',
+      ],
+      chauffage: [
+        'chauffage',
+        'chaudière',
+        'radiateur',
+        'climatisation',
+        'pompe à chaleur',
+        'thermostat',
+      ],
+      menuiserie: [
+        'menuiserie',
+        'porte',
+        'fenêtre',
+        'volet',
+        'placard',
+        'armoire',
+        'bois',
+        'agencement',
+      ],
+      maçonnerie: [
+        'maçonnerie',
+        'mur',
+        'cloison',
+        'placo',
+        'plâtre',
+        'dalle',
+        'fondation',
+        'béton',
+      ],
+      peinture: [
+        'peinture',
+        'peintre',
+        'couleur',
+        'enduit',
+        'satiné',
+        'mat',
+        'brillant',
+        'préparation',
+      ],
+      couverture: [
+        'couverture',
+        'toit',
+        'tuile',
+        'ardoise',
+        'gouttière',
+        'zinc',
+        'étanchéité',
+      ],
+      carrelage: [
+        'carrelage',
+        'carreau',
+        'faïence',
+        'salle de bain',
+        'cuisine',
+        'sol',
+        'pose',
+      ],
+      jardin: [
+        'jardin',
+        'paysagiste',
+        'pelouse',
+        'terrasse',
+        'clôture',
+        'plantation',
+        'entretien',
+      ],
     };
 
     const textLower = text.toLowerCase();
     const foundSkills: string[] = [];
 
     Object.entries(skillKeywords).forEach(([skill, keywords]) => {
-      if (keywords.some(keyword => textLower.includes(keyword))) {
+      if (keywords.some((keyword) => textLower.includes(keyword))) {
         foundSkills.push(skill);
       }
     });
@@ -247,13 +353,17 @@ export const aiMatchingService = {
   /**
    * Calculer le matching des compétences
    */
-  calculateSkillsMatch(requiredSkills: string[], professionalSkills: string[]): number {
+  calculateSkillsMatch(
+    requiredSkills: string[],
+    professionalSkills: string[]
+  ): number {
     if (requiredSkills.length === 0) return 50; // Neutre si pas de compétences requises
-    
-    const matches = requiredSkills.filter(skill => 
-      professionalSkills.some(proSkill => 
-        proSkill.toLowerCase().includes(skill.toLowerCase()) ||
-        skill.toLowerCase().includes(proSkill.toLowerCase())
+
+    const matches = requiredSkills.filter((skill) =>
+      professionalSkills.some(
+        (proSkill) =>
+          proSkill.toLowerCase().includes(skill.toLowerCase()) ||
+          skill.toLowerCase().includes(proSkill.toLowerCase())
       )
     );
 
@@ -263,14 +373,20 @@ export const aiMatchingService = {
   /**
    * Calculer le matching de localisation
    */
-  calculateLocationMatch(projectLocation: string, professional: ProfessionalProfile): number {
+  calculateLocationMatch(
+    projectLocation: string,
+    professional: ProfessionalProfile
+  ): number {
     // Vérifier si le professionnel couvre la zone
     const projectCity = projectLocation.split(' ')[0].toLowerCase();
-    
-    if (professional.service_area.some(area => 
-      area.toLowerCase().includes(projectCity) ||
-      projectCity.includes(area.toLowerCase())
-    )) {
+
+    if (
+      professional.service_area.some(
+        (area) =>
+          area.toLowerCase().includes(projectCity) ||
+          projectCity.includes(area.toLowerCase())
+      )
+    ) {
       return 100; // Zone couverte
     }
 
@@ -283,8 +399,12 @@ export const aiMatchingService = {
     // Même département (code postal)
     const projectPostal = projectLocation.match(/\d{5}/)?.[0];
     const professionalPostal = professional.location.match(/\d{5}/)?.[0];
-    
-    if (projectPostal && professionalPostal && projectPostal.slice(0, 2) === professionalPostal.slice(0, 2)) {
+
+    if (
+      projectPostal &&
+      professionalPostal &&
+      projectPostal.slice(0, 2) === professionalPostal.slice(0, 2)
+    ) {
       return 70; // Même département
     }
 
@@ -294,33 +414,45 @@ export const aiMatchingService = {
   /**
    * Calculer le matching de budget
    */
-  calculateBudgetMatch(projectBudget: number, professional: ProfessionalProfile): number {
+  calculateBudgetMatch(
+    projectBudget: number,
+    professional: ProfessionalProfile
+  ): number {
     if (!professional.hourly_rate || projectBudget === 0) return 50;
 
     // Estimer le coût total (simplifié)
     const estimatedCost = professional.hourly_rate * 40; // 40h moyenne
-    
+
     if (estimatedCost <= projectBudget * 0.8) return 100; // Très bon rapport
     if (estimatedCost <= projectBudget) return 80; // Bon rapport
     if (estimatedCost <= projectBudget * 1.2) return 60; // Acceptable
     if (estimatedCost <= projectBudget * 1.5) return 40; // Cher mais possible
-    
+
     return 20; // Trop cher
   },
 
   /**
    * Calculer le matching de disponibilité
    */
-  calculateAvailabilityMatch(requiredAvailability: string, professional: ProfessionalProfile): number {
+  calculateAvailabilityMatch(
+    requiredAvailability: string,
+    professional: ProfessionalProfile
+  ): number {
     const availabilityLevels = {
-      'urgent': 90,
-      'high': 70,
-      'medium': 50,
-      'low': 30,
+      urgent: 90,
+      high: 70,
+      medium: 50,
+      low: 30,
     };
 
-    const requiredLevel = availabilityLevels[requiredAvailability as keyof typeof availabilityLevels] || 50;
-    const professionalLevel = availabilityLevels[professional.availability as keyof typeof availabilityLevels] || 50;
+    const requiredLevel =
+      availabilityLevels[
+        requiredAvailability as keyof typeof availabilityLevels
+      ] || 50;
+    const professionalLevel =
+      availabilityLevels[
+        professional.availability as keyof typeof availabilityLevels
+      ] || 50;
 
     if (professionalLevel >= requiredLevel) return 100;
     return Math.max(20, professionalLevel);
@@ -361,7 +493,10 @@ export const aiMatchingService = {
   /**
    * Calculer le niveau de confiance
    */
-  calculateConfidence(professional: ProfessionalProfile, breakdown: any): number {
+  calculateConfidence(
+    professional: ProfessionalProfile,
+    breakdown: any
+  ): number {
     let confidence = 50; // Base
 
     // Plus de données = plus de confiance
@@ -372,9 +507,15 @@ export const aiMatchingService = {
 
     // Cohérence des scores
     const scores = Object.values(breakdown);
-    const avgScore = (scores as any[]).reduce((a: number, b: number) => a + b, 0) / scores.length;
-    const variance = (scores as any[]).reduce((acc: number, score: number) => acc + Math.pow(score - avgScore, 2), 0) / scores.length;
-    
+    const avgScore =
+      (scores as any[]).reduce((a: number, b: number) => a + b, 0) /
+      scores.length;
+    const variance =
+      (scores as any[]).reduce(
+        (acc: number, score: number) => acc + Math.pow(score - avgScore, 2),
+        0
+      ) / scores.length;
+
     if (variance < 500) confidence += 10; // Scores cohérents
 
     return Math.min(100, confidence);
@@ -383,9 +524,12 @@ export const aiMatchingService = {
   /**
    * Obtenir la recommandation
    */
-  getRecommendation(score: number, confidence: number): MatchingScore['recommendation'] {
+  getRecommendation(
+    score: number,
+    confidence: number
+  ): MatchingScore['recommendation'] {
     const adjustedScore = score * (confidence / 100);
-    
+
     if (adjustedScore >= 80) return 'highly_recommended';
     if (adjustedScore >= 60) return 'recommended';
     if (adjustedScore >= 40) return 'consider';
@@ -397,23 +541,23 @@ export const aiMatchingService = {
    */
   getRequiredExperience(category: string, budget: number): number {
     const baseExperience = {
-      'plomberie': 3,
-      'electricite': 5,
-      'chauffage': 4,
-      'menuiserie': 3,
-      'maçonnerie': 5,
-      'peinture': 2,
-      'couverture': 6,
-      'carrelage': 3,
+      plomberie: 3,
+      electricite: 5,
+      chauffage: 4,
+      menuiserie: 3,
+      maçonnerie: 5,
+      peinture: 2,
+      couverture: 6,
+      carrelage: 3,
     };
 
     const base = baseExperience[category as keyof typeof baseExperience] || 3;
-    
+
     // Projets plus chers = plus d'expérience requise
     if (budget > 50000) return base + 3;
     if (budget > 20000) return base + 2;
     if (budget > 10000) return base + 1;
-    
+
     return base;
   },
 
@@ -432,12 +576,12 @@ export const aiMatchingService = {
    */
   getRequiredAvailability(urgency: string): string {
     const urgencyMap = {
-      'urgent': 'urgent',
-      'high': 'high',
-      'medium': 'medium',
-      'low': 'low',
+      urgent: 'urgent',
+      high: 'high',
+      medium: 'medium',
+      low: 'low',
     };
-    
+
     return urgencyMap[urgency as keyof typeof urgencyMap] || 'medium';
   },
 
@@ -446,30 +590,31 @@ export const aiMatchingService = {
    */
   getMaxDistance(urgency: string): number {
     const urgencyDistance = {
-      'urgent': 20, // 20km
-      'high': 50,  // 50km
-      'medium': 100, // 100km
-      'low': 200, // 200km
+      urgent: 20, // 20km
+      high: 50, // 50km
+      medium: 100, // 100km
+      low: 200, // 200km
     };
-    
+
     return urgencyDistance[urgency as keyof typeof urgencyDistance] || 100;
   },
 
   /**
    * Entraîner le modèle avec les feedbacks
    */
-  async trainWithFeedback(matchId: string, feedback: 'positive' | 'negative'): Promise<void> {
+  async trainWithFeedback(
+    matchId: string,
+    feedback: 'positive' | 'negative'
+  ): Promise<void> {
     try {
       // Sauvegarder le feedback pour l'entraînement futur
-      await (supabase as any)
-        .from('matching_feedback')
-        .insert({
-          match_id: matchId,
-          feedback,
-          created_at: new Date().toISOString(),
-        });
+      await (supabase as any).from('matching_feedback').insert({
+        match_id: matchId,
+        feedback,
+        created_at: new Date().toISOString(),
+      });
 
-      console.log('Feedback enregistré pour l\'entraînement');
+      console.log("Feedback enregistré pour l'entraînement");
     } catch (error) {
       console.error('Erreur enregistrement feedback:', error);
     }
@@ -490,10 +635,19 @@ export const aiMatchingService = {
 
       return {
         totalMatches: data?.length || 0,
-        averageScore: data?.reduce((acc, stat) => acc + stat.score, 0) / (data?.length || 1) || 0,
-        highlyRecommended: data?.filter(stat => stat.recommendation === 'highly_recommended').length || 0,
-        recommended: data?.filter(stat => stat.recommendation === 'recommended').length || 0,
-        successRate: data?.filter(stat => stat.feedback === 'positive').length / (data?.length || 1) * 100 || 0,
+        averageScore:
+          data?.reduce((acc, stat) => acc + stat.score, 0) /
+            (data?.length || 1) || 0,
+        highlyRecommended:
+          data?.filter((stat) => stat.recommendation === 'highly_recommended')
+            .length || 0,
+        recommended:
+          data?.filter((stat) => stat.recommendation === 'recommended')
+            .length || 0,
+        successRate:
+          (data?.filter((stat) => stat.feedback === 'positive').length /
+            (data?.length || 1)) *
+            100 || 0,
       };
     } catch (error) {
       console.error('Erreur stats matching:', error);

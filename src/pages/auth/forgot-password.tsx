@@ -1,74 +1,97 @@
-import { SEO } from "@/components/SEO";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { authService } from "@/services/authService";
-import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Mail } from "lucide-react";
-import Link from "next/link";
+import { SEO } from '@/components/SEO';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { authService } from '@/services/authService';
+import { useToast } from '@/hooks/use-toast';
+import { ArrowLeft, Mail } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [devNote, setDevNote] = useState<string | null>(null);
   const { toast } = useToast();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+
     if (!email) {
       toast({
-        title: "❌ Erreur",
-        description: "Veuillez entrer votre adresse email",
-        variant: "destructive",
+        title: '❌ Erreur',
+        description: 'Veuillez entrer votre adresse email',
+        variant: 'destructive',
       });
       return;
     }
 
     setLoading(true);
 
-    const { error } = await authService.resetPassword(email);
+    const { error, resetLink, note } = await authService.resetPassword(email);
 
     if (error) {
       toast({
-        title: "❌ Erreur",
+        title: '❌ Erreur',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
       setLoading(false);
       return;
     }
 
+    // Capturer le lien en mode dev
+    if (resetLink) {
+      setResetLink(resetLink);
+    }
+    if (note) {
+      setDevNote(note);
+    }
+
     setEmailSent(true);
     setLoading(false);
-    
+
     toast({
-      title: "✅ Email envoyé",
-      description: "Vérifiez votre boîte de réception pour réinitialiser votre mot de passe",
+      title: '✅ Email envoyé',
+      description:
+        'Vérifiez votre boîte de réception pour réinitialiser votre mot de passe',
     });
   }
 
   return (
     <>
-      <SEO 
+      <SEO
         title="Mot de passe oublié - SwipeTonPro 2.0"
         description="Réinitialisez votre mot de passe SwipeTonPro"
       />
-      
+
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-orange-100 p-4">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center">
-            <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"
+            >
               <ArrowLeft className="w-4 h-4" />
               Retour à l'accueil
             </Link>
-            <CardTitle className="text-2xl font-bold">Mot de passe oublié ?</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Mot de passe oublié ?
+            </CardTitle>
             <CardDescription>
-              Entrez votre adresse email pour recevoir un lien de réinitialisation
+              Entrez votre adresse email pour recevoir un lien de
+              réinitialisation
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             {!emailSent ? (
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -91,17 +114,22 @@ export default function ForgotPasswordPage() {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
                   disabled={loading}
                 >
-                  {loading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
+                  {loading
+                    ? 'Envoi en cours...'
+                    : 'Envoyer le lien de réinitialisation'}
                 </Button>
 
                 <div className="text-center text-sm text-muted-foreground">
-                  Vous vous souvenez de votre mot de passe ?{" "}
-                  <Link href="/particulier" className="text-orange-600 hover:underline font-medium">
+                  Vous vous souvenez de votre mot de passe ?{' '}
+                  <Link
+                    href="/particulier"
+                    className="text-orange-600 hover:underline font-medium"
+                  >
                     Se connecter
                   </Link>
                 </div>
@@ -114,13 +142,33 @@ export default function ForgotPasswordPage() {
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">Email envoyé !</h3>
                   <p className="text-sm text-muted-foreground">
-                    Nous avons envoyé un lien de réinitialisation à <strong>{email}</strong>
+                    Nous avons envoyé un lien de réinitialisation à{' '}
+                    <strong>{email}</strong>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Vérifiez également votre dossier spam si vous ne le trouvez pas.
+                    Vérifiez également votre dossier spam si vous ne le trouvez
+                    pas.
                   </p>
+
+                  {/* Afficher le lien en mode développement */}
+                  {resetLink && (
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800 font-medium mb-2">
+                        🔧 Mode développement - Lien direct :
+                      </p>
+                      <a
+                        href={resetLink}
+                        className="text-sm text-blue-600 underline break-all"
+                      >
+                        {resetLink}
+                      </a>
+                      {devNote && (
+                        <p className="text-xs text-blue-600 mt-2">{devNote}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-                
+
                 <Button
                   onClick={() => setEmailSent(false)}
                   variant="outline"

@@ -37,25 +37,25 @@ export const seoService = {
     ];
 
     const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "name": project.title,
-      "description": project.description,
-      "provider": {
-        "@type": "LocalBusiness",
-        "name": "EDSwipe",
-        "url": "https://edswipe.fr"
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: project.title,
+      description: project.description,
+      provider: {
+        '@type': 'LocalBusiness',
+        name: 'EDSwipe',
+        url: 'https://edswipe.fr',
       },
-      "areaServed": {
-        "@type": "Place",
-        "name": `${project.city}, ${project.postal_code}`
+      areaServed: {
+        '@type': 'Place',
+        name: `${project.city}, ${project.postal_code}`,
       },
-      "serviceType": project.category,
-      "offers": {
-        "@type": "Offer",
-        "price": project.budget_max,
-        "priceCurrency": "EUR"
-      }
+      serviceType: project.category,
+      offers: {
+        '@type': 'Offer',
+        price: project.budget_max,
+        priceCurrency: 'EUR',
+      },
     };
 
     return {
@@ -83,29 +83,31 @@ export const seoService = {
     ];
 
     const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "LocalBusiness",
-      "name": professional.company_name,
-      "description": professional.description,
-      "url": `https://edswipe.fr/artisans/${professional.id}`,
-      "telephone": professional.phone,
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": professional.city,
-        "postalCode": professional.postal_code,
-        "addressCountry": "FR"
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: professional.company_name,
+      description: professional.description,
+      url: `https://edswipe.fr/artisans/${professional.id}`,
+      telephone: professional.phone,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: professional.city,
+        postalCode: professional.postal_code,
+        addressCountry: 'FR',
       },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": professional.latitude,
-        "longitude": professional.longitude
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: professional.latitude,
+        longitude: professional.longitude,
       },
-      "aggregateRating": professional.rating ? {
-        "@type": "AggregateRating",
-        "ratingValue": professional.rating,
-        "reviewCount": professional.review_count
-      } : undefined,
-      "serviceType": professional.specialities
+      aggregateRating: professional.rating_average
+        ? {
+            '@type': 'AggregateRating',
+            ratingValue: professional.rating_average,
+            reviewCount: professional.rating_count,
+          }
+        : undefined,
+      serviceType: professional.specialities,
     };
 
     return {
@@ -122,14 +124,83 @@ export const seoService = {
    */
   generateCategorySEO(category: string, projects: any[] = []): SEOData {
     const categoryKeywords = {
-      'plomberie': ['plomberie', 'plomber', 'installation sanitaire', 'chauffe-eau', 'canalisation', 'fuite', 'débouchage'],
-      'electricite': ['électricité', 'électricien', 'installation électrique', 'tableau électrique', 'mise à la terre', 'prise', 'disjoncteur'],
-      'chauffage': ['chauffage', 'chauffagiste', 'chaudière', 'pompe à chaleur', 'radiateur', 'climatisation', 'ventilation'],
-      'menuiserie': ['menuiserie', 'menuisier', 'fenêtre', 'porte', 'volet', 'placard', 'armoire', 'agencement'],
-      'maçonnerie': ['maçonnerie', 'maçon', 'mur', 'cloison', 'placo', 'plâtre', 'dalle', 'fondation', 'béton'],
-      'peinture': ['peinture', 'peintre', 'peinture intérieure', 'peinture extérieure', 'enduit', 'préparation', 'décoration'],
-      'couverture': ['couverture', 'couvreur', 'toit', 'tuile', 'ardoise', 'gouttière', 'zinc', 'étanchéité'],
-      'carrelage': ['carrelage', 'carreleur', 'carreau', 'faïence', 'salle de bain', 'cuisine', 'sol', 'pose carrelage'],
+      plomberie: [
+        'plomberie',
+        'plomber',
+        'installation sanitaire',
+        'chauffe-eau',
+        'canalisation',
+        'fuite',
+        'débouchage',
+      ],
+      electricite: [
+        'électricité',
+        'électricien',
+        'installation électrique',
+        'tableau électrique',
+        'mise à la terre',
+        'prise',
+        'disjoncteur',
+      ],
+      chauffage: [
+        'chauffage',
+        'chauffagiste',
+        'chaudière',
+        'pompe à chaleur',
+        'radiateur',
+        'climatisation',
+        'ventilation',
+      ],
+      menuiserie: [
+        'menuiserie',
+        'menuisier',
+        'fenêtre',
+        'porte',
+        'volet',
+        'placard',
+        'armoire',
+        'agencement',
+      ],
+      maçonnerie: [
+        'maçonnerie',
+        'maçon',
+        'mur',
+        'cloison',
+        'placo',
+        'plâtre',
+        'dalle',
+        'fondation',
+        'béton',
+      ],
+      peinture: [
+        'peinture',
+        'peintre',
+        'peinture intérieure',
+        'peinture extérieure',
+        'enduit',
+        'préparation',
+        'décoration',
+      ],
+      couverture: [
+        'couverture',
+        'couvreur',
+        'toit',
+        'tuile',
+        'ardoise',
+        'gouttière',
+        'zinc',
+        'étanchéité',
+      ],
+      carrelage: [
+        'carrelage',
+        'carreleur',
+        'carreau',
+        'faïence',
+        'salle de bain',
+        'cuisine',
+        'sol',
+        'pose carrelage',
+      ],
     };
 
     const keywords = [
@@ -143,7 +214,7 @@ export const seoService = {
     ];
 
     const projectCount = projects.length;
-    const cities = [...new Set(projects.map(p => p.city))].slice(0, 5);
+    const cities = [...new Set(projects.map((p) => p.city))].slice(0, 5);
 
     return {
       title: `Artisans ${category} - ${projectCount} projets disponibles | EDSwipe`,
@@ -156,7 +227,11 @@ export const seoService = {
   /**
    * Générer les métadonnées SEO pour une page de localisation
    */
-  generateLocationSEO(city: string, postalCode: string, projects: any[] = []): SEOData {
+  generateLocationSEO(
+    city: string,
+    postalCode: string,
+    projects: any[] = []
+  ): SEOData {
     const keywords = [
       `artisan ${city}`,
       `travaux ${city}`,
@@ -167,7 +242,10 @@ export const seoService = {
       'devis travaux',
     ];
 
-    const categories = [...new Set(projects.map(p => p.category))].slice(0, 5);
+    const categories = [...new Set(projects.map((p) => p.category))].slice(
+      0,
+      5
+    );
     const projectCount = projects.length;
 
     return {
@@ -181,19 +259,19 @@ export const seoService = {
   /**
    * Sauvegarder les métadonnées SEO en base
    */
-  async savePageSEO(pageSEO: PageSEO): Promise<{ success: boolean; error?: string }> {
+  async savePageSEO(
+    pageSEO: PageSEO
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await (supabase as any)
-        .from('page_seo')
-        .upsert({
-          slug: pageSEO.slug,
-          title: pageSEO.title,
-          description: pageSEO.description,
-          keywords: pageSEO.keywords,
-          og_image: pageSEO.ogImage,
-          structured_data: pageSEO.structuredData,
-          last_updated: new Date().toISOString(),
-        });
+      const { error } = await (supabase as any).from('page_seo').upsert({
+        slug: pageSEO.slug,
+        title: pageSEO.title,
+        description: pageSEO.description,
+        keywords: pageSEO.keywords,
+        og_image: pageSEO.ogImage,
+        structured_data: pageSEO.structuredData,
+        last_updated: new Date().toISOString(),
+      });
 
       if (error) throw error;
       return { success: true };
@@ -246,7 +324,9 @@ export const seoService = {
         .select('category')
         .eq('status', 'published');
 
-      const uniqueCategories = [...new Set(categories?.map(c => c.category) || [])];
+      const uniqueCategories = [
+        ...new Set(categories?.map((c) => c.category) || []),
+      ];
 
       // Récupérer les villes uniques
       const { data: locations } = await supabase
@@ -254,9 +334,11 @@ export const seoService = {
         .select('city, postal_code')
         .eq('status', 'published');
 
-      const uniqueLocations = [...new Map(
-        locations?.map(l => [`${l.city}-${l.postal_code}`, l]) || []
-      ).values()];
+      const uniqueLocations = [
+        ...new Map(
+          locations?.map((l) => [`${l.city}-${l.postal_code}`, l]) || []
+        ).values(),
+      ];
 
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
@@ -265,13 +347,17 @@ export const seoService = {
       const staticPages = [
         { url: '/', priority: '1.0', changefreq: 'daily' },
         { url: '/projets', priority: '0.9', changefreq: 'daily' },
-        { url: '/professionnel/inscription', priority: '0.8', changefreq: 'monthly' },
+        {
+          url: '/professionnel/inscription',
+          priority: '0.8',
+          changefreq: 'monthly',
+        },
         { url: '/comment-ca-marche', priority: '0.7', changefreq: 'monthly' },
         { url: '/tarifs', priority: '0.7', changefreq: 'monthly' },
         { url: '/contact', priority: '0.6', changefreq: 'monthly' },
       ];
 
-      staticPages.forEach(page => {
+      staticPages.forEach((page) => {
         sitemap += `
   <url>
     <loc>https://edswipe.fr${page.url}</loc>
@@ -282,7 +368,7 @@ export const seoService = {
       });
 
       // Pages de projets
-      projects?.forEach(project => {
+      projects?.forEach((project) => {
         sitemap += `
   <url>
     <loc>https://edswipe.fr/projets/${project.id}</loc>
@@ -293,7 +379,7 @@ export const seoService = {
       });
 
       // Pages d'artisans
-      professionals?.forEach(professional => {
+      professionals?.forEach((professional) => {
         sitemap += `
   <url>
     <loc>https://edswipe.fr/artisans/${professional.id}</loc>
@@ -304,7 +390,7 @@ export const seoService = {
       });
 
       // Pages de catégories
-      uniqueCategories.forEach(category => {
+      uniqueCategories.forEach((category) => {
         sitemap += `
   <url>
     <loc>https://edswipe.fr/projets/${category}</loc>
@@ -315,7 +401,7 @@ export const seoService = {
       });
 
       // Pages de localisation
-      uniqueLocations.forEach(location => {
+      uniqueLocations.forEach((location) => {
         const citySlug = location.city.toLowerCase().replace(/\s+/g, '-');
         sitemap += `
   <url>
@@ -347,13 +433,24 @@ export const seoService = {
 
       const analysis = {
         totalPages: pages?.length || 0,
-        pagesWithStructuredData: pages?.filter(p => p.structured_data).length || 0,
-        pagesWithCustomKeywords: pages?.filter(p => p.keywords && p.keywords.length > 0).length || 0,
-        averageTitleLength: pages?.reduce((sum, p) => sum + p.title.length, 0) / (pages?.length || 1) || 0,
-        averageDescriptionLength: pages?.reduce((sum, p) => sum + p.description.length, 0) / (pages?.length || 1) || 0,
-        lastUpdated: pages?.reduce((latest, p) => 
-          new Date(p.last_updated) > new Date(latest.last_updated) ? p : latest
-        , pages?.[0] || {})?.last_updated || null,
+        pagesWithStructuredData:
+          pages?.filter((p) => p.structured_data).length || 0,
+        pagesWithCustomKeywords:
+          pages?.filter((p) => p.keywords && p.keywords.length > 0).length || 0,
+        averageTitleLength:
+          pages?.reduce((sum, p) => sum + p.title.length, 0) /
+            (pages?.length || 1) || 0,
+        averageDescriptionLength:
+          pages?.reduce((sum, p) => sum + p.description.length, 0) /
+            (pages?.length || 1) || 0,
+        lastUpdated:
+          pages?.reduce(
+            (latest, p) =>
+              new Date(p.last_updated) > new Date(latest.last_updated)
+                ? p
+                : latest,
+            pages?.[0] || {}
+          )?.last_updated || null,
       };
 
       return analysis;
@@ -366,11 +463,13 @@ export const seoService = {
   /**
    * Optimiser les métadonnées automatiquement
    */
-  async optimizeMetadata(slug: string): Promise<{ success: boolean; optimized?: boolean; error?: string }> {
+  async optimizeMetadata(
+    slug: string
+  ): Promise<{ success: boolean; optimized?: boolean; error?: string }> {
     try {
       // Récupérer les métadonnées actuelles
       const currentSEO = await this.getPageSEO(slug);
-      
+
       if (!currentSEO) {
         return { success: false, error: 'Page non trouvée' };
       }
@@ -385,13 +484,20 @@ export const seoService = {
       }
 
       // Optimiser la description (150-160 caractères)
-      if (currentSEO.description.length < 120 || currentSEO.description.length > 160) {
+      if (
+        currentSEO.description.length < 120 ||
+        currentSEO.description.length > 160
+      ) {
         // Logique d'optimisation de la description
         optimized = true;
       }
 
       // Optimiser les keywords (5-10 mots-clés)
-      if (!currentSEO.keywords || currentSEO.keywords.length < 3 || currentSEO.keywords.length > 10) {
+      if (
+        !currentSEO.keywords ||
+        currentSEO.keywords.length < 3 ||
+        currentSEO.keywords.length > 10
+      ) {
         // Logique d'optimisation des keywords
         optimized = true;
       }

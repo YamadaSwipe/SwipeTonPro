@@ -8,8 +8,8 @@ interface CacheItem {
 }
 
 class CacheManager {
-  private memoryCache = new Map<string, CacheItem>();
-  private redisAvailable = false;
+  public readonly memoryCache = new Map<string, CacheItem>();
+  public redisAvailable = false;
 
   constructor() {
     this.checkRedisAvailability();
@@ -28,7 +28,9 @@ class CacheManager {
   async get(key: string): Promise<any | null> {
     if (this.redisAvailable) {
       try {
-        const response = await fetch(`/api/cache/get?key=${encodeURIComponent(key)}`);
+        const response = await fetch(
+          `/api/cache/get?key=${encodeURIComponent(key)}`
+        );
         if (response.ok) {
           const data = await response.json();
           return data.value;
@@ -56,7 +58,7 @@ class CacheManager {
     const item: CacheItem = {
       value,
       timestamp: Date.now(),
-      ttl
+      ttl,
     };
 
     if (this.redisAvailable) {
@@ -80,7 +82,7 @@ class CacheManager {
     if (this.redisAvailable) {
       try {
         await fetch(`/api/cache/del?key=${encodeURIComponent(key)}`, {
-          method: 'DELETE'
+          method: 'DELETE',
         });
       } catch (error) {
         console.error('Redis del error:', error);
@@ -107,7 +109,7 @@ class CacheManager {
     this.memoryCache.set(key, {
       value,
       timestamp: Date.now(),
-      ttl
+      ttl,
     });
   }
 
@@ -233,7 +235,7 @@ export function useLazyImage(src: string, ttl: number = 86400000) {
     const loadImage = async () => {
       try {
         setLoading(true);
-        
+
         // Check cache first
         const cachedImage = await cache.get(`img_${src}`);
         if (cachedImage) {
@@ -274,7 +276,7 @@ export async function cachedFetch<T>(
   ttl: number = 300000
 ): Promise<T> {
   const cacheKey = `api_${url}_${JSON.stringify(options)}`;
-  
+
   try {
     // Try cache first
     const cachedResponse = await cache.get(cacheKey);
@@ -306,13 +308,13 @@ export function debounce<T extends (...args: any[]) => any>(
   cacheKey?: string
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
-  
+
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
-    
+
     timeout = setTimeout(() => {
       func(...args);
-      
+
       // Cache the result if cacheKey is provided
       if (cacheKey) {
         cache.set(cacheKey, args, wait);
@@ -328,18 +330,18 @@ export function throttle<T extends (...args: any[]) => any>(
   cacheKey?: string
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
-  
+
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;
-      
+
       // Cache the result if cacheKey is provided
       if (cacheKey) {
         cache.set(cacheKey, args, limit);
       }
-      
-      setTimeout(() => inThrottle = false, limit);
+
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 }
@@ -388,7 +390,7 @@ export const cacheUtils = {
       '/api/projects?limit=10',
       '/api/professionals?limit=10',
       '/api/categories',
-      '/api/settings'
+      '/api/settings',
     ];
 
     for (const url of commonData) {
@@ -398,5 +400,5 @@ export const cacheUtils = {
         console.error(`Cache warm-up failed for ${url}:`, error);
       }
     }
-  }
+  },
 };

@@ -4,9 +4,29 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Check, X, Plus, Sync } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Check,
+  X,
+  Plus,
+  RefreshCw,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, addDays, startOfWeek, addMonths, subMonths, isSameMonth, isSameDay, isToday, setHours, setMinutes } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  format,
+  addDays,
+  startOfWeek,
+  addMonths,
+  subMonths,
+  isSameMonth,
+  isSameDay,
+  isToday,
+  setHours,
+  setMinutes,
+} from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 interface TimeSlot {
@@ -44,10 +64,10 @@ interface AvailabilityCalendarProps {
   onAppointmentSelect?: (appointment: Appointment) => void;
 }
 
-export default function AvailabilityCalendar({ 
-  professionalId, 
-  isOwnCalendar = false, 
-  onAppointmentSelect 
+export default function AvailabilityCalendar({
+  professionalId,
+  isOwnCalendar = false,
+  onAppointmentSelect,
 }: AvailabilityCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -66,8 +86,14 @@ export default function AvailabilityCalendar({
   const loadAvailabilityAndAppointments = async () => {
     setLoading(true);
     try {
-      const monthStart = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      const monthEnd = format(addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), 42), 'yyyy-MM-dd');
+      const monthStart = format(
+        startOfWeek(currentDate, { weekStartsOn: 1 }),
+        'yyyy-MM-dd'
+      );
+      const monthEnd = format(
+        addDays(startOfWeek(currentDate, { weekStartsOn: 1 }), 42),
+        'yyyy-MM-dd'
+      );
 
       // Charger les time slots
       const { data: slotsData } = await (supabase as any)
@@ -82,11 +108,13 @@ export default function AvailabilityCalendar({
       // Charger les rendez-vous
       const { data: appointmentsData } = await (supabase as any)
         .from('appointments')
-        .select(`
+        .select(
+          `
           *,
           client:profiles!appointments_client_id_fkey(full_name, avatar_url),
           project:projects!appointments_project_id_fkey(title, category)
-        `)
+        `
+        )
         .eq('professional_id', professionalId)
         .gte('date', monthStart)
         .lte('date', monthEnd)
@@ -117,7 +145,7 @@ export default function AvailabilityCalendar({
 
       if (response.ok) {
         toast({
-          title: "✅ Synchronisation réussie",
+          title: '✅ Synchronisation réussie',
           description: `${data.synced} événements synchronisés depuis Google Calendar`,
         });
         loadAvailabilityAndAppointments();
@@ -126,9 +154,9 @@ export default function AvailabilityCalendar({
       }
     } catch (error: any) {
       toast({
-        title: "Erreur de synchronisation",
+        title: 'Erreur de synchronisation',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     } finally {
       setSyncingGoogle(false);
@@ -151,19 +179,19 @@ export default function AvailabilityCalendar({
   // Obtenir les time slots pour un jour donné
   const getTimeSlotsForDay = (day: Date) => {
     const dayStr = format(day, 'yyyy-MM-dd');
-    return timeSlots.filter(slot => slot.date === dayStr);
+    return timeSlots.filter((slot) => slot.date === dayStr);
   };
 
   // Obtenir les rendez-vous pour un jour donné
   const getAppointmentsForDay = (day: Date) => {
     const dayStr = format(day, 'yyyy-MM-dd');
-    return appointments.filter(apt => apt.date === dayStr);
+    return appointments.filter((apt) => apt.date === dayStr);
   };
 
   // Vérifier si un jour a des disponibilités
   const hasAvailability = (day: Date) => {
     const slots = getTimeSlotsForDay(day);
-    return slots.some(slot => slot.is_available);
+    return slots.some((slot) => slot.is_available);
   };
 
   // Vérifier si un jour a des rendez-vous
@@ -186,7 +214,7 @@ export default function AvailabilityCalendar({
         end_time: `${(hour + 1).toString().padStart(2, '0')}:00`,
         is_available: true,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       });
     }
 
@@ -198,16 +226,16 @@ export default function AvailabilityCalendar({
       if (error) throw error;
 
       toast({
-        title: "✅ Créneaux créés",
-        description: "Les créneaux par défaut ont été créés pour cette journée",
+        title: '✅ Créneaux créés',
+        description: 'Les créneaux par défaut ont été créés pour cette journée',
       });
 
       loadAvailabilityAndAppointments();
     } catch (error: any) {
       toast({
-        title: "Erreur",
+        title: 'Erreur',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     }
   };
@@ -215,7 +243,9 @@ export default function AvailabilityCalendar({
   // Prendre un rendez-vous
   const bookAppointment = async (timeSlot: TimeSlot, notes?: string) => {
     try {
-      const { data: { user } } = await (supabase as any).auth.getUser();
+      const {
+        data: { user },
+      } = await (supabase as any).auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
       const { data, error } = await (supabase as any)
@@ -229,7 +259,7 @@ export default function AvailabilityCalendar({
           status: 'pending',
           notes: notes || '',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -239,24 +269,25 @@ export default function AvailabilityCalendar({
       // Marquer le time slot comme non disponible
       await (supabase as any)
         .from('time_slots')
-        .update({ 
+        .update({
           is_available: false,
           appointment_id: data.id,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', timeSlot.id);
 
       toast({
-        title: "✅ Demande envoyée",
-        description: "Votre demande de rendez-vous a été envoyée au professionnel",
+        title: '✅ Demande envoyée',
+        description:
+          'Votre demande de rendez-vous a été envoyée au professionnel',
       });
 
       loadAvailabilityAndAppointments();
     } catch (error: any) {
       toast({
-        title: "Erreur",
+        title: 'Erreur',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     }
   };
@@ -273,7 +304,7 @@ export default function AvailabilityCalendar({
               <Calendar className="w-5 h-5" />
               Disponibilités
             </CardTitle>
-            
+
             <div className="flex items-center gap-2">
               {isOwnCalendar && (
                 <Button
@@ -282,11 +313,13 @@ export default function AvailabilityCalendar({
                   onClick={syncWithGoogleCalendar}
                   disabled={syncingGoogle}
                 >
-                  <Sync className={`w-4 h-4 mr-2 ${syncingGoogle ? 'animate-spin' : ''}`} />
+                  <RefreshCw
+                    className={`w-4 h-4 mr-2 ${syncingGoogle ? 'animate-spin' : ''}`}
+                  />
                   {syncingGoogle ? 'Synchronisation...' : 'Sync Google'}
                 </Button>
               )}
-              
+
               <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
@@ -316,8 +349,11 @@ export default function AvailabilityCalendar({
         <CardContent className="p-6">
           {/* Jours de la semaine */}
           <div className="grid grid-cols-7 gap-2 mb-4">
-            {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
-              <div key={day} className="text-center text-sm font-medium text-gray-600">
+            {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => (
+              <div
+                key={day}
+                className="text-center text-sm font-medium text-gray-600"
+              >
                 {day}
               </div>
             ))}
@@ -327,7 +363,8 @@ export default function AvailabilityCalendar({
           <div className="grid grid-cols-7 gap-2">
             {calendarDays.map((day, index) => {
               const isCurrentMonth = isSameMonth(day, currentDate);
-              const isDaySelected = selectedDate && isSameDay(day, selectedDate);
+              const isDaySelected =
+                selectedDate && isSameDay(day, selectedDate);
               const isDayToday = isToday(day);
               const hasAvail = hasAvailability(day);
               const hasApts = hasAppointments(day);
@@ -345,10 +382,12 @@ export default function AvailabilityCalendar({
                   `}
                 >
                   <div className="text-center">
-                    <div className={`text-sm font-medium ${isDayToday ? 'text-orange-600' : ''}`}>
+                    <div
+                      className={`text-sm font-medium ${isDayToday ? 'text-orange-600' : ''}`}
+                    >
                       {format(day, 'd')}
                     </div>
-                    
+
                     {/* Indicateurs */}
                     <div className="flex justify-center gap-1 mt-1">
                       {hasAvail && (
@@ -374,25 +413,28 @@ export default function AvailabilityCalendar({
               <CardTitle className="text-lg">
                 {format(selectedDate, 'EEEE d MMMM yyyy', { locale: fr })}
               </CardTitle>
-              
-              {isOwnCalendar && getTimeSlotsForDay(selectedDate).length === 0 && (
-                <Button
-                  size="sm"
-                  onClick={() => createDefaultTimeSlots(selectedDate)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter créneaux
-                </Button>
-              )}
+
+              {isOwnCalendar &&
+                getTimeSlotsForDay(selectedDate).length === 0 && (
+                  <Button
+                    size="sm"
+                    onClick={() => createDefaultTimeSlots(selectedDate)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter créneaux
+                  </Button>
+                )}
             </div>
           </CardHeader>
-          
+
           <CardContent>
             <div className="space-y-3">
               {/* Time slots */}
               {getTimeSlotsForDay(selectedDate).map((slot) => {
-                const appointment = appointments.find(apt => apt.id === slot.appointment_id);
-                
+                const appointment = appointments.find(
+                  (apt) => apt.id === slot.appointment_id
+                );
+
                 return (
                   <div
                     key={slot.id}
@@ -410,17 +452,26 @@ export default function AvailabilityCalendar({
                         </div>
                         {appointment && (
                           <div className="text-sm text-gray-600">
-                            {appointment.client?.full_name} - {appointment.project?.title}
+                            {appointment.client?.full_name} -{' '}
+                            {appointment.project?.title}
                           </div>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       {appointment && (
                         <>
-                          <Badge variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}>
-                            {appointment.status === 'confirmed' ? 'Confirmé' : 'En attente'}
+                          <Badge
+                            variant={
+                              appointment.status === 'confirmed'
+                                ? 'default'
+                                : 'secondary'
+                            }
+                          >
+                            {appointment.status === 'confirmed'
+                              ? 'Confirmé'
+                              : 'En attente'}
                           </Badge>
                           {onAppointmentSelect && (
                             <Button
@@ -433,27 +484,26 @@ export default function AvailabilityCalendar({
                           )}
                         </>
                       )}
-                      
+
                       {slot.is_available && !isOwnCalendar && (
-                        <Button
-                          size="sm"
-                          onClick={() => bookAppointment(slot)}
-                        >
+                        <Button size="sm" onClick={() => bookAppointment(slot)}>
                           <Check className="w-4 h-4 mr-1" />
                           Réserver
                         </Button>
                       )}
-                      
+
                       {isOwnCalendar && !appointment && (
                         <Button
                           size="sm"
-                          variant={slot.is_available ? 'destructive' : 'default'}
+                          variant={
+                            slot.is_available ? 'destructive' : 'default'
+                          }
                           onClick={async () => {
                             await (supabase as any)
                               .from('time_slots')
-                              .update({ 
+                              .update({
                                 is_available: !slot.is_available,
-                                updated_at: new Date().toISOString()
+                                updated_at: new Date().toISOString(),
                               })
                               .eq('id', slot.id);
                             loadAvailabilityAndAppointments();
@@ -470,7 +520,7 @@ export default function AvailabilityCalendar({
                   </div>
                 );
               })}
-              
+
               {getTimeSlotsForDay(selectedDate).length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />

@@ -153,11 +153,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       // 1. Charger le profil de base
-      const { data: profileData, error: profileError } = await supabase
+      let { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .maybeSingle(); // <-- maybeSingle au lieu de single
+        .maybeSingle();
+
+      // Fallback: chercher par email si user_id échoue (ID non synchronisé)
+      if (!profileData && user?.email) {
+        const { data: byEmail } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', user.email)
+          .maybeSingle();
+        if (byEmail) profileData = byEmail;
+      } // <-- maybeSingle au lieu de single
 
       if (!profileData) {
         console.warn('⚠️ AuthContext: No profile found for user:', userId);
@@ -286,7 +296,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // 2. Charger les données complètes
           await loadUserData(session.user.id);
         } else {
-          console.log('ℹ️ AuthContext: No session found');
+          // Pas de session Supabase - vérifier si admin fantôme connecté
+          console.log(
+            'ℹ️ AuthContext: No session found, checking admin ghost...'
+          );
+
+          if (typeof window !== 'undefined') {
+            // Lire le cookie adminGhostSession_secure_v3
+            const getCookie = (name: string) => {
+              const value = `; ${document.cookie}`;
+              const parts = value.split(`; ${name}=`);
+              if (parts.length === 2) {
+                const cookieValue = parts.pop()?.split(';').shift();
+                return cookieValue ? decodeURIComponent(cookieValue) : null;
+              }
+              return null;
+            };
+
+            const adminSessionStr = getCookie('adminGhostSession_secure_v3');
+            if (adminSessionStr) {
+              try {
+                const adminSession = JSON.parse(adminSessionStr);
+                if (
+                  adminSession.isolation_key ===
+                    'EDSWIPE_ADMIN_ISOLATION_2024' &&
+                  adminSession.user?.email === 'admin@swipetonpro.fr' &&
+                  adminSession.user?.role === 'super_admin' &&
+                  Date.now() - adminSession.timestamp < 24 * 60 * 60 * 1000
+                ) {
+                  console.log('✅ AuthContext: Admin ghost session detected');
+                  // Charger le profil admin depuis Supabase
+                  const { data: adminProfile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('email', 'admin@swipotonpro.fr')
+                    .eq('role', 'super_admin')
+                    .maybeSingle();
+
+                  if (adminProfile) {
+                    setUser({
+                      id: adminProfile.id,
+                      email: adminProfile.email,
+                      created_at:
+                        adminProfile.created_at || new Date().toISOString(),
+                    });
+                    setProfile(adminProfile);
+                    setRole('super_admin');
+                    console.log(
+                      '✅ AuthContext: Admin profile loaded from ghost session'
+                    );
+                  }
+                }
+              } catch (e) {
+                console.error(
+                  '❌ AuthContext: Error parsing admin ghost session:',
+                  e
+                );
+              }
+            }
+          }
+
           setLoading(false);
           setInitialized(true);
         }

@@ -1,22 +1,34 @@
-import { SEO } from "@/components/SEO";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Users, 
-  TrendingUp, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Calendar, 
-  Euro, 
-  Clock, 
+import { SEO } from '@/components/SEO';
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Users,
+  TrendingUp,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  Euro,
+  Clock,
   Star,
   AlertCircle,
   CheckCircle,
@@ -30,12 +42,12 @@ import {
   Target,
   BarChart3,
   PieChart,
-  Activity
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { leadQualificationService } from "@/services/leadQualificationService";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+  Activity,
+} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { leadQualificationService } from '@/services/leadQualificationService';
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
 interface Lead {
   id: string;
@@ -43,7 +55,17 @@ interface Lead {
   client_id: string;
   professional_id?: string;
   qualification_score: number;
-  status: 'new' | 'contacted' | 'qualified' | 'hot' | 'cold' | 'converted' | 'lost' | 'paused' | 'suspended' | 'archived';
+  status:
+    | 'new'
+    | 'contacted'
+    | 'qualified'
+    | 'hot'
+    | 'cold'
+    | 'converted'
+    | 'lost'
+    | 'paused'
+    | 'suspended'
+    | 'archived';
   budget: number;
   timeline: string;
   urgency: 'low' | 'medium' | 'high' | 'urgent';
@@ -61,17 +83,17 @@ interface Lead {
 }
 
 export default function AdminCRMPage() {
-  const [agents, setAgents] = useState<Array<{id: string, name: string}>>([]);
+  const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState('overview');
   const [filters, setFilters] = useState({
-    status: "all",
-    urgency: "all",
-    assignedTo: "all",
-    dateRange: "all"
+    status: 'all',
+    urgency: 'all',
+    assignedTo: 'all',
+    dateRange: 'all',
   });
 
   useEffect(() => {
@@ -85,7 +107,8 @@ export default function AdminCRMPage() {
       // Récupérer les vrais projets depuis la base de données
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select(`
+        .select(
+          `
           id,
           title,
           category,
@@ -101,46 +124,61 @@ export default function AdminCRMPage() {
             email,
             phone
           )
-        `)
+        `
+        )
         .in('status', ['pending', 'published'])
         .order('created_at', { ascending: false });
 
       if (projectsError) {
-        console.error("Erreur chargement projets:", projectsError);
+        console.error('Erreur chargement projets:', projectsError);
         setLeads([]);
         return;
       }
 
       // Transformer les projets en leads pour le CRM
-      const leads: Lead[] = projects.map(project => {
+      const leads: Lead[] = projects.map((project) => {
         // Calcul du score de qualification intelligent
         let qualification_score = 50; // Score de base
-        
+
         // Facteur budget (40 points max)
         if (project.estimated_budget_max) {
           if (project.estimated_budget_max >= 20000) qualification_score += 40;
-          else if (project.estimated_budget_max >= 10000) qualification_score += 30;
-          else if (project.estimated_budget_max >= 5000) qualification_score += 20;
+          else if (project.estimated_budget_max >= 10000)
+            qualification_score += 30;
+          else if (project.estimated_budget_max >= 5000)
+            qualification_score += 20;
           else qualification_score += 10;
         }
-        
+
         // Facteur statut (30 points max)
         if (project.status === 'published') qualification_score += 30;
         else if (project.status === 'pending') qualification_score += 15;
-        
+
         // Facteur catégorie (15 points max)
-        const highValueCategories = ['Climatisation', 'Plomberie', 'Électricité', 'Maçonnerie'];
-        if (highValueCategories.includes(project.category)) qualification_score += 15;
-        
-        // Facteur complétude profil (15 points max)
-        if (project.client?.full_name && project.client?.email && project.client?.phone) {
+        const highValueCategories = [
+          'Climatisation',
+          'Plomberie',
+          'Électricité',
+          'Maçonnerie',
+        ];
+        if (highValueCategories.includes(project.category))
           qualification_score += 15;
-        } else if (project.client?.full_name && (project.client?.email || project.client?.phone)) {
+
+        // Facteur complétude profil (15 points max)
+        const clientData = Array.isArray(project.client)
+          ? project.client[0]
+          : project.client;
+        if (clientData?.full_name && clientData?.email && clientData?.phone) {
+          qualification_score += 15;
+        } else if (
+          clientData?.full_name &&
+          (clientData?.email || clientData?.phone)
+        ) {
           qualification_score += 10;
-        } else if (project.client?.full_name) {
+        } else if (clientData?.full_name) {
           qualification_score += 5;
         }
-        
+
         qualification_score = Math.min(100, qualification_score); // Maximum 100
 
         return {
@@ -150,32 +188,35 @@ export default function AdminCRMPage() {
           qualification_score: qualification_score,
           status: project.status === 'published' ? 'qualified' : 'new',
           budget: project.estimated_budget_max || 0,
-          timeline: "1-3 mois",
-          urgency: project.estimated_budget_max && project.estimated_budget_max > 10000 ? 'high' : 'medium',
+          timeline: '1-3 mois',
+          urgency:
+            project.estimated_budget_max && project.estimated_budget_max > 10000
+              ? 'high'
+              : 'medium',
           notes: `Projet ${project.status === 'published' ? 'validé et publié' : 'en attente de validation'}`,
           contact_attempts: 0,
           last_contact_date: project.created_at,
           next_action_date: project.created_at,
-          assigned_to: "",
-          source: "organic",
+          assigned_to: '',
+          source: 'organic',
           created_at: project.created_at,
           updated_at: project.created_at,
           project: {
             title: project.title,
             category: project.category,
-            city: project.city
+            city: project.city,
           },
           client: {
-            full_name: project.client?.full_name || 'Client à contacter',
-            email: project.client?.email || '',
-            phone: project.client?.phone || ''
-          }
+            full_name: clientData?.full_name || 'Client à contacter',
+            email: clientData?.email || '',
+            phone: clientData?.phone || '',
+          },
         };
       });
 
       setLeads(leads);
     } catch (error) {
-      console.error("Erreur chargement leads:", error);
+      console.error('Erreur chargement leads:', error);
     } finally {
       setLoading(false);
     }
@@ -186,40 +227,62 @@ export default function AdminCRMPage() {
       const stats = await leadQualificationService.getLeadStats();
       setStats(stats);
     } catch (error) {
-      console.error("Erreur statistiques:", error);
+      console.error('Erreur statistiques:', error);
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "new": return <Badge variant="outline">Nouveau</Badge>;
-      case "contacted": return <Badge className="bg-blue-100 text-blue-800">Contacté</Badge>;
-      case "qualified": return <Badge className="bg-purple-100 text-purple-800">Qualifié</Badge>;
-      case "hot": return <Badge className="bg-red-100 text-red-800">Chaud</Badge>;
-      case "cold": return <Badge className="bg-gray-100 text-gray-800">Froid</Badge>;
-      case "converted": return <Badge className="bg-green-100 text-green-800">Converti</Badge>;
-      case "lost": return <Badge variant="destructive">Perdu</Badge>;
-      case "paused": return <Badge className="bg-yellow-100 text-yellow-800">En pause</Badge>;
-      case "suspended": return <Badge className="bg-orange-100 text-orange-800">Suspendu</Badge>;
-      case "archived": return <Badge className="bg-gray-200 text-gray-600">Archivé</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+      case 'new':
+        return <Badge variant="outline">Nouveau</Badge>;
+      case 'contacted':
+        return <Badge className="bg-blue-100 text-blue-800">Contacté</Badge>;
+      case 'qualified':
+        return (
+          <Badge className="bg-purple-100 text-purple-800">Qualifié</Badge>
+        );
+      case 'hot':
+        return <Badge className="bg-red-100 text-red-800">Chaud</Badge>;
+      case 'cold':
+        return <Badge className="bg-gray-100 text-gray-800">Froid</Badge>;
+      case 'converted':
+        return <Badge className="bg-green-100 text-green-800">Converti</Badge>;
+      case 'lost':
+        return <Badge variant="destructive">Perdu</Badge>;
+      case 'paused':
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">En pause</Badge>
+        );
+      case 'suspended':
+        return (
+          <Badge className="bg-orange-100 text-orange-800">Suspendu</Badge>
+        );
+      case 'archived':
+        return <Badge className="bg-gray-200 text-gray-600">Archivé</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   const getUrgencyBadge = (urgency: string) => {
     switch (urgency) {
-      case "urgent": return <Badge className="bg-red-100 text-red-800">Urgent</Badge>;
-      case "high": return <Badge className="bg-orange-100 text-orange-800">Élevée</Badge>;
-      case "medium": return <Badge className="bg-yellow-100 text-yellow-800">Moyenne</Badge>;
-      case "low": return <Badge className="bg-gray-100 text-gray-800">Faible</Badge>;
-      default: return <Badge variant="outline">{urgency}</Badge>;
+      case 'urgent':
+        return <Badge className="bg-red-100 text-red-800">Urgent</Badge>;
+      case 'high':
+        return <Badge className="bg-orange-100 text-orange-800">Élevée</Badge>;
+      case 'medium':
+        return <Badge className="bg-yellow-100 text-yellow-800">Moyenne</Badge>;
+      case 'low':
+        return <Badge className="bg-gray-100 text-gray-800">Faible</Badge>;
+      default:
+        return <Badge variant="outline">{urgency}</Badge>;
     }
   };
 
   const getQualificationColor = (score: number) => {
-    if (score >= 70) return "text-red-600";
-    if (score >= 40) return "text-orange-600";
-    return "text-blue-600";
+    if (score >= 70) return 'text-red-600';
+    if (score >= 40) return 'text-orange-600';
+    return 'text-blue-600';
   };
 
   const handleExportCSV = async () => {
@@ -235,7 +298,7 @@ export default function AdminCRMPage() {
         window.URL.revokeObjectURL(url);
       }
     } catch (error) {
-      console.error("Erreur export:", error);
+      console.error('Erreur export:', error);
     }
   };
 
@@ -244,14 +307,14 @@ export default function AdminCRMPage() {
       // Mettre à jour l'assignation dans la base de données
       const { error } = await supabase
         .from('projects')
-        .update({ 
+        .update({
           assigned_to: assignedTo,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', leadId);
 
       if (error) {
-        console.error("Erreur assignation:", error);
+        console.error('Erreur assignation:', error);
         alert("Erreur lors de l'assignation");
         return;
       }
@@ -259,16 +322,16 @@ export default function AdminCRMPage() {
       console.log(`✅ Projet ${leadId} assigné à: ${assignedTo}`);
       loadLeads(); // Recharger la liste
     } catch (error) {
-      console.error("Erreur assignation:", error);
+      console.error('Erreur assignation:', error);
       alert("Erreur lors de l'assignation");
     }
   };
 
   const handleDeleteLead = async (leadId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce lead ?")) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce lead ?')) {
       return;
     }
-    
+
     try {
       // Supprimer le projet associé
       const { error } = await supabase
@@ -277,16 +340,16 @@ export default function AdminCRMPage() {
         .eq('id', leadId);
 
       if (error) {
-        console.error("Erreur suppression projet:", error);
-        alert("Erreur lors de la suppression du projet");
+        console.error('Erreur suppression projet:', error);
+        alert('Erreur lors de la suppression du projet');
         return;
       }
 
-      console.log("✅ Projet et lead supprimés avec succès");
+      console.log('✅ Projet et lead supprimés avec succès');
       loadLeads(); // Recharger la liste
     } catch (error) {
-      console.error("Erreur suppression:", error);
-      alert("Erreur lors de la suppression");
+      console.error('Erreur suppression:', error);
+      alert('Erreur lors de la suppression');
     }
   };
 
@@ -295,31 +358,46 @@ export default function AdminCRMPage() {
       // Mettre à jour le statut du projet dans la base de données
       const { error } = await supabase
         .from('projects')
-        .update({ 
+        .update({
           updated_at: new Date().toISOString(),
           // Ajouter un champ status_lead si nécessaire dans la table projects
-          status_lead: status 
+          status_lead: status,
         })
         .eq('id', leadId);
 
       if (error) {
-        console.error("Erreur mise à jour statut:", error);
-        alert("Erreur lors de la mise à jour du statut");
+        console.error('Erreur mise à jour statut:', error);
+        alert('Erreur lors de la mise à jour du statut');
         return;
       }
 
       console.log(`✅ Statut du projet ${leadId} mis à jour: ${status}`);
       loadLeads(); // Recharger la liste
     } catch (error) {
-      console.error("Erreur mise à jour:", error);
-      alert("Erreur lors de la mise à jour");
+      console.error('Erreur mise à jour:', error);
+      alert('Erreur lors de la mise à jour');
     }
   };
 
-  const filteredLeads = leads.filter(lead => {
-    if (filters.status && filters.status !== "all" && lead.status !== filters.status) return false;
-    if (filters.urgency && filters.urgency !== "all" && lead.urgency !== filters.urgency) return false;
-    if (filters.assignedTo && filters.assignedTo !== "all" && lead.assigned_to !== filters.assignedTo) return false;
+  const filteredLeads = leads.filter((lead) => {
+    if (
+      filters.status &&
+      filters.status !== 'all' &&
+      lead.status !== filters.status
+    )
+      return false;
+    if (
+      filters.urgency &&
+      filters.urgency !== 'all' &&
+      lead.urgency !== filters.urgency
+    )
+      return false;
+    if (
+      filters.assignedTo &&
+      filters.assignedTo !== 'all' &&
+      lead.assigned_to !== filters.assignedTo
+    )
+      return false;
     return true;
   });
 
@@ -335,7 +413,9 @@ export default function AdminCRMPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Leads</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Total Leads
+                      </p>
                       <p className="text-2xl font-bold">{stats.total}</p>
                     </div>
                     <Users className="h-8 w-8 text-muted-foreground" />
@@ -346,8 +426,12 @@ export default function AdminCRMPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Leads Chauds</p>
-                      <p className="text-2xl font-bold text-red-600">{stats.hot}</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Leads Chauds
+                      </p>
+                      <p className="text-2xl font-bold text-red-600">
+                        {stats.hot}
+                      </p>
                     </div>
                     <TrendingUp className="h-8 w-8 text-red-600" />
                   </div>
@@ -357,8 +441,12 @@ export default function AdminCRMPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Taux Conversion</p>
-                      <p className="text-2xl font-bold text-green-600">{stats.conversionRate.toFixed(1)}%</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Taux Conversion
+                      </p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {stats.conversionRate.toFixed(1)}%
+                      </p>
                     </div>
                     <BarChart3 className="h-8 w-8 text-green-600" />
                   </div>
@@ -368,7 +456,9 @@ export default function AdminCRMPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Convertis</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Convertis
+                      </p>
                       <p className="text-2xl font-bold">{stats.converted}</p>
                     </div>
                     <CheckCircle className="h-8 w-8 text-green-600" />
@@ -383,7 +473,12 @@ export default function AdminCRMPage() {
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex flex-wrap gap-2">
-                  <Select value={filters.status} onValueChange={(value) => setFilters({...filters, status: value})}>
+                  <Select
+                    value={filters.status}
+                    onValueChange={(value) =>
+                      setFilters({ ...filters, status: value })
+                    }
+                  >
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Statut" />
                     </SelectTrigger>
@@ -399,7 +494,12 @@ export default function AdminCRMPage() {
                     </SelectContent>
                   </Select>
 
-                  <Select value={filters.urgency} onValueChange={(value) => setFilters({...filters, urgency: value})}>
+                  <Select
+                    value={filters.urgency}
+                    onValueChange={(value) =>
+                      setFilters({ ...filters, urgency: value })
+                    }
+                  >
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Urgence" />
                     </SelectTrigger>
@@ -412,14 +512,19 @@ export default function AdminCRMPage() {
                     </SelectContent>
                   </Select>
 
-                  <Select value={filters.assignedTo} onValueChange={(value) => setFilters({...filters, assignedTo: value})}>
+                  <Select
+                    value={filters.assignedTo}
+                    onValueChange={(value) =>
+                      setFilters({ ...filters, assignedTo: value })
+                    }
+                  >
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Assigné à" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Non assigné</SelectItem>
                       <SelectItem value="all">Tous</SelectItem>
-                      {agents.map(agent => (
+                      {agents.map((agent) => (
                         <SelectItem key={agent.id} value={agent.id}>
                           {agent.name}
                         </SelectItem>
@@ -451,7 +556,9 @@ export default function AdminCRMPage() {
               ) : filteredLeads.length === 0 ? (
                 <div className="text-center py-8">
                   <AlertCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-xl font-semibold mb-2">Aucun lead trouvé</h3>
+                  <h3 className="text-xl font-semibold mb-2">
+                    Aucun lead trouvé
+                  </h3>
                   <p className="text-muted-foreground">
                     Aucun lead ne correspond à vos filtres
                   </p>
@@ -473,39 +580,58 @@ export default function AdminCRMPage() {
                     </thead>
                     <tbody>
                       {filteredLeads.map((lead) => (
-                        <tr key={lead.id} className="border-b hover:bg-muted/50">
+                        <tr
+                          key={lead.id}
+                          className="border-b hover:bg-muted/50"
+                        >
                           <td className="p-2">
                             <div>
-                              <p className="font-semibold">{lead.project?.title}</p>
-                              <p className="text-sm text-muted-foreground">{lead.project?.category}</p>
+                              <p className="font-semibold">
+                                {lead.project?.title}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {lead.project?.category}
+                              </p>
                             </div>
                           </td>
                           <td className="p-2">
                             <div>
-                              <p className="font-semibold">{lead.client?.full_name}</p>
-                              <p className="text-sm text-muted-foreground">{lead.client?.email}</p>
+                              <p className="font-semibold">
+                                {lead.client?.full_name}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {lead.client?.email}
+                              </p>
                             </div>
                           </td>
                           <td className="p-2">{getStatusBadge(lead.status)}</td>
                           <td className="p-2">
-                            <span className={`font-bold ${getQualificationColor(lead.qualification_score)}`}>
+                            <span
+                              className={`font-bold ${getQualificationColor(lead.qualification_score)}`}
+                            >
                               {lead.qualification_score}/100
                             </span>
                           </td>
-                          <td className="p-2">{lead.budget.toLocaleString()} €</td>
-                          <td className="p-2">{getUrgencyBadge(lead.urgency)}</td>
+                          <td className="p-2">
+                            {lead.budget.toLocaleString()} €
+                          </td>
+                          <td className="p-2">
+                            {getUrgencyBadge(lead.urgency)}
+                          </td>
                           <td className="p-2">
                             <span className="text-sm">
-                              {agents.find(agent => agent.id === lead.assigned_to)?.name || 
-                               lead.assigned_to === "unassigned" ? "Non assigné" : 
-                               "Agent inconnu"}
+                              {agents.find(
+                                (agent) => agent.id === lead.assigned_to
+                              )?.name || lead.assigned_to === 'unassigned'
+                                ? 'Non assigné'
+                                : 'Agent inconnu'}
                             </span>
                           </td>
                           <td className="p-2">
                             <div className="flex gap-1">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => handleDeleteLead(lead.id)}
                                 className="text-red-600 hover:text-red-700"
                               >
@@ -524,24 +650,62 @@ export default function AdminCRMPage() {
                                   </DialogHeader>
                                   <div className="space-y-4">
                                     <div>
-                                      <h4 className="font-semibold">Informations projet</h4>
-                                      <p><strong>Titre:</strong> {lead.project?.title}</p>
-                                      <p><strong>Catégorie:</strong> {lead.project?.category}</p>
-                                      <p><strong>Ville:</strong> {lead.project?.city}</p>
+                                      <h4 className="font-semibold">
+                                        Informations projet
+                                      </h4>
+                                      <p>
+                                        <strong>Titre:</strong>{' '}
+                                        {lead.project?.title}
+                                      </p>
+                                      <p>
+                                        <strong>Catégorie:</strong>{' '}
+                                        {lead.project?.category}
+                                      </p>
+                                      <p>
+                                        <strong>Ville:</strong>{' '}
+                                        {lead.project?.city}
+                                      </p>
                                     </div>
                                     <div>
-                                      <h4 className="font-semibold">Contact client</h4>
-                                      <p><strong>Nom:</strong> {lead.client?.full_name}</p>
-                                      <p><strong>Email:</strong> {lead.client?.email}</p>
-                                      <p><strong>Téléphone:</strong> {lead.client?.phone}</p>
+                                      <h4 className="font-semibold">
+                                        Contact client
+                                      </h4>
+                                      <p>
+                                        <strong>Nom:</strong>{' '}
+                                        {lead.client?.full_name}
+                                      </p>
+                                      <p>
+                                        <strong>Email:</strong>{' '}
+                                        {lead.client?.email}
+                                      </p>
+                                      <p>
+                                        <strong>Téléphone:</strong>{' '}
+                                        {lead.client?.phone}
+                                      </p>
                                     </div>
                                     <div>
-                                      <h4 className="font-semibold">Qualification</h4>
-                                      <p><strong>Score:</strong> {lead.qualification_score}/100</p>
-                                      <p><strong>Statut:</strong> {getStatusBadge(lead.status)}</p>
-                                      <p><strong>Urgence:</strong> {getUrgencyBadge(lead.urgency)}</p>
-                                      <p><strong>Budget:</strong> {lead.budget.toLocaleString()} €</p>
-                                      <p><strong>Délai:</strong> {lead.timeline}</p>
+                                      <h4 className="font-semibold">
+                                        Qualification
+                                      </h4>
+                                      <p>
+                                        <strong>Score:</strong>{' '}
+                                        {lead.qualification_score}/100
+                                      </p>
+                                      <p>
+                                        <strong>Statut:</strong>{' '}
+                                        {getStatusBadge(lead.status)}
+                                      </p>
+                                      <p>
+                                        <strong>Urgence:</strong>{' '}
+                                        {getUrgencyBadge(lead.urgency)}
+                                      </p>
+                                      <p>
+                                        <strong>Budget:</strong>{' '}
+                                        {lead.budget.toLocaleString()} €
+                                      </p>
+                                      <p>
+                                        <strong>Délai:</strong> {lead.timeline}
+                                      </p>
                                     </div>
                                     <div>
                                       <h4 className="font-semibold">Notes</h4>
@@ -551,31 +715,55 @@ export default function AdminCRMPage() {
                                 </DialogContent>
                               </Dialog>
 
-                              <Select value={lead.status} onValueChange={(value) => handleUpdateStatus(lead.id, value)}>
+                              <Select
+                                value={lead.status}
+                                onValueChange={(value) =>
+                                  handleUpdateStatus(lead.id, value)
+                                }
+                              >
                                 <SelectTrigger className="w-[120px]">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="new">Nouveau</SelectItem>
-                                  <SelectItem value="contacted">Contacté</SelectItem>
-                                  <SelectItem value="qualified">Qualifié</SelectItem>
+                                  <SelectItem value="contacted">
+                                    Contacté
+                                  </SelectItem>
+                                  <SelectItem value="qualified">
+                                    Qualifié
+                                  </SelectItem>
                                   <SelectItem value="hot">Chaud</SelectItem>
                                   <SelectItem value="cold">Froid</SelectItem>
-                                  <SelectItem value="converted">Converti</SelectItem>
+                                  <SelectItem value="converted">
+                                    Converti
+                                  </SelectItem>
                                   <SelectItem value="lost">Perdu</SelectItem>
-                                  <SelectItem value="paused">En pause</SelectItem>
-                                  <SelectItem value="suspended">Suspendu</SelectItem>
-                                  <SelectItem value="archived">Archivé</SelectItem>
+                                  <SelectItem value="paused">
+                                    En pause
+                                  </SelectItem>
+                                  <SelectItem value="suspended">
+                                    Suspendu
+                                  </SelectItem>
+                                  <SelectItem value="archived">
+                                    Archivé
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
 
-                              <Select value={lead.assigned_to || "unassigned"} onValueChange={(value) => handleAssignLead(lead.id, value)}>
+                              <Select
+                                value={lead.assigned_to || 'unassigned'}
+                                onValueChange={(value) =>
+                                  handleAssignLead(lead.id, value)
+                                }
+                              >
                                 <SelectTrigger className="w-[120px]">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="unassigned">Non assigné</SelectItem>
-                                  {agents.map(agent => (
+                                  <SelectItem value="unassigned">
+                                    Non assigné
+                                  </SelectItem>
+                                  {agents.map((agent) => (
                                     <SelectItem key={agent.id} value={agent.id}>
                                       {agent.name}
                                     </SelectItem>

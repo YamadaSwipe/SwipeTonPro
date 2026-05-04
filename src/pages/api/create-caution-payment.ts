@@ -2,18 +2,25 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-01-27.acacia' });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-02-24.acacia',
+});
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST')
+    return res.status(405).json({ error: 'Method not allowed' });
 
   const { quoteId, conversationId } = req.body;
-  if (!quoteId || !conversationId) return res.status(400).json({ error: 'Paramètres manquants' });
+  if (!quoteId || !conversationId)
+    return res.status(400).json({ error: 'Paramètres manquants' });
 
   try {
     // Récupérer le devis
@@ -23,27 +30,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq('id', quoteId)
       .single();
 
-    if (qErr || !quote) return res.status(404).json({ error: 'Devis introuvable' });
-    if (quote.status !== 'pending') return res.status(400).json({ error: 'Devis déjà traité' });
+    if (qErr || !quote)
+      return res.status(404).json({ error: 'Devis introuvable' });
+    if (quote.status !== 'pending')
+      return res.status(400).json({ error: 'Devis déjà traité' });
 
-    const cautionAmount = Math.round(quote.amount * 0.30 * 100); // centimes
+    const cautionAmount = Math.round(quote.amount * 0.3 * 100); // centimes
     const projectTitle = quote.conversation?.project?.title || 'Projet BTP';
 
     // Créer Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-      line_items: [{
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: `Caution sécurisée — ${projectTitle}`,
-            description: `30% du devis de ${quote.amount.toLocaleString('fr-FR')}€. Versé au professionnel à la validation des travaux.`,
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `Caution sécurisée — ${projectTitle}`,
+              description: `30% du devis de ${quote.amount.toLocaleString('fr-FR')}€. Versé au professionnel à la validation des travaux.`,
+            },
+            unit_amount: cautionAmount,
           },
-          unit_amount: cautionAmount,
+          quantity: 1,
         },
-        quantity: 1,
-      }],
+      ],
       metadata: {
         quoteId,
         conversationId,
@@ -55,16 +66,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Mettre à jour le devis avec le payment intent
-    await supabase.from('quotes').update({
-      stripe_payment_intent_id: session.payment_intent as string,
-      status: 'accepted',
-    }).eq('id', quoteId);
+    await supabase
+      .from('quotes')
+      .update({
+        stripe_payment_intent_id: session.payment_intent as string,
+        status: 'accepted',
+      })
+      .eq('id', quoteId);
 
     // Mettre à jour la conversation
-    await supabase.from('conversations').update({
-      phase: 'in_progress',
-      work_status: 'started',
-    }).eq('id', conversationId);
+    await supabase
+      .from('conversations')
+      .update({
+        phase: 'in_progress',
+        work_status: 'started',
+      })
+      .eq('id', conversationId);
 
     // Notification au pro
     await supabase.from('notifications').insert({

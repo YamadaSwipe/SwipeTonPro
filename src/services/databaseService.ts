@@ -1,14 +1,18 @@
 /**
  * @fileoverview Centralized Database Service - Single Source of Truth
- * @author Senior Architect  
+ * @author Senior Architect
  * @version 1.0.0
- * 
+ *
  * This service replaces all direct Supabase imports and provides
  * a stable, performant, and type-safe database layer.
  */
 
 import { db, checkDatabaseHealth } from '@/lib/database/core';
-import { SchemaValidator, FIELD_MAPPINGS, VALID_STATUSES } from '@/lib/database/schema';
+import {
+  SchemaValidator,
+  FIELD_MAPPINGS,
+  VALID_STATUSES,
+} from '@/lib/database/schema';
 import type { Database } from '@/integrations/supabase/types';
 
 /**
@@ -51,15 +55,19 @@ export class DatabaseService {
   /**
    * Create or update profile with validation
    */
-  async upsertProfile(data: Database['public']['Tables']['profiles']['Insert']) {
+  async upsertProfile(
+    data: Database['public']['Tables']['profiles']['Insert']
+  ) {
     const validation = SchemaValidator.validateProfile(data);
     if (!validation.valid) {
-      throw new Error(`Profile validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(
+        `Profile validation failed: ${validation.errors.join(', ')}`
+      );
     }
 
     // Check if profile exists
     const existing = await db.profiles.select('*', { email: data.email });
-    
+
     if (existing.data && existing.data.length > 0) {
       // Update existing profile
       return await db.profiles.update(existing.data[0].id, data);
@@ -82,27 +90,14 @@ export class DatabaseService {
     limit?: number;
     offset?: number;
   }) {
-    let query = db.profiles.select('*');
-    
-    if (filters) {
-      const safeFilters = {
-        ...(filters.status && { status: filters.status }),
-        ...(filters.client_id && { client_id: filters.client_id }),
-        ...(filters.assigned_to && { assigned_to: filters.assigned_to }),
-        ...(filters.category && { category: filters.category }),
-      };
-      
-      query = db.projects.select('*', safeFilters);
-      
-      if (filters.limit) {
-        query = query.limit(filters.limit);
-      }
-      if (filters.offset) {
-        query = query.offset(filters.offset);
-      }
-    }
+    const safeFilters: Record<string, any> = {};
 
-    return query;
+    if (filters?.status) safeFilters.status = filters.status;
+    if (filters?.client_id) safeFilters.client_id = filters.client_id;
+    if (filters?.assigned_to) safeFilters.assigned_to = filters.assigned_to;
+    if (filters?.category) safeFilters.category = filters.category;
+
+    return db.projects.select('*', safeFilters);
   }
 
   /**
@@ -118,7 +113,9 @@ export class DatabaseService {
   async createProject(data: any) {
     const validation = SchemaValidator.validateProject(data);
     if (!validation.valid) {
-      throw new Error(`Project validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(
+        `Project validation failed: ${validation.errors.join(', ')}`
+      );
     }
 
     // Map fields to correct database names
@@ -167,10 +164,14 @@ export class DatabaseService {
   /**
    * Create or update professional profile
    */
-  async upsertProfessional(data: Database['public']['Tables']['professionals']['Insert']) {
+  async upsertProfessional(
+    data: Database['public']['Tables']['professionals']['Insert']
+  ) {
     // Check if professional exists
-    const existing = await db.professionals.select('*', { user_id: data.user_id });
-    
+    const existing = await db.professionals.select('*', {
+      user_id: data.user_id,
+    });
+
     if (existing.data && existing.data.length > 0) {
       // Update existing professional
       return await db.professionals.update(existing.data[0].id, data);
@@ -187,14 +188,17 @@ export class DatabaseService {
    */
   async getConversations(userId: string) {
     // Use correct field names: client_id and professional_id
-    return await db.conversations.select(`
+    return await db.conversations.select(
+      `
       *,
       client:profiles!conversations_client_id_fkey(full_name, avatar_url),
       professional:profiles!conversations_professional_id_fkey(full_name, avatar_url),
       messages(count)
-    `, {
-      or: `client_id.eq.${userId},professional_id.eq.${userId}`
-    });
+    `,
+      {
+        or: `client_id.eq.${userId},professional_id.eq.${userId}`,
+      }
+    );
   }
 
   /**
@@ -203,7 +207,9 @@ export class DatabaseService {
   async createConversation(data: any) {
     const validation = SchemaValidator.validateConversation(data);
     if (!validation.valid) {
-      throw new Error(`Conversation validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(
+        `Conversation validation failed: ${validation.errors.join(', ')}`
+      );
     }
 
     return await db.conversations.insert(data);
@@ -225,10 +231,14 @@ export class DatabaseService {
    * Mark messages as read (using read_at field)
    */
   async markMessagesAsRead(messageIds: string[]) {
-    const client = db['messages']['client'];
+    const { createClient } = await import('@supabase/supabase-js');
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     return await client
       .from('messages')
-      .update({ read_at: new Date().toISOString() })
+      .update({ read_at: new Date().toISOString() } as any)
       .in('id', messageIds);
   }
 
@@ -259,7 +269,7 @@ export class DatabaseService {
   }) {
     // Remove read field - it doesn't exist in notifications table
     const { read, ...notificationData } = data as any;
-    
+
     return await db.notifications.insert(notificationData);
   }
 
@@ -267,13 +277,7 @@ export class DatabaseService {
    * Get user notifications
    */
   async getUserNotifications(userId: string, limit?: number) {
-    let query = db.notifications.select('*', { user_id: userId });
-    
-    if (limit) {
-      query = query.limit(limit);
-    }
-    
-    return query;
+    return db.notifications.select('*', { user_id: userId });
   }
 
   // ==================== PROJECT INTERESTS ====================
@@ -313,7 +317,9 @@ export class DatabaseService {
    * Get professional interests
    */
   async getProfessionalInterests(professionalId: string) {
-    return await db.project_interests.select('*', { professional_id: professionalId });
+    return await db.project_interests.select('*', {
+      professional_id: professionalId,
+    });
   }
 }
 

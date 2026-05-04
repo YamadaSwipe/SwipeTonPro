@@ -1,6 +1,6 @@
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-import { Lead, LeadInsert, LeadUpdate } from "@/integrations/supabase/types";
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+import { Lead, LeadInsert, LeadUpdate } from '@/integrations/supabase/types';
 
 export interface LeadQualification {
   id: string;
@@ -8,7 +8,14 @@ export interface LeadQualification {
   clientId: string;
   professionalId?: string;
   qualificationScore: number;
-  status: 'new' | 'contacted' | 'qualified' | 'hot' | 'cold' | 'converted' | 'lost';
+  status:
+    | 'new'
+    | 'contacted'
+    | 'qualified'
+    | 'hot'
+    | 'cold'
+    | 'converted'
+    | 'lost';
   budget: number;
   timeline: string;
   urgency: 'low' | 'medium' | 'high' | 'urgent';
@@ -32,7 +39,7 @@ export interface QualificationCriteria {
   isDecisionMaker: boolean;
   hasPermit: boolean;
   hasFinancing: boolean;
-  
+
   // Score calculé
   totalScore: number;
   qualificationLevel: 'cold' | 'warm' | 'hot';
@@ -42,17 +49,20 @@ export const leadQualificationService = {
   /**
    * Créer un nouveau lead à partir d'un projet
    */
-  async createLeadFromProject(projectId: string, clientId: string): Promise<{ data: Lead | null; error: Error | null }> {
+  async createLeadFromProject(
+    projectId: string,
+    clientId: string
+  ): Promise<{ data: Lead | null; error: Error | null }> {
     try {
       // Récupérer les détails du projet
       const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", projectId)
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
         .single();
 
       if (projectError || !project) {
-        throw new Error("Projet non trouvé");
+        throw new Error('Projet non trouvé');
       }
 
       // Calculer le score de qualification
@@ -65,18 +75,18 @@ export const leadQualificationService = {
         qualification_score: qualification.totalScore,
         status: this.getLeadStatusFromScore(qualification.totalScore),
         budget: project.budget_max || 0,
-        timeline: (project as any).timeline || "Non défini",
+        timeline: (project as any).timeline || 'Non défini',
         urgency: this.getUrgencyFromTimeline((project as any).timeline),
         notes: `Lead généré depuis le projet: ${project.title}`,
         contact_attempts: 0,
         source: 'organic',
         qualification_data: qualification,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { data, error } = await (supabase as any)
-        .from("leads")
+        .from('leads')
         .insert(leadData)
         .select()
         .single();
@@ -84,7 +94,7 @@ export const leadQualificationService = {
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
-      console.error("Erreur création lead:", error);
+      console.error('Erreur création lead:', error);
       return { data: null, error: error as Error };
     }
   },
@@ -92,7 +102,9 @@ export const leadQualificationService = {
   /**
    * Calculer le score de qualification d'un projet
    */
-  async calculateQualificationScore(project: any): Promise<QualificationCriteria> {
+  async calculateQualificationScore(
+    project: any
+  ): Promise<QualificationCriteria> {
     let score = 0;
     const criteria: QualificationCriteria = {
       hasValidBudget: false,
@@ -104,7 +116,7 @@ export const leadQualificationService = {
       hasPermit: false,
       hasFinancing: false,
       totalScore: 0,
-      qualificationLevel: 'cold'
+      qualificationLevel: 'cold',
     };
 
     // Budget (30 points)
@@ -114,7 +126,7 @@ export const leadQualificationService = {
     }
 
     // Timeline (20 points)
-    if (project.deadline && project.deadline !== "") {
+    if (project.deadline && project.deadline !== '') {
       criteria.hasClearTimeline = true;
       score += 20;
     }
@@ -139,7 +151,10 @@ export const leadQualificationService = {
     }
 
     // Permis (5 points)
-    if (project.work_type && !project.work_type.includes('démolition')) {
+    if (
+      project.work_types &&
+      !project.work_types.join(' ').includes('démolition')
+    ) {
       criteria.hasPermit = true;
       score += 5;
     }
@@ -179,12 +194,18 @@ export const leadQualificationService = {
    */
   getUrgencyFromTimeline(timeline?: string): Lead['urgency'] {
     if (!timeline) return 'medium';
-    
+
     const timelineLower = timeline.toLowerCase();
-    if (timelineLower.includes('urgent') || timelineLower.includes('immédiat')) {
+    if (
+      timelineLower.includes('urgent') ||
+      timelineLower.includes('immédiat')
+    ) {
       return 'urgent';
     }
-    if (timelineLower.includes('1 semaine') || timelineLower.includes('2 semaines')) {
+    if (
+      timelineLower.includes('1 semaine') ||
+      timelineLower.includes('2 semaines')
+    ) {
       return 'high';
     }
     if (timelineLower.includes('1 mois') || timelineLower.includes('2 mois')) {
@@ -196,11 +217,15 @@ export const leadQualificationService = {
   /**
    * Mettre à jour le statut d'un lead
    */
-  async updateLeadStatus(leadId: string, status: Lead['status'], notes?: string): Promise<{ success: boolean; error?: string }> {
+  async updateLeadStatus(
+    leadId: string,
+    status: Lead['status'],
+    notes?: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const updateData: any = {
         status,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       if (notes) {
@@ -213,14 +238,14 @@ export const leadQualificationService = {
       }
 
       const { error } = await (supabase as any)
-        .from("leads")
+        .from('leads')
         .update(updateData)
-        .eq("id", leadId);
+        .eq('id', leadId);
 
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error("Erreur mise à jour lead:", error);
+      console.error('Erreur mise à jour lead:', error);
       return { success: false, error: (error as Error).message };
     }
   },
@@ -228,20 +253,23 @@ export const leadQualificationService = {
   /**
    * Assigner un lead à un commercial
    */
-  async assignLead(leadId: string, assignedTo: string): Promise<{ success: boolean; error?: string }> {
+  async assignLead(
+    leadId: string,
+    assignedTo: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await (supabase as any)
-        .from("leads")
+        .from('leads')
         .update({
           assigned_to: assignedTo,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq("id", leadId);
+        .eq('id', leadId);
 
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error("Erreur assignation lead:", error);
+      console.error('Erreur assignation lead:', error);
       return { success: false, error: (error as Error).message };
     }
   },
@@ -249,35 +277,43 @@ export const leadQualificationService = {
   /**
    * Récupérer les leads pour un commercial
    */
-  async getLeadsForCommercial(commercialId: string, filters?: {
-    status?: Lead['status'];
-    urgency?: Lead['urgency'];
-    qualificationLevel?: 'cold' | 'warm' | 'hot';
-  }): Promise<{ data: Lead[] | null; error: Error | null }> {
+  async getLeadsForCommercial(
+    commercialId: string,
+    filters?: {
+      status?: Lead['status'];
+      urgency?: Lead['urgency'];
+      qualificationLevel?: 'cold' | 'warm' | 'hot';
+    }
+  ): Promise<{ data: Lead[] | null; error: Error | null }> {
     try {
       let query = (supabase as any)
-        .from("leads")
-        .select("*")
-        .eq("assigned_to", commercialId)
-        .order("created_at", { ascending: false });
+        .from('leads')
+        .select('*')
+        .eq('assigned_to', commercialId)
+        .order('created_at', { ascending: false });
 
       if (filters?.status) {
-        query = query.eq("status", filters.status);
+        query = query.eq('status', filters.status);
       }
       if (filters?.urgency) {
-        query = query.eq("urgency", filters.urgency);
+        query = query.eq('urgency', filters.urgency);
       }
       if (filters?.qualificationLevel) {
-        const scoreRange = filters.qualificationLevel === 'hot' ? [70, 100] : 
-                          filters.qualificationLevel === 'warm' ? [40, 69] : [0, 39];
-        query = query.gte("qualification_score", scoreRange[0])
-                     .lte("qualification_score", scoreRange[1]);
+        const scoreRange =
+          filters.qualificationLevel === 'hot'
+            ? [70, 100]
+            : filters.qualificationLevel === 'warm'
+              ? [40, 69]
+              : [0, 39];
+        query = query
+          .gte('qualification_score', scoreRange[0])
+          .lte('qualification_score', scoreRange[1]);
       }
 
       const { data, error } = await query;
       return { data, error: error as Error };
     } catch (error) {
-      console.error("Erreur récupération leads:", error);
+      console.error('Erreur récupération leads:', error);
       return { data: null, error: error as Error };
     }
   },
@@ -296,34 +332,35 @@ export const leadQualificationService = {
     conversionRate: number;
   }> {
     try {
-      let query = (supabase as any).from("leads").select("*");
-      
+      let query = (supabase as any).from('leads').select('*');
+
       if (commercialId) {
-        query = query.eq("assigned_to", commercialId);
+        query = query.eq('assigned_to', commercialId);
       }
 
       const { data, error } = await query;
-      
+
       if (error || !data) {
         throw error;
       }
 
       const stats = {
         total: data.length,
-        new: data.filter(l => l.status === 'new').length,
-        contacted: data.filter(l => l.status === 'contacted').length,
-        qualified: data.filter(l => l.status === 'qualified').length,
-        hot: data.filter(l => l.status === 'hot').length,
-        converted: data.filter(l => l.status === 'converted').length,
-        lost: data.filter(l => l.status === 'lost').length,
-        conversionRate: 0
+        new: data.filter((l) => l.status === 'new').length,
+        contacted: data.filter((l) => l.status === 'contacted').length,
+        qualified: data.filter((l) => l.status === 'qualified').length,
+        hot: data.filter((l) => l.status === 'hot').length,
+        converted: data.filter((l) => l.status === 'converted').length,
+        lost: data.filter((l) => l.status === 'lost').length,
+        conversionRate: 0,
       };
 
-      stats.conversionRate = stats.total > 0 ? (stats.converted / stats.total) * 100 : 0;
+      stats.conversionRate =
+        stats.total > 0 ? (stats.converted / stats.total) * 100 : 0;
 
       return stats;
     } catch (error) {
-      console.error("Erreur statistiques leads:", error);
+      console.error('Erreur statistiques leads:', error);
       return {
         total: 0,
         new: 0,
@@ -332,7 +369,7 @@ export const leadQualificationService = {
         hot: 0,
         converted: 0,
         lost: 0,
-        conversionRate: 0
+        conversionRate: 0,
       };
     }
   },
@@ -340,21 +377,34 @@ export const leadQualificationService = {
   /**
    * Exporter les leads en CSV
    */
-  async exportLeadsToCSV(commercialId?: string): Promise<{ data: string | null; error: Error | null }> {
+  async exportLeadsToCSV(
+    commercialId?: string
+  ): Promise<{ data: string | null; error: Error | null }> {
     try {
-      const { data, error } = await this.getLeadsForCommercial(commercialId || "");
-      
+      const { data, error } = await this.getLeadsForCommercial(
+        commercialId || ''
+      );
+
       if (error || !data) {
         throw error;
       }
 
       // Créer le CSV
       const headers = [
-        'ID', 'Projet', 'Client', 'Statut', 'Score', 'Budget', 'Délai', 
-        'Urgence', 'Date création', 'Dernier contact', 'Assigné à'
+        'ID',
+        'Projet',
+        'Client',
+        'Statut',
+        'Score',
+        'Budget',
+        'Délai',
+        'Urgence',
+        'Date création',
+        'Dernier contact',
+        'Assigné à',
       ];
-      
-      const rows = data.map(lead => [
+
+      const rows = data.map((lead) => [
         lead.id,
         lead.project_id,
         lead.client_id,
@@ -365,17 +415,17 @@ export const leadQualificationService = {
         lead.urgency,
         lead.created_at,
         lead.last_contact_date || 'N/A',
-        lead.assigned_to || 'Non assigné'
+        lead.assigned_to || 'Non assigné',
       ]);
 
       const csvContent = [headers, ...rows]
-        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .map((row) => row.map((cell) => `"${cell}"`).join(','))
         .join('\n');
 
       return { data: csvContent, error: null };
     } catch (error) {
-      console.error("Erreur export CSV:", error);
+      console.error('Erreur export CSV:', error);
       return { data: null, error: error as Error };
     }
-  }
+  },
 };

@@ -6,28 +6,37 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  AlertTriangle, 
-  Phone, 
-  MapPin, 
-  Clock, 
-  Euro, 
-  Users, 
+import {
+  AlertTriangle,
+  Phone,
+  MapPin,
+  Clock,
+  Euro,
+  Users,
   CheckCircle,
   Zap,
-  Shield
+  Shield,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EmergencyProjectFormProps {
   onSuccess?: (projectId: string) => void;
 }
 
-export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectFormProps) {
+export default function EmergencyProjectForm({
+  onSuccess,
+}: EmergencyProjectFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -42,25 +51,32 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
     estimated_budget_max: '',
     immediate_intervention: true,
     photos: [] as File[],
-    consent_urgent_pricing: false
+    consent_urgent_pricing: false,
   });
-  
+
   const { toast } = useToast();
 
   const EMERGENCY_MULTIPLIER = 1.5; // 50% de majoration pour les urgences
   const EMERGENCY_CATEGORIES = [
-    'plomberie', 'electricite', 'chauffage', 'climatisation', 
-    'couverture', 'securite', 'fuite', 'panne_electrique'
+    'plomberie',
+    'electricite',
+    'chauffage',
+    'climatisation',
+    'couverture',
+    'securite',
+    'fuite',
+    'panne_electrique',
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.consent_urgent_pricing) {
       toast({
-        title: "Consentement requis",
-        description: "Vous devez accepter la majoration tarifaire pour les interventions d'urgence",
-        variant: "destructive"
+        title: 'Consentement requis',
+        description:
+          "Vous devez accepter la majoration tarifaire pour les interventions d'urgence",
+        variant: 'destructive',
       });
       return;
     }
@@ -73,12 +89,12 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
       for (const photo of formData.photos) {
         const formDataUpload = new FormData();
         formDataUpload.append('file', photo);
-        
+
         const response = await fetch('/api/upload/project-photo', {
           method: 'POST',
-          body: formDataUpload
+          body: formDataUpload,
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           photoUrls.push(data.url);
@@ -88,7 +104,7 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
       // Calcul du budget avec majoration
       const baseBudgetMin = parseFloat(formData.estimated_budget_min) || 0;
       const baseBudgetMax = parseFloat(formData.estimated_budget_max) || 0;
-      
+
       const urgentBudgetMin = Math.round(baseBudgetMin * EMERGENCY_MULTIPLIER);
       const urgentBudgetMax = Math.round(baseBudgetMax * EMERGENCY_MULTIPLIER);
 
@@ -103,17 +119,19 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
         emergency_level: formData.urgency_level,
         photos: photoUrls,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
-      const { data: { user } } = await (supabase as any).auth.getUser();
+      const {
+        data: { user },
+      } = await (supabase as any).auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
       const { data: project, error } = await (supabase as any)
         .from('projects')
         .insert({
           ...projectData,
-          user_id: user.id
+          user_id: user.id,
         })
         .select()
         .single();
@@ -125,17 +143,18 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
 
       toast({
         title: "🚨 Demande d'urgence envoyée !",
-        description: "Les professionnels disponibles sont notifiés immédiatement",
+        description:
+          'Les professionnels disponibles sont notifiés immédiatement',
       });
 
       onSuccess?.(project.id);
-
     } catch (error: any) {
       console.error('Erreur création projet urgence:', error);
       toast({
-        title: "Erreur",
-        description: error.message || "Impossible de créer la demande d'urgence",
-        variant: "destructive"
+        title: 'Erreur',
+        description:
+          error.message || "Impossible de créer la demande d'urgence",
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -154,22 +173,20 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
       if (professionals) {
         // Notifier chaque professionnel
         for (const pro of professionals) {
-          await (supabase as any)
-            .from('notifications')
-            .insert({
-              user_id: pro.user_id,
-              type: 'emergency_request',
-              title: '🚨 Intervention d\'urgence requise',
-              message: `Une urgence ${formData.category} nécessite une intervention immédiate à ${formData.city}`,
-              data: {
-                project_id: projectId,
-                urgency_level: formData.urgency_level,
-                location: formData.city
-              },
-              priority: 'high',
-              created_at: new Date().toISOString(),
-              read: false
-            });
+          await (supabase as any).from('notifications').insert({
+            user_id: pro.user_id,
+            type: 'emergency_request',
+            title: "🚨 Intervention d'urgence requise",
+            message: `Une urgence ${formData.category} nécessite une intervention immédiate à ${formData.city}`,
+            data: {
+              project_id: projectId,
+              urgency_level: formData.urgency_level,
+              location: formData.city,
+            },
+            priority: 'high',
+            created_at: new Date().toISOString(),
+            read: false,
+          });
         }
       }
     } catch (error) {
@@ -179,34 +196,42 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      photos: [...prev.photos, ...files].slice(0, 5) // Max 5 photos
+      photos: [...prev.photos, ...files].slice(0, 5), // Max 5 photos
     }));
   };
 
   const removePhoto = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      photos: prev.photos.filter((_, i) => i !== index)
+      photos: prev.photos.filter((_, i) => i !== index),
     }));
   };
 
   const getUrgencyColor = (level: string) => {
     switch (level) {
-      case 'critical': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      default: return 'bg-blue-500';
+      case 'critical':
+        return 'bg-red-500';
+      case 'high':
+        return 'bg-orange-500';
+      case 'medium':
+        return 'bg-yellow-500';
+      default:
+        return 'bg-blue-500';
     }
   };
 
   const getUrgencyLabel = (level: string) => {
     switch (level) {
-      case 'critical': return 'Critique - Danger immédiat';
-      case 'high': return 'Haut - Très urgent';
-      case 'medium': return 'Moyen - Urgent';
-      default: return 'Normal';
+      case 'critical':
+        return 'Critique - Danger immédiat';
+      case 'high':
+        return 'Haut - Très urgent';
+      case 'medium':
+        return 'Moyen - Urgent';
+      default:
+        return 'Normal';
     }
   };
 
@@ -218,7 +243,8 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
           Demande d'Intervention d'Urgence
         </CardTitle>
         <p className="text-red-600 text-sm">
-          Pour les situations nécessitant une intervention immédiate (24h/24 et 7j/7)
+          Pour les situations nécessitant une intervention immédiate (24h/24 et
+          7j/7)
         </p>
       </CardHeader>
 
@@ -228,8 +254,9 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
           <Alert className="border-red-200 bg-red-50">
             <Zap className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-700">
-              <strong>Tarification d'urgence :</strong> Majoration de 50% appliquée pour toute intervention d'urgence.
-              Les professionnels interviennent dans les plus brefs délais.
+              <strong>Tarification d'urgence :</strong> Majoration de 50%
+              appliquée pour toute intervention d'urgence. Les professionnels
+              interviennent dans les plus brefs délais.
             </AlertDescription>
           </Alert>
 
@@ -241,7 +268,9 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
                 <Input
                   id="title"
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, title: e.target.value }))
+                  }
                   placeholder="Ex: Fuite d'eau importante, Panne électrique..."
                   required
                 />
@@ -249,14 +278,20 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
 
               <div>
                 <Label htmlFor="category">Type de problème *</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, category: value }))
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez le type de problème" />
                   </SelectTrigger>
                   <SelectContent>
-                    {EMERGENCY_CATEGORIES.map(category => (
+                    {EMERGENCY_CATEGORIES.map((category) => (
                       <SelectItem key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')}
+                        {category.charAt(0).toUpperCase() +
+                          category.slice(1).replace('_', ' ')}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -265,7 +300,12 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
 
               <div>
                 <Label htmlFor="urgency_level">Niveau d'urgence *</Label>
-                <Select value={formData.urgency_level} onValueChange={(value) => setFormData(prev => ({ ...prev, urgency_level: value }))}>
+                <Select
+                  value={formData.urgency_level}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, urgency_level: value }))
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -298,7 +338,9 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                  }
                   placeholder="Votre numéro de téléphone"
                   required
                 />
@@ -312,7 +354,12 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
                 <Input
                   id="address"
                   value={formData.address}
-                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      address: e.target.value,
+                    }))
+                  }
                   placeholder="Numéro, rue..."
                   required
                 />
@@ -324,7 +371,12 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
                   <Input
                     id="postal_code"
                     value={formData.postal_code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, postal_code: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        postal_code: e.target.value,
+                      }))
+                    }
                     placeholder="75000"
                     required
                   />
@@ -334,7 +386,9 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
                   <Input
                     id="city"
                     value={formData.city}
-                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, city: e.target.value }))
+                    }
                     placeholder="Paris"
                     required
                   />
@@ -343,48 +397,81 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="estimated_budget_min">Budget minimum (€)</Label>
+                  <Label htmlFor="estimated_budget_min">
+                    Budget minimum (€)
+                  </Label>
                   <Input
                     id="estimated_budget_min"
                     type="number"
                     value={formData.estimated_budget_min}
-                    onChange={(e) => setFormData(prev => ({ ...prev, estimated_budget_min: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        estimated_budget_min: e.target.value,
+                      }))
+                    }
                     placeholder="200"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="estimated_budget_max">Budget maximum (€)</Label>
+                  <Label htmlFor="estimated_budget_max">
+                    Budget maximum (€)
+                  </Label>
                   <Input
                     id="estimated_budget_max"
                     type="number"
                     value={formData.estimated_budget_max}
-                    onChange={(e) => setFormData(prev => ({ ...prev, estimated_budget_max: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        estimated_budget_max: e.target.value,
+                      }))
+                    }
                     placeholder="500"
                   />
                 </div>
               </div>
 
-              {formData.estimated_budget_min && formData.estimated_budget_max && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-orange-700">
-                    <Euro className="w-4 h-4" />
-                    <span className="font-medium">Tarif urgence estimé :</span>
+              {formData.estimated_budget_min &&
+                formData.estimated_budget_max && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-orange-700">
+                      <Euro className="w-4 h-4" />
+                      <span className="font-medium">
+                        Tarif urgence estimé :
+                      </span>
+                    </div>
+                    <div className="text-orange-600 text-sm">
+                      {Math.round(
+                        parseFloat(formData.estimated_budget_min) *
+                          EMERGENCY_MULTIPLIER
+                      )}
+                      € -{' '}
+                      {Math.round(
+                        parseFloat(formData.estimated_budget_max) *
+                          EMERGENCY_MULTIPLIER
+                      )}
+                      €
+                    </div>
                   </div>
-                  <div className="text-orange-600 text-sm">
-                    {Math.round(parseFloat(formData.estimated_budget_min) * EMERGENCY_MULTIPLIER)}€ - {Math.round(parseFloat(formData.estimated_budget_max) * EMERGENCY_MULTIPLIER)}€
-                  </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <Label htmlFor="description">Description détaillée de l'urgence *</Label>
+            <Label htmlFor="description">
+              Description détaillée de l'urgence *
+            </Label>
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
               placeholder="Décrivez précisément le problème, les risques, et ce qui doit être fait en urgence..."
               rows={4}
               required
@@ -401,7 +488,7 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
               onChange={handleFileChange}
               className="mb-3"
             />
-            
+
             {formData.photos.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {formData.photos.map((photo, index) => (
@@ -432,12 +519,17 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
               <Checkbox
                 id="consent_urgent_pricing"
                 checked={formData.consent_urgent_pricing}
-                onCheckedChange={(checked) => 
-                  setFormData(prev => ({ ...prev, consent_urgent_pricing: checked as boolean }))
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    consent_urgent_pricing: checked as boolean,
+                  }))
                 }
               />
               <Label htmlFor="consent_urgent_pricing" className="text-sm">
-                J'accepte la majoration tarifaire de 50% pour les interventions d'urgence et comprends que les professionnels interviendront dans les plus brefs délais
+                J'accepte la majoration tarifaire de 50% pour les interventions
+                d'urgence et comprends que les professionnels interviendront
+                dans les plus brefs délais
               </Label>
             </div>
 
@@ -445,12 +537,16 @@ export default function EmergencyProjectForm({ onSuccess }: EmergencyProjectForm
               <Checkbox
                 id="immediate_intervention"
                 checked={formData.immediate_intervention}
-                onCheckedChange={(checked) => 
-                  setFormData(prev => ({ ...prev, immediate_intervention: checked as boolean }))
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    immediate_intervention: checked as boolean,
+                  }))
                 }
               />
               <Label htmlFor="immediate_intervention" className="text-sm">
-                Je suis disponible immédiatement pour accueillir le professionnel
+                Je suis disponible immédiatement pour accueillir le
+                professionnel
               </Label>
             </div>
           </div>

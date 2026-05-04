@@ -327,11 +327,6 @@ function AdminDashboardContent() {
     []
   );
 
-  const urgentCount = useMemo(
-    () => stats.pendingProjects + stats.pendingPros,
-    [stats.pendingProjects, stats.pendingPros]
-  );
-
   // État de chargement combiné optimisé
   const isLoading = useMemo(
     () => authLoading || dataLoading,
@@ -348,11 +343,6 @@ function AdminDashboardContent() {
       </div>
     );
   }
-
-  const urgentCount = useMemo(
-    () => stats.pendingProjects + stats.pendingPros,
-    [stats.pendingProjects, stats.pendingPros]
-  );
 
   // Handlers optimisés avec logs de débogage
   const handleRefresh = useCallback(async () => {

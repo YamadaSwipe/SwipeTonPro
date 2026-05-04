@@ -129,7 +129,10 @@ function templateTeam(data: {
 // HANDLER PRINCIPAL
 // ============================================
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
@@ -144,7 +147,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Récupérer le projet
     const { data: project } = await supabaseAdmin
       .from('projects')
-      .select('title, city, description, budget_min, budget_max, urgency, work_type, category')
+      .select(
+        'title, city, description, budget_min, budget_max, urgency, work_type, category'
+      )
       .eq('id', projectId)
       .single();
 
@@ -160,20 +165,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Ajouter au CRM (table leads)
-    await supabaseAdmin.from('leads').insert({
-      project_id: projectId,
-      client_id: clientId,
-      qualification_score: 0,
-      status: 'new',
-      budget: project.budget_max || project.budget_min || 0,
-      timeline: 'Non défini',
-      urgency: project.urgency || 'medium',
-      notes: `Lead généré automatiquement — ${project.title}`,
-      contact_attempts: 0,
-      source: 'organic',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).select().single();
+    await supabaseAdmin
+      .from('leads')
+      .insert({
+        project_id: projectId,
+        client_id: clientId,
+        qualification_score: 0,
+        status: 'new',
+        budget: project.budget_max || project.budget_min || 0,
+        timeline: 'Non défini',
+        urgency: project.urgency || 'medium',
+        notes: `Lead généré automatiquement — ${project.title}`,
+        contact_attempts: 0,
+        source: 'organic',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
 
     const results = await Promise.allSettled([
       // Email Support
@@ -189,7 +198,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           budgetMin: project.budget_min,
           budgetMax: project.budget_max,
           description: project.description || '',
-          workType: project.work_type || project.category || '',
+          workType: project.work_types?.join(', ') || project.category || '',
           urgency: project.urgency || 'medium',
           adminUrl: `${BASE_URL}/admin/projects`,
         }),
@@ -217,13 +226,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
     ]);
 
-    const sent = results.filter(r => r.status === 'fulfilled').length;
+    const sent = results.filter((r) => r.status === 'fulfilled').length;
 
     return res.status(200).json({
       message: `${sent}/2 emails envoyés, lead créé dans le CRM`,
       sent,
     });
-
   } catch (error) {
     console.error('Erreur notification projet:', error);
     return res.status(500).json({ message: 'Erreur serveur', error });

@@ -2,7 +2,7 @@
  * @fileoverview Service Email avec SMTP OVH
  * @author Senior Architect
  * @version 1.0.0
- * 
+ *
  * Service d'envoi d'emails via SMTP OVH pour la production
  */
 
@@ -16,20 +16,20 @@ const createTransporter = () => {
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT || 587,
     user: process.env.SMTP_USER ? '***' : 'MISSING',
-    pass: process.env.SMTP_PASS ? '***' : 'MISSING'
+    pass: process.env.SMTP_PASS ? '***' : 'MISSING',
   });
 
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '587'),
     secure: false, // TLS pour port 587
     auth: {
       user: process.env.SMTP_USER!,
-      pass: process.env.SMTP_PASS!
+      pass: process.env.SMTP_PASS!,
     },
     tls: {
-      rejectUnauthorized: false // Accepter les certificats auto-signés si nécessaire
-    }
+      rejectUnauthorized: false, // Accepter les certificats auto-signés si nécessaire
+    },
   });
 
   return transporter;
@@ -63,11 +63,13 @@ export const sendEmail = async (emailData: EmailData): Promise<boolean> => {
     console.log('✅ SMTP Server connection verified');
 
     const mailOptions = {
-      from: emailData.from || `${process.env.EMAIL_FROM_NAME || 'SwipeTonPro'} <${process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER}>`,
+      from:
+        emailData.from ||
+        `${process.env.EMAIL_FROM_NAME || 'SwipeTonPro'} <${process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER}>`,
       to: emailData.to,
       subject: emailData.subject,
       html: emailData.html,
-      text: emailData.text || emailData.html.replace(/<[^>]*>/g, '') // Texte brut généré automatiquement
+      text: emailData.text || emailData.html.replace(/<[^>]*>/g, ''), // Texte brut généré automatiquement
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -81,7 +83,7 @@ export const sendEmail = async (emailData: EmailData): Promise<boolean> => {
       to: emailData.to,
       subject: emailData.subject,
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     return false;
   }
@@ -93,24 +95,27 @@ export const sendEmail = async (emailData: EmailData): Promise<boolean> => {
  * @param maxRetries Nombre maximum de tentatives
  * @returns Promise<boolean> Succès/Échec
  */
-export const sendEmailWithRetry = async (emailData: EmailData, maxRetries: number = 3): Promise<boolean> => {
+export const sendEmailWithRetry = async (
+  emailData: EmailData,
+  maxRetries: number = 3
+): Promise<boolean> => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     console.log(`📧 Email Service: Attempt ${attempt}/${maxRetries}`);
-    
+
     const success = await sendEmail(emailData);
-    
+
     if (success) {
       console.log(`✅ Email sent successfully on attempt ${attempt}`);
       return true;
     }
-    
+
     if (attempt < maxRetries) {
       const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
       console.log(`⏳ Email Service: Retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
-  
+
   console.error(`❌ Email Service: Failed after ${maxRetries} attempts`);
   return false;
 };
@@ -163,7 +168,7 @@ export const generateProfessionalInterestEmail = (data: {
       </div>
     </body>
     </html>
-  `
+  `,
 });
 
 /**
@@ -229,12 +234,12 @@ export const generateAdminNotificationEmail = (data: {
       </div>
     </body>
     </html>
-  `
+  `,
 });
 
 export default {
   sendEmail,
   sendEmailWithRetry,
   generateProfessionalInterestEmail,
-  generateAdminNotificationEmail
+  generateAdminNotificationEmail,
 };

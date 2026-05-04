@@ -2,7 +2,7 @@
  * @fileoverview Core Database Layer - Single Point of Truth for Database Operations
  * @author Senior Architect
  * @version 1.0.0
- * 
+ *
  * This file centralizes all database operations and provides a stable abstraction layer
  * to prevent performance issues and maintain consistency across the application.
  */
@@ -64,11 +64,11 @@ export class DatabaseQuery<T extends keyof Database['public']['Tables']> {
    * Execute query with error handling and logging
    */
   async execute<R = Database['public']['Tables'][T]['Row']>(
-    query: ReturnType<typeof this.client.from<T>>
-  ): Promise<{ data: R[] | null; error: Error | null }> {
+    query: any
+  ): Promise<{ data: R | null; error: Error | null }> {
     try {
       const { data, error } = await query;
-      
+
       if (error) {
         console.error(`Database error on table ${this.tableName}:`, error);
         return { data: null, error: error as Error };
@@ -89,7 +89,7 @@ export class DatabaseQuery<T extends keyof Database['public']['Tables']> {
     filters?: Record<string, any>
   ) {
     let query = this.client.from(this.tableName).select(columns || '*');
-    
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -105,7 +105,13 @@ export class DatabaseQuery<T extends keyof Database['public']['Tables']> {
    * Get single record by ID
    */
   async findById<R = Database['public']['Tables'][T]['Row']>(id: string) {
-    return this.execute<R>(this.client.from(this.tableName).select('*').eq('id', id).single());
+    return this.execute<R>(
+      this.client
+        .from(this.tableName)
+        .select('*')
+        .eq('id', id as any)
+        .single()
+    );
   }
 
   /**
@@ -113,16 +119,28 @@ export class DatabaseQuery<T extends keyof Database['public']['Tables']> {
    */
   async insert<I = Database['public']['Tables'][T]['Insert']>(data: I) {
     return this.execute<Database['public']['Tables'][T]['Row']>(
-      this.client.from(this.tableName).insert(data).select().single()
+      this.client
+        .from(this.tableName)
+        .insert(data as any)
+        .select()
+        .single()
     );
   }
 
   /**
    * Update existing record
    */
-  async update<U = Database['public']['Tables'][T]['Update']>(id: string, data: U) {
+  async update<U = Database['public']['Tables'][T]['Update']>(
+    id: string,
+    data: U
+  ) {
     return this.execute<Database['public']['Tables'][T]['Row']>(
-      this.client.from(this.tableName).update(data).eq('id', id).select().single()
+      this.client
+        .from(this.tableName)
+        .update(data as any)
+        .eq('id', id as any)
+        .select()
+        .single()
     );
   }
 
@@ -130,14 +148,21 @@ export class DatabaseQuery<T extends keyof Database['public']['Tables']> {
    * Delete record
    */
   async delete(id: string) {
-    return this.execute(this.client.from(this.tableName).delete().eq('id', id));
+    return this.execute(
+      this.client
+        .from(this.tableName)
+        .delete()
+        .eq('id', id as any)
+    );
   }
 }
 
 /**
  * Factory function for creating typed queries
  */
-export function createQuery<T extends keyof Database['public']['Tables']>(table: T) {
+export function createQuery<T extends keyof Database['public']['Tables']>(
+  table: T
+) {
   return new DatabaseQuery(table);
 }
 
@@ -162,8 +187,11 @@ export const db = {
 export async function checkDatabaseHealth() {
   try {
     const client = getSupabaseClient();
-    const { data, error } = await client.from('profiles').select('count').limit(1);
-    
+    const { data, error } = await client
+      .from('profiles')
+      .select('count')
+      .limit(1);
+
     return {
       healthy: !error,
       error: error?.message || null,

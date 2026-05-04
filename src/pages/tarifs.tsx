@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Shield, 
-  CreditCard, 
-  CheckCircle, 
+import {
+  Shield,
+  CreditCard,
+  CheckCircle,
   AlertTriangle,
   Info,
   Lock,
   Users,
   FileText,
-  Settings
+  Settings,
 } from 'lucide-react';
 import { TarifService, Tarif } from '@/services/tarifService';
 
@@ -33,13 +33,19 @@ const TarifsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await TarifService.getAllTarifs();
-      
-      const formattedTarifs = data.map(tarif => ({
+
+      const formattedTarifs = data.map((tarif) => ({
         ...tarif,
-        formattedRange: TarifService.formatEstimation(tarif.min_estimation, tarif.max_estimation),
-        formattedFrais: tarif.frais === 0 ? 'Gratuit' : TarifService.formatMontant(tarif.frais)
+        formattedRange: TarifService.formatEstimation(
+          tarif.min_estimation,
+          tarif.max_estimation
+        ),
+        formattedFrais:
+          tarif.frais === 0
+            ? 'Gratuit'
+            : TarifService.formatMontant(tarif.frais),
       }));
-      
+
       setTarifs(formattedTarifs);
     } catch (error) {
       console.error('Erreur chargement tarifs:', error);
@@ -71,7 +77,9 @@ const TarifsPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Erreur de chargement</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Erreur de chargement
+            </h2>
             <p className="text-gray-600">{error}</p>
           </div>
         </div>
@@ -88,7 +96,8 @@ const TarifsPage: React.FC = () => {
             Tarifs de mise en relation
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Des tarifs transparents et progressifs pour vous mettre en relation avec les meilleurs professionnels
+            Des tarifs transparents et progressifs pour vous mettre en relation
+            avec les meilleurs professionnels
           </p>
         </div>
 
@@ -118,16 +127,23 @@ const TarifsPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {tarifs.map((tarif, index) => (
-                    <tr key={tarif.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                    <tr
+                      key={tarif.id}
+                      className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                    >
                       <td className="py-4 px-4">
                         <span className="font-medium text-gray-900">
                           {tarif.formattedRange}
                         </span>
                       </td>
                       <td className="py-4 px-4">
-                        <span className={`font-bold ${
-                          tarif.frais === 0 ? 'text-green-600' : 'text-blue-600'
-                        }`}>
+                        <span
+                          className={`font-bold ${
+                            tarif.frais === 0
+                              ? 'text-green-600'
+                              : 'text-blue-600'
+                          }`}
+                        >
                           {tarif.formattedFrais}
                         </span>
                       </td>
@@ -162,9 +178,10 @@ const TarifsPage: React.FC = () => {
                     SwipeTonPro agit en tant qu'intermédiaire
                   </h4>
                   <p className="text-gray-600 text-sm">
-                    Nous sommes une plateforme technologique qui facilite la mise en relation 
-                    entre particuliers et professionnels. Nous ne sommes pas un établissement 
-                    bancaire, ni un organisme de crédit, et n'agissons pas en tant que tel.
+                    Nous sommes une plateforme technologique qui facilite la
+                    mise en relation entre particuliers et professionnels. Nous
+                    ne sommes pas un établissement bancaire, ni un organisme de
+                    crédit, et n'agissons pas en tant que tel.
                   </p>
                 </div>
               </div>
@@ -176,8 +193,9 @@ const TarifsPage: React.FC = () => {
                     Partenaire agréé
                   </h4>
                   <p className="text-gray-600 text-sm">
-                    Toutes les transactions financières sont traitées par Stripe, 
-                    entreprise agréée et régulée dans l'Union Européenne (licence PSD2).
+                    Toutes les transactions financières sont traitées par
+                    Stripe, entreprise agréée et régulée dans l'Union Européenne
+                    (licence PSD2).
                   </p>
                 </div>
               </div>
@@ -189,8 +207,9 @@ const TarifsPage: React.FC = () => {
                     Protection des fonds
                   </h4>
                   <p className="text-gray-600 text-sm">
-                    Les fonds sécurisés via Stripe sont conservés dans un compte séquestre 
-                    jusqu'à la validation des conditions de déblocage par les deux parties.
+                    Les fonds sécurisés via Stripe sont conservés dans un compte
+                    séquestre jusqu'à la validation des conditions de déblocage
+                    par les deux parties.
                   </p>
                 </div>
               </div>
@@ -221,7 +240,8 @@ const TarifsPage: React.FC = () => {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4" />
-                    Versement par paliers (signature, début, milieu, fin de chantier)
+                    Versement par paliers (signature, début, milieu, fin de
+                    chantier)
                   </li>
                 </ul>
               </div>
@@ -258,28 +278,35 @@ const TarifsPage: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
               <div className="flex items-start gap-4">
-                <AlertTriangle className="w-6 h-6 text-yellow-600 mt-1 flex-shrink-0" />
+                <Lock className="w-6 h-6 text-purple-600 mt-1 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-yellow-800 mb-2">
-                    Consentement mutuel obligatoire
+                  <h4 className="font-semibold text-purple-800 mb-2">
+                    Paiement Séquestré - Protection Maximale
                   </h4>
-                  <p className="text-yellow-700 mb-4">
-                    Pour chaque projet, un document de consentement doit être rempli et signé par les deux parties 
-                    pour formaliser les modalités de paiement et de sécurisation des fonds.
+                  <p className="text-purple-700 mb-4">
+                    Notre système de paiement séquestré via notre opérateur
+                    partenaire garantit la sécurité de vos fonds. Choisissez de
+                    bloquer l'acompte + travaux, libérez par étapes validées
+                    avec l'artisan.
                   </p>
                   <div className="space-y-2">
-                    <p className="text-sm text-yellow-700">
-                      <strong>Contenu du document :</strong>
+                    <p className="text-sm text-purple-700">
+                      <strong>Options de sécurisation :</strong>
                     </p>
-                    <ul className="text-sm text-yellow-700 space-y-1 ml-4">
-                      <li>• Informations complètes des deux parties</li>
-                      <li>• Détails du projet et budget</li>
-                      <li>• Options de répartition des frais choisies</li>
-                      <li>• Modalités de sécurisation et paliers de versement</li>
-                      <li>• Cadre réglementaire et mentions légales</li>
-                      <li>• Signatures des deux parties</li>
+                    <ul className="text-sm text-purple-700 space-y-1 ml-4">
+                      <li>• Blocage de l'acompte uniquement</li>
+                      <li>• Blocage du montant total des travaux</li>
+                      <li>
+                        • Versement par paliers : signature, début, milieu, fin
+                        chantier
+                      </li>
+                      <li>• Libération des fonds sur validation mutuelle</li>
+                      <li>
+                        • Protection complète via notre partenaire financier
+                        agréé
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -304,7 +331,8 @@ const TarifsPage: React.FC = () => {
                   Module d'administration
                 </h4>
                 <p className="text-gray-600 mb-4">
-                  Les administrateurs peuvent modifier les tarifs et gérer les documents de consentement.
+                  Les administrateurs peuvent modifier les tarifs et gérer les
+                  documents de consentement.
                 </p>
                 <Button variant="outline" disabled>
                   Accès admin (réservé)
@@ -317,12 +345,17 @@ const TarifsPage: React.FC = () => {
         {/* Footer */}
         <div className="mt-12 text-center text-gray-500 text-sm">
           <p>
-            Les tarifs sont susceptibles d'être modifiés par les administrateurs de la plateforme. 
-            Les tarifs affichés sont ceux en vigueur au moment de votre consultation.
+            Les tarifs sont susceptibles d'être modifiés par les administrateurs
+            de la plateforme. Les tarifs affichés sont ceux en vigueur au moment
+            de votre consultation.
           </p>
           <p className="mt-2">
-            Pour toute question sur nos tarifs ou notre fonctionnement, contactez-nous à 
-            <a href="mailto:contact@swipetonpro.fr" className="text-blue-600 hover:underline ml-1">
+            Pour toute question sur nos tarifs ou notre fonctionnement,
+            contactez-nous à
+            <a
+              href="mailto:contact@swipetonpro.fr"
+              className="text-blue-600 hover:underline ml-1"
+            >
               contact@swipetonpro.fr
             </a>
           </p>

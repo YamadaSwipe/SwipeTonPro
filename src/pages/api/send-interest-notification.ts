@@ -2,7 +2,7 @@
  * @fileoverview API Route pour envoyer les notifications d'intérêt
  * @author Senior Architect
  * @version 1.0.0
- * 
+ *
  * Envoie automatiquement les emails au client et à l'admin
  * lorsqu'un professionnel manifeste son intérêt pour un projet
  */
@@ -22,7 +22,7 @@ const ADMIN_EMAILS = [
   'admin@swipetonpro.com',
   'support@swipetonpro.com',
   'teamswipeTP@swipetonpro.com',
-  'contact@swipetonpro.com'
+  'contact@swipetonpro.com',
 ];
 
 /**
@@ -58,9 +58,10 @@ interface ProfessionalData {
   company_name: string;
   specialties: string[];
   experience_years?: number;
-  rating?: number;
+  rating_average?: number;
   siret: string;
   status: string;
+  contact_email?: string;
 }
 
 /**
@@ -82,15 +83,15 @@ export default async function handler(
 ) {
   // Vérifier la méthode HTTP
   if (req.method !== 'POST') {
-    return res.status(405).json({ 
+    return res.status(405).json({
       error: 'Méthode non autorisée',
-      message: 'Seule la méthode POST est autorisée'
+      message: 'Seule la méthode POST est autorisée',
     });
   }
 
   try {
     console.log('🚀 Début traitement notification intérêt');
-    
+
     // Récupérer et valider les données
     const { projectId, professionalId }: InterestNotificationData = req.body;
 
@@ -98,7 +99,7 @@ export default async function handler(
       console.error('❌ Données manquantes:', { projectId, professionalId });
       return res.status(400).json({
         error: 'Données manquantes',
-        message: 'projectId et professionalId sont requis'
+        message: 'projectId et professionalId sont requis',
       });
     }
 
@@ -115,7 +116,7 @@ export default async function handler(
       console.error('❌ Erreur récupération projet:', projectError);
       return res.status(404).json({
         error: 'Projet non trouvé',
-        message: 'Le projet spécifié n\'existe pas'
+        message: "Le projet spécifié n'existe pas",
       });
     }
 
@@ -124,14 +125,16 @@ export default async function handler(
     // 2. Récupérer les informations du professionnel
     const { data: professional, error: professionalError } = await supabase
       .from('professionals')
-      .select(`
+      .select(
+        `
         *,
         profiles!professionals_user_id_fkey (
           full_name,
           email,
           phone
         )
-      `)
+      `
+      )
       .eq('id', professionalId)
       .single();
 
@@ -139,7 +142,7 @@ export default async function handler(
       console.error('❌ Erreur récupération professionnel:', professionalError);
       return res.status(404).json({
         error: 'Professionnel non trouvé',
-        message: 'Le professionnel spécifié n\'existe pas'
+        message: "Le professionnel spécifié n'existe pas",
       });
     }
 
@@ -156,7 +159,7 @@ export default async function handler(
       console.error('❌ Erreur récupération client:', clientError);
       return res.status(404).json({
         error: 'Client non trouvé',
-        message: 'Le client associé au projet n\'existe pas'
+        message: "Le client associé au projet n'existe pas",
       });
     }
 
@@ -164,7 +167,11 @@ export default async function handler(
 
     // 4. Envoyer l'email au client
     console.log('📧 Envoi email au client...');
-    const clientEmailResult = await sendClientInterestEmail(project, professional, client);
+    const clientEmailResult = await sendClientInterestEmail(
+      project,
+      professional,
+      client
+    );
 
     if (!clientEmailResult.success) {
       console.error('❌ Erreur envoi email client:', clientEmailResult.error);
@@ -175,16 +182,22 @@ export default async function handler(
 
     // 5. Envoyer l'email aux administrateurs
     console.log('📧 Envoi emails aux administrateurs...');
-    const adminEmailResults = await sendAdminInterestEmails(project, professional, client);
+    const adminEmailResults = await sendAdminInterestEmails(
+      project,
+      professional,
+      client
+    );
 
-    const adminSuccessCount = adminEmailResults.filter(r => r.success).length;
-    console.log(`✅ Emails admin envoyés: ${adminSuccessCount}/${ADMIN_EMAILS.length}`);
+    const adminSuccessCount = adminEmailResults.filter((r) => r.success).length;
+    console.log(
+      `✅ Emails admin envoyés: ${adminSuccessCount}/${ADMIN_EMAILS.length}`
+    );
 
     // 6. Logger la notification
     await logNotification(projectId, professionalId, project.client_id, {
       clientEmailSent: clientEmailResult.success,
       adminEmailsSent: adminSuccessCount,
-      totalAdmins: ADMIN_EMAILS.length
+      totalAdmins: ADMIN_EMAILS.length,
     });
 
     // 7. Retourner le succès
@@ -198,15 +211,14 @@ export default async function handler(
         adminEmailsSent: adminSuccessCount,
         projectName: project.title,
         professionalName: professional.company_name,
-        clientName: client.full_name
-      }
+        clientName: client.full_name,
+      },
     });
-
   } catch (error) {
     console.error('❌ Erreur générale API notification:', error);
     return res.status(500).json({
       error: 'Erreur interne du serveur',
-      message: 'Une erreur est survenue lors de l\'envoi des notifications'
+      message: "Une erreur est survenue lors de l'envoi des notifications",
     });
   }
 }
@@ -221,7 +233,7 @@ async function sendClientInterestEmail(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const subject = `🔔 Nouveau professionnel intéressé par votre projet "${project.title}"`;
-    
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -256,7 +268,7 @@ async function sendClientInterestEmail(
               <p><strong>Entreprise:</strong> ${professional.company_name}</p>
               <p><strong>Spécialités:</strong> ${professional.specialties?.join(', ') || 'Non spécifié'}</p>
               ${professional.experience_years ? `<p><strong>Expérience:</strong> ${professional.experience_years} ans</p>` : ''}
-              ${professional.rating ? `<p><strong>Note:</strong> ⭐ ${professional.rating}/5</p>` : ''}
+              ${professional.rating_average ? `<p><strong>Note:</strong> ⭐ ${professional.rating_average}/5</p>` : ''}
             </div>
             
             <div class="project-info">
@@ -289,16 +301,15 @@ async function sendClientInterestEmail(
       to: client.email,
       subject,
       html: htmlContent,
-      text: `Un professionnel est intéressé par votre projet "${project.title}". Connectez-vous à votre espace pour voir les détails.`
+      text: `Un professionnel est intéressé par votre projet "${project.title}". Connectez-vous à votre espace pour voir les détails.`,
     });
 
     return { success: true };
-
   } catch (error) {
     console.error('Erreur envoi email client:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Erreur inconnue' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
     };
   }
 }
@@ -316,7 +327,7 @@ async function sendAdminInterestEmails(
   for (const adminEmail of ADMIN_EMAILS) {
     try {
       const subject = `🔔 Nouvel intérêt professionnel - Projet: ${project.title}`;
-      
+
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -358,7 +369,7 @@ async function sendAdminInterestEmails(
                 <p><strong>ID:</strong> ${professional.id}</p>
                 <p><strong>Spécialités:</strong> ${professional.specialties?.join(', ') || 'Non spécifié'}</p>
                 <p><strong>Statut:</strong> ${professional.status}</p>
-                ${professional.profiles?.email ? `<p><strong>Email:</strong> ${professional.profiles.email}</p>` : ''}
+                ${professional.contact_email ? `<p><strong>Email:</strong> ${professional.contact_email}</p>` : ''}
               </div>
               
               <p>
@@ -380,16 +391,15 @@ async function sendAdminInterestEmails(
         to: adminEmail,
         subject,
         html: htmlContent,
-        text: `Nouvel intérêt professionnel pour le projet "${project.title}" par ${professional.company_name}.`
+        text: `Nouvel intérêt professionnel pour le projet "${project.title}" par ${professional.company_name}.`,
       });
 
       results.push({ success: true });
-
     } catch (error) {
       console.error(`Erreur envoi email admin ${adminEmail}:`, error);
-      results.push({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Erreur inconnue' 
+      results.push({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur inconnue',
       });
     }
   }
@@ -404,25 +414,27 @@ async function logNotification(
   projectId: string,
   professionalId: string,
   clientId: string,
-  results: { clientEmailSent: boolean; adminEmailsSent: number; totalAdmins: number }
+  results: {
+    clientEmailSent: boolean;
+    adminEmailsSent: number;
+    totalAdmins: number;
+  }
 ) {
   try {
-    await supabase
-      .from('notification_logs')
-      .insert({
-        type: 'professional_interested',
-        project_id: projectId,
-        professional_id: professionalId,
-        client_id: clientId,
-        status: 'sent',
-        metadata: {
-          clientEmailSent: results.clientEmailSent,
-          adminEmailsSent: results.adminEmailsSent,
-          totalAdmins: results.totalAdmins,
-          timestamp: new Date().toISOString()
-        },
-        created_at: new Date().toISOString()
-      });
+    await supabase.from('notification_logs').insert({
+      type: 'professional_interested',
+      project_id: projectId,
+      professional_id: professionalId,
+      client_id: clientId,
+      status: 'sent',
+      metadata: {
+        clientEmailSent: results.clientEmailSent,
+        adminEmailsSent: results.adminEmailsSent,
+        totalAdmins: results.totalAdmins,
+        timestamp: new Date().toISOString(),
+      },
+      created_at: new Date().toISOString(),
+    });
 
     console.log('✅ Notification logged successfully');
   } catch (error) {

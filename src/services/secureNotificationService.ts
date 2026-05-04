@@ -2,7 +2,7 @@
  * @fileoverview SÉCURISÉ - Service de Notifications Email
  * @author Senior Security Architect
  * @version 2.0.0
- * 
+ *
  * Service complet et sécurisé pour toutes les notifications email
  * avec validation, traçabilité et protection anti-abus
  */
@@ -12,7 +12,14 @@ import { sendEmailServerSide } from '@/lib/email';
 
 // Types sécurisés pour les notifications
 interface SecureNotificationData {
-  type: 'professional_interested' | 'project_accepted' | 'new_project_admin' | 'new_professional_admin' | 'match_completed' | 'project_validated' | 'project_rejected';
+  type:
+    | 'professional_interested'
+    | 'project_accepted'
+    | 'new_project_admin'
+    | 'new_professional_admin'
+    | 'match_completed'
+    | 'project_validated'
+    | 'project_rejected';
   recipients: string[];
   data: Record<string, any>;
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -79,7 +86,10 @@ export class SecureNotificationService {
   /**
    * Valider les données de notification
    */
-  private validateNotificationData(data: SecureNotificationData): { valid: boolean; error?: string } {
+  private validateNotificationData(data: SecureNotificationData): {
+    valid: boolean;
+    error?: string;
+  } {
     if (!data.type || !data.recipients || data.recipients.length === 0) {
       return { valid: false, error: 'Type et recipients requis' };
     }
@@ -98,11 +108,19 @@ export class SecureNotificationService {
 
     // Types de notifications valides
     const validTypes = [
-      'professional_interested', 'project_accepted', 'new_project_admin', 
-      'new_professional_admin', 'match_completed', 'project_validated', 'project_rejected'
+      'professional_interested',
+      'project_accepted',
+      'new_project_admin',
+      'new_professional_admin',
+      'match_completed',
+      'project_validated',
+      'project_rejected',
     ];
     if (!validTypes.includes(data.type)) {
-      return { valid: false, error: `Type de notification invalide: ${data.type}` };
+      return {
+        valid: false,
+        error: `Type de notification invalide: ${data.type}`,
+      };
     }
 
     return { valid: true };
@@ -111,7 +129,11 @@ export class SecureNotificationService {
   /**
    * Logger les notifications pour audit
    */
-  private async logNotification(data: SecureNotificationData, status: 'pending' | 'sent' | 'failed', errorMessage?: string): Promise<void> {
+  private async logNotification(
+    data: SecureNotificationData,
+    status: 'pending' | 'sent' | 'failed',
+    errorMessage?: string
+  ): Promise<void> {
     try {
       const logEntry: Omit<NotificationLog, 'id' | 'created_at'> = {
         type: data.type,
@@ -119,12 +141,10 @@ export class SecureNotificationService {
         status,
         error_message: errorMessage,
         user_id: data.userId,
-        priority: data.priority
+        priority: data.priority,
       };
 
-      await supabase
-        .from('notification_logs')
-        .insert(logEntry);
+      await supabase.from('notification_logs').insert(logEntry);
     } catch (error) {
       console.error('❌ Erreur logging notification:', error);
     }
@@ -133,18 +153,23 @@ export class SecureNotificationService {
   /**
    * 🎯 NOTIFICATION 1: Pro intéresse un projet -> Particulier
    */
-  async notifyProfessionalInterest(projectId: string, professionalId: string): Promise<{ success: boolean; error?: string }> {
+  async notifyProfessionalInterest(
+    projectId: string,
+    professionalId: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('🔔 Notification: Pro intéresse un projet');
 
       // Récupérer les données nécessaires
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select(`
+        .select(
+          `
           id, title, description, category, city, postal_code,
           estimated_budget_min, estimated_budget_max, client_id,
           client:profiles!projects_client_id_fkey(full_name, email, phone)
-        `)
+        `
+        )
         .eq('id', projectId)
         .single();
 
@@ -154,16 +179,21 @@ export class SecureNotificationService {
 
       const { data: professional, error: proError } = await supabase
         .from('professionals')
-        .select(`
+        .select(
+          `
           id, company_name, experience_years, rating_average,
           profiles!professionals_user_id_fkey(full_name, email, phone, avatar_url)
-        `)
+        `
+        )
         .eq('id', professionalId)
         .single();
 
       if (proError) {
         console.error('❌ Supabase error fetching professional:', proError);
-        return { success: false, error: `Erreur base de données: ${proError.message}` };
+        return {
+          success: false,
+          error: `Erreur base de données: ${proError.message}`,
+        };
       }
 
       if (!professional) {
@@ -180,22 +210,25 @@ export class SecureNotificationService {
 
       const notificationData: SecureNotificationData = {
         type: 'professional_interested',
-        recipients: [project.client.email],
+        recipients: [project.client[0].email],
         data: {
           projectName: project.title,
-          clientName: project.client.full_name,
-          professionalName: professional.profiles.full_name,
+          clientName: project.client[0].full_name,
+          professionalName: professional.profiles[0].full_name,
           professionalCompany: professional.company_name,
           professionalRating: professional.rating_average,
           professionalExperience: professional.experience_years,
           projectDescription: project.description,
           projectCategory: project.category,
           projectLocation: `${project.city} ${project.postal_code}`,
-          projectBudget: this.formatBudget(project.estimated_budget_min, project.estimated_budget_max),
-          projectId: project.id
+          projectBudget: this.formatBudget(
+            project.estimated_budget_min,
+            project.estimated_budget_max
+          ),
+          projectId: project.id,
         },
         priority: 'medium',
-        userId: project.client_id
+        userId: project.client_id,
       };
 
       const validation = this.validateNotificationData(notificationData);
@@ -207,12 +240,14 @@ export class SecureNotificationService {
       await this.logNotification(notificationData, 'pending');
 
       // Envoyer l'email
-      const emailHtml = this.generateProfessionalInterestEmail(notificationData.data);
+      const emailHtml = this.generateProfessionalInterestEmail(
+        notificationData.data
+      );
       const result = await sendEmailServerSide({
-        to: project.client.email,
-        subject: `🔔 Nouveau professionnel intéressé : ${professional.profiles.full_name}`,
+        to: project.client[0].email,
+        subject: `🔔 Nouveau professionnel intéressé : ${professional.profiles[0].full_name}`,
         html: emailHtml,
-        fromType: 'noreply'
+        fromType: 'noreply',
       });
 
       if (result.success) {
@@ -224,20 +259,18 @@ export class SecureNotificationService {
       }
 
       // Créer notification in-app
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: project.client_id,
-          title: 'Nouveau professionnel intéressé',
-          message: `${professional.profiles.full_name} (${professional.company_name}) a montré de l'intérêt pour votre projet "${project.title}"`,
-          type: 'new_interest',
-          data: {
-            project_id: projectId,
-            professional_id: professionalId,
-            professional_name: professional.profiles.full_name,
-            professional_company: professional.company_name
-          }
-        });
+      await supabase.from('notifications').insert({
+        user_id: project.client_id,
+        title: 'Nouveau professionnel intéressé',
+        message: `${professional.profiles[0].full_name} (${professional.company_name}) a montré de l'intérêt pour votre projet "${project.title}"`,
+        type: 'new_interest',
+        data: {
+          project_id: projectId,
+          professional_id: professionalId,
+          professional_name: professional.profiles[0].full_name,
+          professional_company: professional.company_name,
+        },
+      });
 
       return { success: true };
     } catch (error) {
@@ -249,13 +282,17 @@ export class SecureNotificationService {
   /**
    * 🎯 NOTIFICATION 2: Nouveau projet -> Admins
    */
-  async notifyNewProject(projectId: string): Promise<{ success: boolean; error?: string }> {
+  async notifyNewProject(
+    projectId: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('🔔 Notification: Nouveau projet à valider');
 
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('id, title, description, category, budget_min, budget_max, client_email, status')
+        .select(
+          'id, title, description, category, budget_min, budget_max, client_email, status'
+        )
         .eq('id', projectId)
         .single();
 
@@ -273,7 +310,7 @@ export class SecureNotificationService {
         return { success: false, error: 'Erreur récupération admins' };
       }
 
-      const adminEmails = admins?.map(admin => admin.email) || [];
+      const adminEmails = admins?.map((admin) => admin.email) || [];
 
       const notificationData: SecureNotificationData = {
         type: 'new_project_admin',
@@ -286,10 +323,10 @@ export class SecureNotificationService {
           budgetMax: project.budget_max,
           clientEmail: project.client_email,
           projectId: project.id,
-          projectStatus: project.status
+          projectStatus: project.status,
         },
         priority: 'high',
-        userId: 'system'
+        userId: 'system',
       };
 
       const validation = this.validateNotificationData(notificationData);
@@ -300,24 +337,30 @@ export class SecureNotificationService {
       await this.logNotification(notificationData, 'pending');
 
       // Envoyer aux admins
-      const emailHtml = this.generateNewProjectAdminEmail(notificationData.data);
+      const emailHtml = this.generateNewProjectAdminEmail(
+        notificationData.data
+      );
       const results = await Promise.allSettled(
-        adminEmails.map(email => 
+        adminEmails.map((email) =>
           sendEmailServerSide({
             to: email,
             subject: `🆕 Nouveau projet à valider : ${project.title}`,
             html: emailHtml,
-            fromType: 'noreply'
+            fromType: 'noreply',
           })
         )
       );
 
-      const failed = results.filter(r => r.status === 'rejected').length;
+      const failed = results.filter((r) => r.status === 'rejected').length;
       if (failed === 0) {
         await this.logNotification(notificationData, 'sent');
         console.log('✅ Notifications nouveau projet envoyées aux admins');
       } else {
-        await this.logNotification(notificationData, 'failed', `${failed} envois échoués`);
+        await this.logNotification(
+          notificationData,
+          'failed',
+          `${failed} envois échoués`
+        );
       }
 
       return { success: failed === 0 };
@@ -330,16 +373,20 @@ export class SecureNotificationService {
   /**
    * 🎯 NOTIFICATION 3: Nouveau professionnel -> Admins
    */
-  async notifyNewProfessional(professionalId: string): Promise<{ success: boolean; error?: string }> {
+  async notifyNewProfessional(
+    professionalId: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('🔔 Notification: Nouveau professionnel à valider');
 
       const { data: professional, error: proError } = await supabase
         .from('professionals')
-        .select(`
+        .select(
+          `
           id, company_name, specialties, experience_years, siret,
           profiles!professionals_user_id_fkey(full_name, email, phone)
-        `)
+        `
+        )
         .eq('id', professionalId)
         .single();
 
@@ -357,23 +404,23 @@ export class SecureNotificationService {
         return { success: false, error: 'Erreur récupération admins' };
       }
 
-      const adminEmails = admins?.map(admin => admin.email) || [];
+      const adminEmails = admins?.map((admin) => admin.email) || [];
 
       const notificationData: SecureNotificationData = {
         type: 'new_professional_admin',
         recipients: adminEmails,
         data: {
-          professionalName: professional.profiles.full_name,
+          professionalName: professional.profiles[0].full_name,
           companyName: professional.company_name,
-          professionalEmail: professional.profiles.email,
-          professionalPhone: professional.profiles.phone,
+          professionalEmail: professional.profiles[0].email,
+          professionalPhone: professional.profiles[0].phone,
           specialties: professional.specialties,
           experience: professional.experience_years,
           siret: professional.siret,
-          professionalId: professional.id
+          professionalId: professional.id,
         },
         priority: 'high',
-        userId: 'system'
+        userId: 'system',
       };
 
       const validation = this.validateNotificationData(notificationData);
@@ -383,24 +430,32 @@ export class SecureNotificationService {
 
       await this.logNotification(notificationData, 'pending');
 
-      const emailHtml = this.generateNewProfessionalAdminEmail(notificationData.data);
+      const emailHtml = this.generateNewProfessionalAdminEmail(
+        notificationData.data
+      );
       const results = await Promise.allSettled(
-        adminEmails.map(email => 
+        adminEmails.map((email) =>
           sendEmailServerSide({
             to: email,
             subject: `🆕 Nouveau professionnel à valider : ${professional.company_name}`,
             html: emailHtml,
-            fromType: 'noreply'
+            fromType: 'noreply',
           })
         )
       );
 
-      const failed = results.filter(r => r.status === 'rejected').length;
+      const failed = results.filter((r) => r.status === 'rejected').length;
       if (failed === 0) {
         await this.logNotification(notificationData, 'sent');
-        console.log('✅ Notifications nouveau professionnel envoyées aux admins');
+        console.log(
+          '✅ Notifications nouveau professionnel envoyées aux admins'
+        );
       } else {
-        await this.logNotification(notificationData, 'failed', `${failed} envois échoués`);
+        await this.logNotification(
+          notificationData,
+          'failed',
+          `${failed} envois échoués`
+        );
       }
 
       return { success: failed === 0 };
@@ -413,7 +468,11 @@ export class SecureNotificationService {
   /**
    * 🎯 NOTIFICATION 4: Match complété -> Pro + Particulier + Admins
    */
-  async notifyMatchCompleted(projectId: string, professionalId: string, clientId: string): Promise<{ success: boolean; error?: string }> {
+  async notifyMatchCompleted(
+    projectId: string,
+    professionalId: string,
+    clientId: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       console.log('🎉 Notification: Match complété');
 
@@ -426,7 +485,9 @@ export class SecureNotificationService {
 
       const { data: professional } = await supabase
         .from('professionals')
-        .select('company_name, profiles!professionals_user_id_fkey(full_name, email)')
+        .select(
+          'company_name, profiles!professionals_user_id_fkey(full_name, email)'
+        )
         .eq('id', professionalId)
         .single();
 
@@ -442,9 +503,9 @@ export class SecureNotificationService {
 
       const recipients = [
         client.email, // Particulier
-        professional.profiles.email, // Professionnel
+        professional.profiles[0].email, // Professionnel
         'teamswipeTP@swipetonpro.com', // Admin
-        'contact@swipetonpro.com' // Admin
+        'contact@swipetonpro.com', // Admin
       ];
 
       const notificationData: SecureNotificationData = {
@@ -453,14 +514,14 @@ export class SecureNotificationService {
         data: {
           projectName: project.title,
           clientName: client.full_name,
-          professionalName: professional.profiles.full_name,
+          professionalName: professional.profiles[0].full_name,
           companyName: professional.company_name,
           projectDescription: project.description,
           projectCategory: project.category,
-          projectId: project.id
+          projectId: project.id,
         },
         priority: 'high',
-        userId: clientId
+        userId: clientId,
       };
 
       const validation = this.validateNotificationData(notificationData);
@@ -473,22 +534,28 @@ export class SecureNotificationService {
       // Envoyer les emails
       const emailHtml = this.generateMatchCompletedEmail(notificationData.data);
       const results = await Promise.allSettled(
-        recipients.map(email => 
+        recipients.map((email) =>
           sendEmailServerSide({
             to: email,
             subject: `🎉 Match réalisé : ${project.title}`,
             html: emailHtml,
-            fromType: 'noreply'
+            fromType: 'noreply',
           })
         )
       );
 
-      const failed = results.filter(r => r.status === 'rejected').length;
+      const failed = results.filter((r) => r.status === 'rejected').length;
       if (failed === 0) {
         await this.logNotification(notificationData, 'sent');
-        console.log('✅ Notifications match complété envoyées à toutes les parties');
+        console.log(
+          '✅ Notifications match complété envoyées à toutes les parties'
+        );
       } else {
-        await this.logNotification(notificationData, 'failed', `${failed} envois échoués`);
+        await this.logNotification(
+          notificationData,
+          'failed',
+          `${failed} envois échoués`
+        );
       }
 
       // Créer notifications in-app
@@ -497,9 +564,9 @@ export class SecureNotificationService {
         supabase.from('notifications').insert({
           user_id: clientId,
           title: '🎉 Match réalisé !',
-          message: `${professional.profiles.full_name} (${professional.company_name}) a été choisi pour votre projet "${project.title}"`,
+          message: `${professional.profiles[0].full_name} (${professional.company_name}) a été choisi pour votre projet "${project.title}"`,
           type: 'match_completed',
-          data: { project_id: projectId, professional_id: professionalId }
+          data: { project_id: projectId, professional_id: professionalId },
         }),
         // Notification pour le professionnel
         supabase.from('notifications').insert({
@@ -507,8 +574,8 @@ export class SecureNotificationService {
           title: '🎉 Projet obtenu !',
           message: `Félicitations ! Vous avez été choisi pour le projet "${project.title}"`,
           type: 'match_completed',
-          data: { project_id: projectId, client_id: clientId }
-        })
+          data: { project_id: projectId, client_id: clientId },
+        }),
       ]);
 
       return { success: failed === 0 };
@@ -733,5 +800,6 @@ export class SecureNotificationService {
 }
 
 // Exporter l'instance singleton
-export const secureNotificationService = SecureNotificationService.getInstance();
+export const secureNotificationService =
+  SecureNotificationService.getInstance();
 export default secureNotificationService;
