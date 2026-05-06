@@ -1,18 +1,18 @@
-import { SEO } from "@/components/SEO";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProfessionalGuard } from "@/components/auth/RoleGuard";
-import { useAuth } from "@/context/AuthContext";
-import { 
-  LogOut, 
-  Plus, 
-  Clock, 
-  CheckCircle, 
+import { SEO } from '@/components/SEO';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ProfessionalGuard } from '@/components/auth/RoleGuard';
+import { useAuth } from '@/context/AuthContext';
+import {
+  LogOut,
+  Plus,
+  Clock,
+  CheckCircle,
   Image as ImageIcon,
   MapPin,
   Euro,
@@ -28,7 +28,7 @@ import {
   Home,
   Bell,
   AlertTriangle,
-} from "lucide-react";
+} from 'lucide-react';
 
 // Désactiver SSR pour cette page
 export async function getServerSideProps() {
@@ -36,48 +36,36 @@ export async function getServerSideProps() {
     props: {}, // will be passed to the page component as props
   };
 }
-import { 
-  LogOut, 
-  Plus, 
-  Clock, 
-  CheckCircle, 
-  Image as ImageIcon,
-  MapPin,
-  Euro,
-  Users,
-  ArrowLeft,
-  Briefcase,
-  XCircle,
-  MessageSquare,
-  Star,
-  Phone,
-  Mail,
-  User,
-  Home,
-  Bell,
-  AlertTriangle,
+import {
   FileText,
   Activity,
-  CreditCard as CreditCardIcon
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { authService } from "@/services/authService";
-import { projectService } from "@/services/projectService";
-import { ProjectCard } from "@/components/professional/ProjectCard";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { PlanningCard } from "@/components/planning/PlanningCard";
-import { RatingModal } from "@/components/rating/RatingModal";
-import type { Database } from "@/integrations/supabase/types";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getProfessionalDashboardStats, ProfessionalStats } from "@/services/analyticsService";
-import { usePlatformSettings } from "@/hooks/usePlatformSettings";
-import ProfessionalDocuments from "@/components/professional/ProfessionalDocuments";
-import { NotificationCenter } from "@/components/notifications/NotificationCenterDashboard";
-import { ActivityChart } from "@/components/professional/ActivityChart";
+  Wallet,
+  Receipt,
+  TrendingUp,
+  Calendar,
+  Shield,
+  CreditCard as CreditCardIcon,
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { authService } from '@/services/authService';
+import { projectService } from '@/services/projectService';
+import { ProjectCard } from '@/components/professional/ProjectCard';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PlanningCard } from '@/components/planning/PlanningCard';
+import { RatingModal } from '@/components/rating/RatingModal';
+import type { Database } from '@/integrations/supabase/types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  getProfessionalDashboardStats,
+  ProfessionalStats,
+} from '@/services/analyticsService';
+import { usePlatformSettings } from '@/hooks/usePlatformSettings';
+import ProfessionalDocuments from '@/components/professional/ProfessionalDocuments';
+import { NotificationCenter } from '@/components/notifications/NotificationCenterDashboard';
+import { ActivityChart } from '@/components/professional/ActivityChart';
 
-
-type Project = Database["public"]["Tables"]["projects"]["Row"];
-type Professional = Database["public"]["Tables"]["professionals"]["Row"] & {
+type Project = Database['public']['Tables']['projects']['Row'];
+type Professional = Database['public']['Tables']['professionals']['Row'] & {
   phone?: string;
   city?: string;
   is_verified?: boolean;
@@ -93,7 +81,8 @@ export default function ProfessionalDashboard() {
 
 function ProfessionalDashboardContent() {
   const router = useRouter();
-  const { user, profile, professional, logout, initialized, loading } = useAuth(); // Utiliser le contexte unique
+  const { user, profile, professional, logout, initialized, loading } =
+    useAuth(); // Utiliser le contexte unique
   const [projects, setProjects] = useState<Project[]>([]);
   const [pendingInterests, setPendingInterests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,14 +110,16 @@ function ProfessionalDashboardContent() {
   // DÉBOGAGE CRITIQUE - Vérification comptes mélangés
   useEffect(() => {
     // DÉSACTIVÉ - ÉVITER LES LOCKS SUPABASE
-    console.log('checkAuthConsistency désactivé pour éviter les erreurs de lock');
+    console.log(
+      'checkAuthConsistency désactivé pour éviter les erreurs de lock'
+    );
   }, [router]);
 
   const [filters, setFilters] = useState({
-    location: "",
-    budgetMin: "",
-    budgetMax: "",
-    category: ""
+    location: '',
+    budgetMin: '',
+    budgetMax: '',
+    category: '',
   });
   const [conversations, setConversations] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -147,7 +138,7 @@ function ProfessionalDashboardContent() {
     }
   };
   const [pendingMatches, setPendingMatches] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("available");
+  const [activeTab, setActiveTab] = useState('available');
 
   useEffect(() => {
     if (!authChecked) {
@@ -160,7 +151,7 @@ function ProfessionalDashboardContent() {
   useEffect(() => {
     // Charger les données SEULEMENT quand :
     // 1. Le professionnel est disponible
-    // 2. L'authentification est vérifiée  
+    // 2. L'authentification est vérifiée
     // 3. Les données n'ont pas encore été chargées (verrou)
     if (professional && authChecked && !dataLoaded) {
       console.log('🚀 Chargement initial des données du dashboard...');
@@ -170,10 +161,12 @@ function ProfessionalDashboardContent() {
   }, [professional, authChecked, dataLoaded]);
 
   useEffect(() => {
-    if (router.query.payment_success === "true") {
+    if (router.query.payment_success === 'true') {
       // Show success message
       setTimeout(() => {
-        router.replace("/professionnel/dashboard", undefined, { shallow: true });
+        router.replace('/professionnel/dashboard', undefined, {
+          shallow: true,
+        });
       }, 3000);
     }
   }, [router.query]);
@@ -181,30 +174,36 @@ function ProfessionalDashboardContent() {
   const checkAuth = async () => {
     try {
       console.log('🔍 Vérification authentification professionnel');
-      
+
       // Vérifier l'authentification (sans délai artificiel)
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user: authUser },
+        error: authError,
+      } = await supabase.auth.getUser();
+
       if (authError || !authUser) {
         console.log('🔄 Redirection vers login - utilisateur non authentifié');
-        router.replace("/auth/login");
+        router.replace('/auth/login');
         return;
       }
-      
+
       console.log('✅ Utilisateur authentifié:', authUser.email);
-      
+
       // VÉRIFICATION DE SÉCURITÉ CRITIQUE : S'assurer que c'est bien un professionnel
-      const { data: professionalData, error: professionalError } = await supabase
-        .from('professionals')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .maybeSingle();
-        
+      const { data: professionalData, error: professionalError } =
+        await supabase
+          .from('professionals')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .maybeSingle();
+
       if (professionalError) {
         console.error('Erreur professionnel:', professionalError);
         if (professionalError.code === 'PGRST116') {
-          console.log('🔄 PAS DE PROFIL PROFESSIONNEL - Redirection vers inscription');
-          router.replace("/professionnel/inscription");
+          console.log(
+            '🔄 PAS DE PROFIL PROFESSIONNEL - Redirection vers inscription'
+          );
+          router.replace('/professionnel/inscription');
           return;
         }
         setError('Erreur de chargement des données professionnelles');
@@ -212,36 +211,40 @@ function ProfessionalDashboardContent() {
         setInitialLoad(false);
         return;
       }
-      
+
       // VÉRIFICATION DU STATUT : Seuls les professionnels vérifiés peuvent accéder
       if (!professionalData || professionalData.status !== 'verified') {
-        console.log('🔄 Professionnel non vérifié, statut:', professionalData?.status);
+        console.log(
+          '🔄 Professionnel non vérifié, statut:',
+          professionalData?.status
+        );
         if (professionalData?.status === 'pending') {
-          router.replace("/professionnel/validation-en-cours");
+          router.replace('/professionnel/validation-en-cours');
         } else {
-          router.replace("/professionnel/inscription");
+          router.replace('/professionnel/inscription');
         }
         return;
       }
-      
+
       // SÉCURITÉ : Vérifier qu'il n'y a pas de confusion de compte
       console.log('🛡️ Vérification sécurité - Type de compte:', {
         userId: authUser.id,
         email: authUser.email,
         professionalId: professionalData.id,
         professionalStatus: professionalData.status,
-        companyName: professionalData.company_name
+        companyName: professionalData.company_name,
       });
-      
-      console.log('✅ Données chargées avec succès - COMPTE PROFESSIONNEL CONFIRMÉ');
+
+      console.log(
+        '✅ Données chargées avec succès - COMPTE PROFESSIONNEL CONFIRMÉ'
+      );
       setUser(authUser);
       setProfessional(professionalData);
       setIsLoading(false);
       setInitialLoad(false);
-      
     } catch (error) {
       console.error('❌ Erreur checkAuth:', error);
-      setError('Erreur d\'authentification');
+      setError("Erreur d'authentification");
       setIsLoading(false);
       setInitialLoad(false);
     }
@@ -258,15 +261,16 @@ function ProfessionalDashboardContent() {
       console.log('⏳ loadDashboardData: Déjà en cours de chargement');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       console.log('🔍 Chargement données dashboard pour:', professional.id);
-      
+
       // Charger les projets disponibles
-      const { data: projectsData, error: projectsError } = await projectService.getAvailableProjects({ limit: 5 });
-      
+      const { data: projectsData, error: projectsError } =
+        await projectService.getAvailableProjects({ limit: 5 });
+
       if (projectsError) {
         console.error('Erreur projets:', projectsError);
       } else {
@@ -287,9 +291,11 @@ function ProfessionalDashboardContent() {
       setUnreadCount(0);
 
       // Charger les intérêts en attente de paiement
-      const { data: professionalInterests, error: interestsError } = await supabase
-        .from("project_interests")
-        .select(`
+      const { data: professionalInterests, error: interestsError } =
+        await supabase
+          .from('project_interests')
+          .select(
+            `
           *,
           project:projects!project_interests_project_id_fkey(
             title,
@@ -297,21 +303,21 @@ function ProfessionalDashboardContent() {
             budget_max,
             client_id
           )
-        `)
-        .eq("professional_id", professional.id)
-        .in("status", ["payment_pending", "interested"]);
-        
+        `
+          )
+          .eq('professional_id', professional.id)
+          .in('status', ['payment_pending', 'interested']);
+
       if (!interestsError && professionalInterests) {
-        const pending = professionalInterests.filter((i: any) => 
-          i.status === "payment_pending" && 
-          i.payment_status === "pending"
+        const pending = professionalInterests.filter(
+          (i: any) =>
+            i.status === 'payment_pending' && i.payment_status === 'pending'
         );
         setPendingInterests(pending);
       }
 
       setIsLoading(false);
       console.log('✅ Données dashboard chargées');
-      
     } catch (error) {
       console.error('❌ Erreur loadDashboardData:', error);
       setError('Erreur de chargement des données');
@@ -324,10 +330,11 @@ function ProfessionalDashboardContent() {
       location: filters.location || undefined,
       budgetMin: filters.budgetMin ? parseInt(filters.budgetMin) : undefined,
       budgetMax: filters.budgetMax ? parseInt(filters.budgetMax) : undefined,
-      category: filters.category || undefined
+      category: filters.category || undefined,
     };
 
-    const { data: projectsData } = await projectService.getAvailableProjects(filterParams);
+    const { data: projectsData } =
+      await projectService.getAvailableProjects(filterParams);
     setProjects(projectsData || []);
   };
 
@@ -341,7 +348,7 @@ function ProfessionalDashboardContent() {
       const data = await getProfessionalDashboardStats(professional.id);
       setStats(data);
     } catch (error) {
-      console.error("Error loading stats:", error);
+      console.error('Error loading stats:', error);
     }
   };
 
@@ -351,7 +358,9 @@ function ProfessionalDashboardContent() {
         <div className="text-center">
           <LoadingSpinner size="lg" />
           <p className="mt-4 text-text-secondary">
-            {initialLoad ? 'Initialisation du tableau de bord...' : 'Chargement des données...'}
+            {initialLoad
+              ? 'Initialisation du tableau de bord...'
+              : 'Chargement des données...'}
           </p>
         </div>
       </div>
@@ -360,7 +369,7 @@ function ProfessionalDashboardContent() {
 
   return (
     <>
-      <SEO 
+      <SEO
         title="Dashboard Professionnel - SwipeTonPro"
         description="Gérez vos chantiers et candidatures"
       />
@@ -373,7 +382,11 @@ function ProfessionalDashboardContent() {
               <div>
                 <h1 className="text-2xl font-bold">Dashboard Pro</h1>
                 <p className="text-sm text-text-secondary">
-                  Bienvenue, {user?.full_name || user?.email?.split('@')[0] || "Professionnel"} "{professional?.company_name || "Entreprise"}"
+                  Bienvenue,{' '}
+                  {user?.full_name ||
+                    user?.email?.split('@')[0] ||
+                    'Professionnel'}{' '}
+                  "{professional?.company_name || 'Entreprise'}"
                   {professional?.is_verified && (
                     <Badge className="ml-2 bg-success/10 text-success border-success/20">
                       ✓ Certifié
@@ -389,17 +402,19 @@ function ProfessionalDashboardContent() {
                     Messages
                     {unreadCount > 0 && (
                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {unreadCount > 9 ? "9+" : unreadCount}
+                        {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
                   </Button>
                 </Link>
-                
+
                 {/* Centre de notifications */}
-                {user && (
-                  <NotificationCenter userId={user.id} />
-                )}
-                <Button variant="outline" onClick={handleLogout} className="gap-2">
+                {user && <NotificationCenter userId={user.id} />}
+                <Button
+                  variant="outline"
+                  onClick={handleLogout}
+                  className="gap-2"
+                >
                   <LogOut className="w-4 h-4" />
                   Déconnexion
                 </Button>
@@ -411,11 +426,12 @@ function ProfessionalDashboardContent() {
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
           {/* Payment Success Alert */}
-          {router.query.payment_success === "true" && (
+          {router.query.payment_success === 'true' && (
             <Alert className="border-success bg-success/10">
               <CheckCircle className="h-5 w-5 text-success" />
               <AlertDescription>
-                <strong>Paiement réussi !</strong> Les coordonnées du client sont maintenant disponibles dans vos messages.
+                <strong>Paiement réussi !</strong> Les coordonnées du client
+                sont maintenant disponibles dans vos messages.
               </AlertDescription>
             </Alert>
           )}
@@ -427,10 +443,13 @@ function ProfessionalDashboardContent() {
               <AlertDescription>
                 <div className="flex items-center justify-between">
                   <span>
-                    <strong>Action requise :</strong> Vous avez {pendingMatches.length} match(s) en attente de validation. 
+                    <strong>Action requise :</strong> Vous avez{' '}
+                    {pendingMatches.length} match(s) en attente de validation.
                     Payez 15€ pour débloquer les coordonnées.
                   </span>
-                  <Link href={`/professionnel/match-payment?project_id=${pendingMatches[0].project_id}&professional_id=${professional?.id}`}>
+                  <Link
+                    href={`/professionnel/match-payment?project_id=${pendingMatches[0].project_id}&professional_id=${professional?.id}`}
+                  >
                     <Button size="sm" className="ml-4">
                       Payer maintenant
                     </Button>
@@ -442,12 +461,23 @@ function ProfessionalDashboardContent() {
 
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Tableau de Bord Professionnel</h1>
-              <p className="text-text-secondary">Bienvenue, {user?.full_name || user?.email?.split('@')[0] || "Professionnel"} "{professional?.company_name || "Entreprise"}"</p>
+              <h1 className="text-3xl font-bold mb-2">
+                Tableau de Bord Professionnel
+              </h1>
+              <p className="text-text-secondary">
+                Bienvenue,{' '}
+                {user?.full_name ||
+                  user?.email?.split('@')[0] ||
+                  'Professionnel'}{' '}
+                "{professional?.company_name || 'Entreprise'}"
+              </p>
             </div>
             <div className="flex gap-3">
               <Link href="/professionnel/swipe-matching">
-                <Button size="lg" className="bg-gradient-to-r from-orange-500 to-pink-500 text-white">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-orange-500 to-pink-500 text-white"
+                >
                   <Briefcase className="w-5 h-5 mr-2" />
                   Matching Intelligent
                 </Button>
@@ -469,12 +499,16 @@ function ProfessionalDashboardContent() {
                   <Activity className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-text-secondary">Chantiers actifs</p>
-                  <p className="text-2xl font-bold">{stats?.activeProjects || 0}</p>
+                  <p className="text-sm text-text-secondary">
+                    Chantiers actifs
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {stats?.activeProjects || 0}
+                  </p>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="p-3 bg-success/10 rounded-full text-success">
@@ -482,7 +516,9 @@ function ProfessionalDashboardContent() {
                 </div>
                 <div>
                   <p className="text-sm text-text-secondary">Clients gagnés</p>
-                  <p className="text-2xl font-bold">{stats?.completedProjects || 0}</p>
+                  <p className="text-2xl font-bold">
+                    {stats?.completedProjects || 0}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -494,7 +530,9 @@ function ProfessionalDashboardContent() {
                 </div>
                 <div>
                   <p className="text-sm text-text-secondary">Note moyenne</p>
-                  <p className="text-2xl font-bold">{stats?.averageRating || "N/A"}</p>
+                  <p className="text-2xl font-bold">
+                    {stats?.averageRating || 'N/A'}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -506,7 +544,9 @@ function ProfessionalDashboardContent() {
                 </div>
                 <div>
                   <p className="text-sm text-text-secondary">Revenus estimés</p>
-                  <p className="text-2xl font-bold">{stats?.totalRevenue || 0}€</p>
+                  <p className="text-2xl font-bold">
+                    {stats?.totalRevenue || 0}€
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -522,7 +562,10 @@ function ProfessionalDashboardContent() {
                 <CardContent>
                   <div className="space-y-4">
                     {projects
-                      .filter(p => p.status === "in_progress" || p.status === "completed")
+                      .filter(
+                        (p) =>
+                          p.status === 'in_progress' || p.status === 'completed'
+                      )
                       .slice(0, 3)
                       .map((project) => (
                         <PlanningCard
@@ -531,7 +574,10 @@ function ProfessionalDashboardContent() {
                           professionalView={true}
                         />
                       ))}
-                    {projects.filter(p => p.status === "in_progress" || p.status === "completed").length === 0 && (
+                    {projects.filter(
+                      (p) =>
+                        p.status === 'in_progress' || p.status === 'completed'
+                    ).length === 0 && (
                       <p className="text-center text-text-secondary py-8">
                         Aucun projet en cours ou terminé
                       </p>
@@ -539,7 +585,7 @@ function ProfessionalDashboardContent() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               {/* Charts Section */}
               {/* Quick Actions */}
               <div className="grid md:grid-cols-3 gap-4 mb-6">
@@ -551,7 +597,9 @@ function ProfessionalDashboardContent() {
                       </div>
                       <div>
                         <h3 className="font-semibold">Mon profil</h3>
-                        <p className="text-sm text-gray-600">Modifier mes informations</p>
+                        <p className="text-sm text-gray-600">
+                          Modifier mes informations
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -565,7 +613,9 @@ function ProfessionalDashboardContent() {
                       </div>
                       <div>
                         <h3 className="font-semibold">Mes projets</h3>
-                        <p className="text-sm text-gray-600">Gérer mes chantiers</p>
+                        <p className="text-sm text-gray-600">
+                          Gérer mes chantiers
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -579,17 +629,25 @@ function ProfessionalDashboardContent() {
                       </div>
                       <div>
                         <h3 className="font-semibold">Documents</h3>
-                        <p className="text-sm text-gray-600">Mes certificats et attestations</p>
+                        <p className="text-sm text-gray-600">
+                          Mes certificats et attestations
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
                 </Link>
               </div>
 
-              {professional && <ActivityChart professionalId={professional.id} />}
-              
+              {professional && (
+                <ActivityChart professionalId={professional.id} />
+              )}
+
               {/* Main Tabs */}
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="space-y-6"
+              >
                 <TabsList className="grid w-full grid-cols-3 lg:w-auto">
                   <TabsTrigger value="available" className="gap-2">
                     <Briefcase className="w-4 h-4" />
@@ -618,40 +676,61 @@ function ProfessionalDashboardContent() {
                     <CardContent>
                       <div className="grid md:grid-cols-4 gap-4">
                         <div>
-                          <label className="text-sm font-medium mb-2 block">Localisation</label>
+                          <label className="text-sm font-medium mb-2 block">
+                            Localisation
+                          </label>
                           <div className="relative">
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                             <input
                               type="text"
                               placeholder="Ville..."
                               value={filters.location}
-                              onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                              onChange={(e) =>
+                                setFilters({
+                                  ...filters,
+                                  location: e.target.value,
+                                })
+                              }
                               className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium mb-2 block">Budget min</label>
+                          <label className="text-sm font-medium mb-2 block">
+                            Budget min
+                          </label>
                           <div className="relative">
                             <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                             <input
                               type="number"
                               placeholder="Min..."
                               value={filters.budgetMin}
-                              onChange={(e) => setFilters({ ...filters, budgetMin: e.target.value })}
+                              onChange={(e) =>
+                                setFilters({
+                                  ...filters,
+                                  budgetMin: e.target.value,
+                                })
+                              }
                               className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium mb-2 block">Budget max</label>
+                          <label className="text-sm font-medium mb-2 block">
+                            Budget max
+                          </label>
                           <div className="relative">
                             <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                             <input
                               type="number"
                               placeholder="Max..."
                               value={filters.budgetMax}
-                              onChange={(e) => setFilters({ ...filters, budgetMax: e.target.value })}
+                              onChange={(e) =>
+                                setFilters({
+                                  ...filters,
+                                  budgetMax: e.target.value,
+                                })
+                              }
                               className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                           </div>
@@ -670,9 +749,12 @@ function ProfessionalDashboardContent() {
                     <Card>
                       <CardContent className="p-12 text-center">
                         <Briefcase className="w-16 h-16 text-text-muted mx-auto mb-4" />
-                        <h3 className="text-xl font-bold mb-2">Aucun chantier disponible</h3>
+                        <h3 className="text-xl font-bold mb-2">
+                          Aucun chantier disponible
+                        </h3>
                         <p className="text-text-secondary">
-                          Modifiez vos filtres ou revenez plus tard pour découvrir de nouveaux chantiers.
+                          Modifiez vos filtres ou revenez plus tard pour
+                          découvrir de nouveaux chantiers.
                         </p>
                       </CardContent>
                     </Card>
@@ -704,21 +786,31 @@ function ProfessionalDashboardContent() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="font-semibold">{professional?.company_name}</h3>
-                            <p className="text-sm text-gray-600">SIRET: {professional?.siret}</p>
+                            <h3 className="font-semibold">
+                              {professional?.company_name}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              SIRET: {professional?.siret}
+                            </p>
                           </div>
                           <Link href="/professionnel/profile">
-                            <Button variant="outline">Modifier mon profil</Button>
+                            <Button variant="outline">
+                              Modifier mon profil
+                            </Button>
                           </Link>
                         </div>
-                        
+
                         <div>
                           <h4 className="font-medium mb-2">Spécialités</h4>
                           <div className="flex flex-wrap gap-2">
                             {professional?.specialites?.map((spec: string) => (
-                              <Badge key={spec} variant="secondary">{spec}</Badge>
+                              <Badge key={spec} variant="secondary">
+                                {spec}
+                              </Badge>
                             )) || (
-                              <Badge variant="outline">Aucune spécialité définie</Badge>
+                              <Badge variant="outline">
+                                Aucune spécialité définie
+                              </Badge>
                             )}
                           </div>
                         </div>
@@ -746,7 +838,9 @@ function ProfessionalDashboardContent() {
                         <p className="text-2xl font-bold text-primary">
                           {professional?.credits_balance || 0}
                         </p>
-                        <p className="text-sm text-text-secondary">crédits disponibles</p>
+                        <p className="text-sm text-text-secondary">
+                          crédits disponibles
+                        </p>
                       </div>
                       <div className="text-right">
                         <Link href="/professionnel/buy-credits-new">
@@ -776,7 +870,10 @@ function ProfessionalDashboardContent() {
                   <div className="space-y-3">
                     {conversations && conversations.length > 0 ? (
                       conversations.slice(0, 3).map((conv: any) => {
-                        const otherUser = conv.client_id === user?.id ? conv.professional : conv.client;
+                        const otherUser =
+                          conv.client_id === user?.id
+                            ? conv.professional
+                            : conv.client;
                         return (
                           <Link key={conv.id} href={`/chat/${conv.id}`}>
                             <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 transition-colors">
@@ -795,7 +892,9 @@ function ProfessionalDashboardContent() {
                     ) : (
                       <div className="text-center py-4">
                         <MessageSquare className="w-8 h-8 text-text-muted mx-auto mb-2" />
-                        <p className="text-sm text-text-secondary">Aucun message</p>
+                        <p className="text-sm text-text-secondary">
+                          Aucun message
+                        </p>
                       </div>
                     )}
                     {conversations && conversations.length > 0 && (
@@ -818,11 +917,15 @@ function ProfessionalDashboardContent() {
                 <CardContent className="space-y-4">
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm text-blue-700 dark:text-blue-300">
                     <p className="font-semibold mb-1">Complétez votre profil</p>
-                    <p>Un profil complet avec photos augmente vos chances de 50%.</p>
+                    <p>
+                      Un profil complet avec photos augmente vos chances de 50%.
+                    </p>
                   </div>
                   <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm text-green-700 dark:text-green-300">
                     <p className="font-semibold mb-1">Répondez vite</p>
-                    <p>Les clients choisissent souvent le premier pro qui répond.</p>
+                    <p>
+                      Les clients choisissent souvent le premier pro qui répond.
+                    </p>
                   </div>
                 </CardContent>
               </Card>

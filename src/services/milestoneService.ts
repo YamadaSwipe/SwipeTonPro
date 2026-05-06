@@ -33,7 +33,10 @@ export const milestoneService = {
   /**
    * Crée les milestones par défaut pour un projet
    */
-  async createDefaultMilestones(projectId: string, totalAmount: number): Promise<MilestoneCreateResult> {
+  async createDefaultMilestones(
+    projectId: string,
+    totalAmount: number
+  ): Promise<MilestoneCreateResult> {
     try {
       // Configuration par défaut : 30% acompte, 40% étape 1, 30% finition
       const defaultMilestones = [
@@ -41,29 +44,29 @@ export const milestoneService = {
           milestone_name: 'Acompte',
           milestone_order: 1,
           percentage: 30,
-          amount: Math.round(totalAmount * 0.3)
+          amount: Math.round(totalAmount * 0.3),
         },
         {
           milestone_name: 'Étape 1',
           milestone_order: 2,
           percentage: 40,
-          amount: Math.round(totalAmount * 0.4)
+          amount: Math.round(totalAmount * 0.4),
         },
         {
           milestone_name: 'Finition',
           milestone_order: 3,
           percentage: 30,
-          amount: Math.round(totalAmount * 0.3)
-        }
+          amount: Math.round(totalAmount * 0.3),
+        },
       ];
 
       // Insérer les milestones
       const { data: milestones, error } = await supabase
         .from('project_milestones')
         .insert(
-          defaultMilestones.map(milestone => ({
+          defaultMilestones.map((milestone) => ({
             project_id: projectId,
-            ...milestone
+            ...milestone,
           }))
         )
         .select();
@@ -72,20 +75,19 @@ export const milestoneService = {
         console.error('❌ Erreur création milestones:', error);
         return {
           success: false,
-          error: 'Erreur lors de la création des étapes de paiement'
+          error: 'Erreur lors de la création des étapes de paiement',
         };
       }
 
       return {
         success: true,
-        milestoneId: milestones[0]?.id // Retourner le premier ID
+        milestoneId: milestones[0]?.id, // Retourner le premier ID
       };
-
     } catch (error) {
       console.error('❌ Erreur service createDefaultMilestones:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la création des milestones'
+        error: 'Erreur serveur lors de la création des milestones',
       };
     }
   },
@@ -93,7 +95,9 @@ export const milestoneService = {
   /**
    * Crée une milestone personnalisée
    */
-  async createMilestone(milestoneData: MilestoneData): Promise<MilestoneCreateResult> {
+  async createMilestone(
+    milestoneData: MilestoneData
+  ): Promise<MilestoneCreateResult> {
     try {
       const { data: milestone, error } = await supabase
         .from('project_milestones')
@@ -103,7 +107,7 @@ export const milestoneService = {
           milestone_order: milestoneData.milestoneOrder,
           percentage: milestoneData.percentage,
           amount: milestoneData.amount,
-          due_date: milestoneData.dueDate
+          due_date: milestoneData.dueDate,
         })
         .select()
         .single();
@@ -112,20 +116,19 @@ export const milestoneService = {
         console.error('❌ Erreur création milestone:', error);
         return {
           success: false,
-          error: 'Erreur lors de la création de l\'étape de paiement'
+          error: "Erreur lors de la création de l'étape de paiement",
         };
       }
 
       return {
         success: true,
-        milestoneId: milestone.id
+        milestoneId: milestone.id,
       };
-
     } catch (error) {
       console.error('❌ Erreur service createMilestone:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la création de la milestone'
+        error: 'Erreur serveur lors de la création de la milestone',
       };
     }
   },
@@ -145,7 +148,7 @@ export const milestoneService = {
           pro_validation_photos: photos,
           pro_validation_notes: notes,
           pro_validated_at: new Date().toISOString(),
-          status: 'in_progress'
+          status: 'in_progress',
         })
         .eq('id', milestoneId);
 
@@ -153,7 +156,7 @@ export const milestoneService = {
         console.error('❌ Erreur validation pro:', error);
         return {
           success: false,
-          error: 'Erreur lors de la validation par le professionnel'
+          error: 'Erreur lors de la validation par le professionnel',
         };
       }
 
@@ -161,12 +164,11 @@ export const milestoneService = {
       await this.notifyClientValidation(milestoneId);
 
       return { success: true };
-
     } catch (error) {
       console.error('❌ Erreur service validateByProfessional:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la validation professionnelle'
+        error: 'Erreur serveur lors de la validation professionnelle',
       };
     }
   },
@@ -182,20 +184,22 @@ export const milestoneService = {
       // Récupérer les informations de la milestone
       const { data: milestone, error: fetchError } = await supabase
         .from('project_milestones')
-        .select(`
+        .select(
+          `
           *,
           projects!inner(
             professional_id,
             stripe_escrow_active
           )
-        `)
+        `
+        )
         .eq('id', milestoneId)
         .single();
 
       if (fetchError || !milestone) {
         return {
           success: false,
-          error: 'Milestone non trouvée'
+          error: 'Milestone non trouvée',
         };
       }
 
@@ -206,7 +210,10 @@ export const milestoneService = {
           client_validation_status: validationData.clientValidationStatus,
           client_validation_notes: validationData.clientValidationNotes,
           client_validated_at: new Date().toISOString(),
-          status: validationData.clientValidationStatus === 'approved' ? 'completed' : 'disputed'
+          status:
+            validationData.clientValidationStatus === 'approved'
+              ? 'completed'
+              : 'disputed',
         })
         .eq('id', milestoneId);
 
@@ -214,14 +221,20 @@ export const milestoneService = {
         console.error('❌ Erreur validation client:', error);
         return {
           success: false,
-          error: 'Erreur lors de la validation par le client'
+          error: 'Erreur lors de la validation par le client',
         };
       }
 
       // Si approuvé, déclencher le transfert Stripe
       let stripeTransferId;
-      if (validationData.clientValidationStatus === 'approved' && milestone.projects.stripe_escrow_active) {
-        const transferResult = await this.processStripeTransfer(milestoneId, milestone.amount);
+      if (
+        validationData.clientValidationStatus === 'approved' &&
+        milestone.projects.stripe_escrow_active
+      ) {
+        const transferResult = await this.processStripeTransfer(
+          milestoneId,
+          milestone.amount
+        );
         if (!transferResult.success) {
           return transferResult;
         }
@@ -229,18 +242,20 @@ export const milestoneService = {
       }
 
       // Notifier le professionnel
-      await this.notifyProfessionalValidation(milestoneId, validationData.clientValidationStatus);
+      await this.notifyProfessionalValidation(
+        milestoneId,
+        validationData.clientValidationStatus
+      );
 
       return {
         success: true,
-        stripeTransferId
+        stripeTransferId,
       };
-
     } catch (error) {
       console.error('❌ Erreur service validateByClient:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la validation client'
+        error: 'Erreur serveur lors de la validation client',
       };
     }
   },
@@ -248,12 +263,16 @@ export const milestoneService = {
   /**
    * Traite le transfert Stripe pour une milestone
    */
-  async processStripeTransfer(milestoneId: string, amount: number): Promise<MilestoneValidationResult> {
+  async processStripeTransfer(
+    milestoneId: string,
+    amount: number
+  ): Promise<MilestoneValidationResult> {
     try {
       // Récupérer les informations du projet et professionnel
       const { data: milestone, error } = await supabase
         .from('project_milestones')
-        .select(`
+        .select(
+          `
           *,
           projects!inner(
             professional_id,
@@ -263,14 +282,15 @@ export const milestoneService = {
             user_id,
             stripe_account_id
           )
-        `)
+        `
+        )
         .eq('id', milestoneId)
         .single();
 
       if (error || !milestone) {
         return {
           success: false,
-          error: 'Informations de milestone non trouvées'
+          error: 'Informations de milestone non trouvées',
         };
       }
 
@@ -282,7 +302,7 @@ export const milestoneService = {
         .from('project_milestones')
         .update({
           stripe_transfer_id: stripeTransferId,
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
         })
         .eq('id', milestoneId);
 
@@ -290,7 +310,7 @@ export const milestoneService = {
         console.error('❌ Erreur mise à jour transfert:', updateError);
         return {
           success: false,
-          error: 'Erreur lors de l\'enregistrement du transfert'
+          error: "Erreur lors de l'enregistrement du transfert",
         };
       }
 
@@ -298,19 +318,18 @@ export const milestoneService = {
         milestoneId,
         amount,
         transferId: stripeTransferId,
-        professionalId: milestone.professionals.user_id
+        professionalId: milestone.professionals.user_id,
       });
 
       return {
         success: true,
-        stripeTransferId
+        stripeTransferId,
       };
-
     } catch (error) {
       console.error('❌ Erreur service processStripeTransfer:', error);
       return {
         success: false,
-        error: 'Erreur lors du traitement du transfert Stripe'
+        error: 'Erreur lors du traitement du transfert Stripe',
       };
     }
   },
@@ -334,20 +353,19 @@ export const milestoneService = {
         console.error('❌ Erreur récupération milestones:', error);
         return {
           success: false,
-          error: 'Erreur lors de la récupération des étapes de paiement'
+          error: 'Erreur lors de la récupération des étapes de paiement',
         };
       }
 
       return {
         success: true,
-        milestones
+        milestones,
       };
-
     } catch (error) {
       console.error('❌ Erreur service getProjectMilestones:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la récupération'
+        error: 'Erreur serveur lors de la récupération',
       };
     }
   },
@@ -366,8 +384,7 @@ export const milestoneService = {
         return false;
       }
 
-      return milestones.every(m => m.status === 'completed');
-
+      return milestones.every((m) => m.status === 'completed');
     } catch (error) {
       console.error('❌ Erreur service areAllMilestonesCompleted:', error);
       return false;
@@ -377,18 +394,20 @@ export const milestoneService = {
   /**
    * Notifie le client de la validation professionnelle
    */
-  private async notifyClientValidation(milestoneId: string): Promise<void> {
+  async notifyClientValidation(milestoneId: string): Promise<void> {
     try {
       // Récupérer les informations pour la notification
       const { data: milestone } = await supabase
         .from('project_milestones')
-        .select(`
+        .select(
+          `
           *,
           projects!inner(
             client_id,
             title
           )
-        `)
+        `
+        )
         .eq('id', milestoneId)
         .single();
 
@@ -398,7 +417,7 @@ export const milestoneService = {
           milestoneId,
           client: milestone.projects.client_id,
           projectTitle: milestone.projects.title,
-          milestoneName: milestone.milestone_name
+          milestoneName: milestone.milestone_name,
         });
       }
     } catch (error) {
@@ -409,21 +428,23 @@ export const milestoneService = {
   /**
    * Notifie le professionnel de la validation client
    */
-  private async notifyProfessionalValidation(
-    milestoneId: string, 
+  async notifyProfessionalValidation(
+    milestoneId: string,
     validationStatus: 'approved' | 'rejected' | 'disputed'
   ): Promise<void> {
     try {
       // Récupérer les informations pour la notification
       const { data: milestone } = await supabase
         .from('project_milestones')
-        .select(`
+        .select(
+          `
           *,
           projects!inner(
             professional_id,
             title
           )
-        `)
+        `
+        )
         .eq('id', milestoneId)
         .single();
 
@@ -434,13 +455,18 @@ export const milestoneService = {
           professional: milestone.projects.professional_id,
           projectTitle: milestone.projects.title,
           milestoneName: milestone.milestone_name,
-          validationStatus
+          validationStatus,
         });
       }
     } catch (error) {
       console.error('❌ Erreur notification pro validation:', error);
     }
-  }
+  },
 };
 
-export type { MilestoneData, MilestoneValidation, MilestoneCreateResult, MilestoneValidationResult };
+export type {
+  MilestoneData,
+  MilestoneValidation,
+  MilestoneCreateResult,
+  MilestoneValidationResult,
+};

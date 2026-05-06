@@ -29,9 +29,13 @@ export const appSettingsService = {
    */
   async getSetting(key: string, useCache: boolean = true): Promise<any> {
     const now = Date.now();
-    
+
     // Vérifier le cache
-    if (useCache && settingsCache[key] && (now - settingsCache[key].timestamp) < settingsCache[key].ttl) {
+    if (
+      useCache &&
+      settingsCache[key] &&
+      now - settingsCache[key].timestamp < settingsCache[key].ttl
+    ) {
       console.log('⚡ Setting from cache:', key);
       return settingsCache[key].value;
     }
@@ -53,7 +57,7 @@ export const appSettingsService = {
         settingsCache[key] = {
           value: data?.setting_value,
           timestamp: now,
-          ttl: DEFAULT_CACHE_TTL
+          ttl: DEFAULT_CACHE_TTL,
         };
       }
 
@@ -80,13 +84,13 @@ export const appSettingsService = {
       }
 
       const result: { [key: string]: any } = {};
-      data?.forEach(item => {
+      data?.forEach((item) => {
         result[item.setting_key] = item.setting_value;
         // Mettre en cache
         settingsCache[item.setting_key] = {
           value: item.setting_value,
           timestamp: Date.now(),
-          ttl: DEFAULT_CACHE_TTL
+          ttl: DEFAULT_CACHE_TTL,
         };
       });
 
@@ -124,8 +128,8 @@ export const appSettingsService = {
    * Met à jour un setting (admin uniquement)
    */
   async updateSetting(
-    key: string, 
-    value: any, 
+    key: string,
+    value: any,
     updatedBy: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -148,7 +152,7 @@ export const appSettingsService = {
         .from('app_settings')
         .update({
           setting_value: value,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('setting_key', key);
 
@@ -181,20 +185,19 @@ export const appSettingsService = {
     createdBy: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('app_settings')
-        .insert({
-          setting_key: key,
-          setting_value: value,
-          description,
-          category,
-          is_editable: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+      const { error } = await supabase.from('app_settings').insert({
+        setting_key: key,
+        setting_value: value,
+        description,
+        category,
+        is_editable: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
 
       if (error) {
-        if (error.code === '23505') { // Unique violation
+        if (error.code === '23505') {
+          // Unique violation
           return { success: false, error: 'Ce setting existe déjà' };
         }
         console.error('❌ Erreur création setting:', error);
@@ -223,7 +226,7 @@ export const appSettingsService = {
       maxProEstimatesDaily: 5,
       maxUserEstimatesPerProject: 3,
       maxClientEstimatesWeekly: 2,
-      anonymousMessageLimit: 3
+      anonymousMessageLimit: 3,
     };
 
     try {
@@ -231,14 +234,22 @@ export const appSettingsService = {
         'max_pro_estimates_daily',
         'max_user_estimates_per_project',
         'max_client_estimates_weekly',
-        'anonymous_message_limit'
+        'anonymous_message_limit',
       ]);
 
       return {
-        maxProEstimatesDaily: settings.max_pro_estimates_daily?.value ?? defaults.maxProEstimatesDaily,
-        maxUserEstimatesPerProject: settings.max_user_estimates_per_project?.value ?? defaults.maxUserEstimatesPerProject,
-        maxClientEstimatesWeekly: settings.max_client_estimates_weekly?.value ?? defaults.maxClientEstimatesWeekly,
-        anonymousMessageLimit: settings.anonymous_message_limit?.value ?? defaults.anonymousMessageLimit
+        maxProEstimatesDaily:
+          settings.max_pro_estimates_daily?.value ??
+          defaults.maxProEstimatesDaily,
+        maxUserEstimatesPerProject:
+          settings.max_user_estimates_per_project?.value ??
+          defaults.maxUserEstimatesPerProject,
+        maxClientEstimatesWeekly:
+          settings.max_client_estimates_weekly?.value ??
+          defaults.maxClientEstimatesWeekly,
+        anonymousMessageLimit:
+          settings.anonymous_message_limit?.value ??
+          defaults.anonymousMessageLimit,
       };
     } catch (error) {
       console.error('❌ Erreur récupération quotas:', error);
@@ -262,7 +273,7 @@ export const appSettingsService = {
       delete settingsCache[key];
       console.log('🗑️ Cache invalidé pour:', key);
     } else {
-      Object.keys(settingsCache).forEach(k => delete settingsCache[k]);
+      Object.keys(settingsCache).forEach((k) => delete settingsCache[k]);
       console.log('🗑️ Cache settings complet invalidé');
     }
   },
@@ -270,10 +281,10 @@ export const appSettingsService = {
   /**
    * Logger les actions admin
    */
-  private async logAdminAction(
-    action: string, 
-    key: string, 
-    value: any, 
+  async logAdminAction(
+    action: string,
+    key: string,
+    value: any,
     userId: string
   ): Promise<void> {
     console.log('📝 ADMIN ACTION:', {
@@ -281,10 +292,10 @@ export const appSettingsService = {
       key,
       value,
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     // TODO: Implémenter l'insertion dans une table d'audit si nécessaire
-  }
+  },
 };
 
 export type { AppSetting };

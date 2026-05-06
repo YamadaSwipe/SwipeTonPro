@@ -35,9 +35,9 @@ export const matchingFeesService = {
    */
   async getActiveTiers(): Promise<MatchingFee[]> {
     const now = Date.now();
-    
+
     // Utiliser le cache si valide
-    if (feeTiersCache && (now - feeCacheTimestamp) < FEE_CACHE_TTL) {
+    if (feeTiersCache && now - feeCacheTimestamp < FEE_CACHE_TTL) {
       console.log('⚡ Fee tiers from cache');
       return feeTiersCache;
     }
@@ -70,10 +70,9 @@ export const matchingFeesService = {
   async calculateFee(projectAmount: number): Promise<CalculateFeeResult> {
     try {
       // Utiliser la fonction RPC si disponible
-      const { data, error } = await supabase
-        .rpc('calculate_matching_fee', {
-          p_project_amount: projectAmount
-        });
+      const { data, error } = await supabase.rpc('calculate_matching_fee', {
+        p_project_amount: projectAmount,
+      });
 
       if (error) {
         console.error('❌ Erreur calcul frais RPC:', error);
@@ -88,8 +87,8 @@ export const matchingFeesService = {
           baseAmount: projectAmount,
           feeAmount: data,
           totalAmount: projectAmount + data,
-          tier: 'calculated'
-        }
+          tier: 'calculated',
+        },
       };
     } catch (error) {
       console.error('❌ Erreur service calculateFee:', error);
@@ -103,16 +102,22 @@ export const matchingFeesService = {
   async calculateFeeLocal(projectAmount: number): Promise<CalculateFeeResult> {
     try {
       const tiers = await this.getActiveTiers();
-      
+
       if (tiers.length === 0) {
         // Valeurs par défaut si aucun palier configuré
-        const defaultFee = projectAmount <= 50000 ? 1500 : // 15€
-                           projectAmount <= 100000 ? 2900 : // 29€
-                           projectAmount <= 200000 ? 4900 : // 49€
-                           projectAmount <= 500000 ? 9900 : // 99€
-                           projectAmount <= 1000000 ? 14900 : // 149€
-                           24900; // 249€
-        
+        const defaultFee =
+          projectAmount <= 50000
+            ? 1500 // 15€
+            : projectAmount <= 100000
+              ? 2900 // 29€
+              : projectAmount <= 200000
+                ? 4900 // 49€
+                : projectAmount <= 500000
+                  ? 9900 // 99€
+                  : projectAmount <= 1000000
+                    ? 14900 // 149€
+                    : 24900; // 249€
+
         return {
           success: true,
           feeAmount: defaultFee,
@@ -120,21 +125,22 @@ export const matchingFeesService = {
             baseAmount: projectAmount,
             feeAmount: defaultFee,
             totalAmount: projectAmount + defaultFee,
-            tier: 'default'
-          }
+            tier: 'default',
+          },
         };
       }
 
       // Trouver le palier applicable
-      const tier = tiers.find(t => 
-        projectAmount >= t.min_amount && 
-        (t.max_amount === null || projectAmount <= t.max_amount)
+      const tier = tiers.find(
+        (t) =>
+          projectAmount >= t.min_amount &&
+          (t.max_amount === null || projectAmount <= t.max_amount)
       );
 
       if (!tier) {
         return {
           success: false,
-          error: 'Aucun palier de frais trouvé pour ce montant'
+          error: 'Aucun palier de frais trouvé pour ce montant',
         };
       }
 
@@ -152,14 +158,14 @@ export const matchingFeesService = {
           baseAmount: projectAmount,
           feeAmount,
           totalAmount: projectAmount + feeAmount,
-          tier: `${tier.min_amount}-${tier.max_amount || '∞'}`
-        }
+          tier: `${tier.min_amount}-${tier.max_amount || '∞'}`,
+        },
       };
     } catch (error) {
       console.error('❌ Erreur service calculateFeeLocal:', error);
       return {
         success: false,
-        error: 'Erreur lors du calcul des frais'
+        error: 'Erreur lors du calcul des frais',
       };
     }
   },
@@ -174,15 +180,24 @@ export const matchingFeesService = {
     try {
       // Validation
       if (tierData.min_amount >= (tierData.max_amount || Infinity)) {
-        return { success: false, error: 'Le montant min doit être inférieur au montant max' };
+        return {
+          success: false,
+          error: 'Le montant min doit être inférieur au montant max',
+        };
       }
 
-      if (tierData.is_percentage && (!tierData.percentage_value || tierData.percentage_value <= 0)) {
+      if (
+        tierData.is_percentage &&
+        (!tierData.percentage_value || tierData.percentage_value <= 0)
+      ) {
         return { success: false, error: 'Le pourcentage doit être positif' };
       }
 
       if (!tierData.is_percentage && tierData.fee_amount <= 0) {
-        return { success: false, error: 'Le montant des frais doit être positif' };
+        return {
+          success: false,
+          error: 'Le montant des frais doit être positif',
+        };
       }
 
       const { data, error } = await supabase
@@ -190,14 +205,17 @@ export const matchingFeesService = {
         .insert({
           ...tierData,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
 
       if (error) {
         console.error('❌ Erreur création palier:', error);
-        return { success: false, error: 'Erreur lors de la création du palier' };
+        return {
+          success: false,
+          error: 'Erreur lors de la création du palier',
+        };
       }
 
       // Invalider le cache
@@ -222,9 +240,15 @@ export const matchingFeesService = {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Validation
-      if (updates.min_amount !== undefined && updates.max_amount !== undefined) {
+      if (
+        updates.min_amount !== undefined &&
+        updates.max_amount !== undefined
+      ) {
         if (updates.min_amount >= updates.max_amount) {
-          return { success: false, error: 'Le montant min doit être inférieur au montant max' };
+          return {
+            success: false,
+            error: 'Le montant min doit être inférieur au montant max',
+          };
         }
       }
 
@@ -232,7 +256,7 @@ export const matchingFeesService = {
         .from('matching_fees')
         .update({
           ...updates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', tierId);
 
@@ -265,7 +289,7 @@ export const matchingFeesService = {
         .from('matching_fees')
         .update({
           is_active: false,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', tierId);
 
@@ -276,7 +300,12 @@ export const matchingFeesService = {
 
       this.invalidateCache();
 
-      await this.logAdminAction('delete_tier', tierId, { is_active: false }, deletedBy);
+      await this.logAdminAction(
+        'delete_tier',
+        tierId,
+        { is_active: false },
+        deletedBy
+      );
 
       return { success: true };
     } catch (error) {
@@ -295,9 +324,7 @@ export const matchingFeesService = {
     mostUsedTier?: string;
   }> {
     try {
-      const { data, error } = await supabase
-        .from('matching_fees')
-        .select('*');
+      const { data, error } = await supabase.from('matching_fees').select('*');
 
       if (error) {
         console.error('❌ Erreur récupération stats:', error);
@@ -305,15 +332,15 @@ export const matchingFeesService = {
       }
 
       const totalTiers = data?.length || 0;
-      const activeTiers = data?.filter(t => t.is_active).length || 0;
-      const avgFeeAmount = data?.length 
-        ? data.reduce((sum, t) => sum + (t.fee_amount || 0), 0) / data.length 
+      const activeTiers = data?.filter((t) => t.is_active).length || 0;
+      const avgFeeAmount = data?.length
+        ? data.reduce((sum, t) => sum + (t.fee_amount || 0), 0) / data.length
         : 0;
 
       return {
         totalTiers,
         activeTiers,
-        avgFeeAmount: Math.round(avgFeeAmount)
+        avgFeeAmount: Math.round(avgFeeAmount),
       };
     } catch (error) {
       console.error('❌ Erreur service getFeeStats:', error);
@@ -324,11 +351,13 @@ export const matchingFeesService = {
   /**
    * Prévisualise les frais pour différents montants
    */
-  async previewFees(amounts: number[]): Promise<Array<{
-    amount: number;
-    fee: number;
-    total: number;
-  }>> {
+  async previewFees(amounts: number[]): Promise<
+    Array<{
+      amount: number;
+      fee: number;
+      total: number;
+    }>
+  > {
     const results = [];
     for (const amount of amounts) {
       const result = await this.calculateFee(amount);
@@ -336,7 +365,7 @@ export const matchingFeesService = {
         results.push({
           amount,
           fee: result.feeAmount || 0,
-          total: amount + (result.feeAmount || 0)
+          total: amount + (result.feeAmount || 0),
         });
       }
     }
@@ -355,7 +384,7 @@ export const matchingFeesService = {
   /**
    * Logger les actions admin
    */
-  private async logAdminAction(
+  async logAdminAction(
     action: string,
     tierId: string,
     data: any,
@@ -366,9 +395,9 @@ export const matchingFeesService = {
       tierId,
       data,
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-  }
+  },
 };
 
 export type { MatchingFee, CalculateFeeResult };

@@ -27,92 +27,23 @@ export default function ResetPasswordPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Vérifier si nous avons une session de réinitialisation ou un code PKCE
+    // Vérifier si nous avons un token de récupération valide
     const checkResetSession = async () => {
       try {
-        console.log('🔍 Checking reset session...');
+        console.log('🔍 Vérification du token de récupération...');
 
-        // 1. Vérifier si un code PKCE est présent dans l'URL (nouveau flow Supabase)
-        const url = new URL(window.location.href);
-        const code = url.searchParams.get('code');
-        const type = url.searchParams.get('type');
+        // Attendre que Supabase traite automatiquement le hash (#access_token=...&type=recovery)
+        // Le client Supabase gère automatiquement les tokens dans l'URL
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
-        // 1b. Supabase Auth envoie aussi les tokens dans le hash fragment (#access_token=...)
-        const hashParams = new URLSearchParams(
-          window.location.hash.substring(1)
-        );
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        const hashType = hashParams.get('type');
-
-        if (accessToken && hashType === 'recovery') {
-          console.log(
-            '🔑 Access token trouvé dans le hash, établissement de la session...'
-          );
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
-
-          if (error) {
-            console.error('❌ Erreur setSession:', error);
-            toast({
-              title: '❌ Lien invalide',
-              description:
-                'Ce lien de réinitialisation est invalide ou a expiré',
-              variant: 'destructive',
-            });
-            router.push('/auth/forgot-password');
-            return;
-          }
-
-          if (data.session) {
-            console.log('✅ Session établie via access token');
-            // Nettoyer le hash pour ne pas exposer le token
-            window.history.replaceState(
-              null,
-              '',
-              window.location.pathname + window.location.search
-            );
-            setTokenValid(true);
-            setIsValidating(false);
-            return;
-          }
-        }
-
-        if (code) {
-          console.log('🔄 Code PKCE trouvé, échange du token...');
-          const { data, error } =
-            await supabase.auth.exchangeCodeForSession(code);
-
-          if (error) {
-            console.error('❌ Erreur échange code:', error);
-            toast({
-              title: '❌ Lien invalide',
-              description:
-                'Ce lien de réinitialisation est invalide ou a expiré',
-              variant: 'destructive',
-            });
-            router.push('/auth/forgot-password');
-            return;
-          }
-
-          if (data.session) {
-            console.log('✅ Session récupérée via PKCE');
-            setTokenValid(true);
-            setIsValidating(false);
-            return;
-          }
-        }
-
-        // 2. Ancien flow : vérifier si nous avons déjà une session active
+        // Vérifier si une session temporaire a été établie par le token de récupération
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession();
 
         if (error) {
-          console.error('❌ Session check error:', error);
+          console.error('❌ Erreur session:', error);
           toast({
             title: '❌ Erreur',
             description:
@@ -124,21 +55,32 @@ export default function ResetPasswordPage() {
         }
 
         if (!session) {
-          console.log('❌ No active session, redirecting...');
+          console.log('❌ Pas de session active, token invalide ou expiré');
           toast({
             title: '❌ Lien invalide',
-            description: 'Ce lien de réinitialisation est invalide ou a expiré',
+            description:
+              'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.',
             variant: 'destructive',
           });
           router.push('/auth/forgot-password');
           return;
         }
 
-        console.log('✅ Valid reset session found');
+        // Vérifier que c'est bien une session de type recovery
+        console.log('✅ Session trouvée:', session.user?.email);
         setTokenValid(true);
         setIsValidating(false);
+
+        // Nettoyer le hash de l'URL pour ne pas exposer les tokens
+        if (window.location.hash) {
+          window.history.replaceState(
+            null,
+            '',
+            window.location.pathname + window.location.search
+          );
+        }
       } catch (error) {
-        console.error('❌ Reset session error:', error);
+        console.error('❌ Erreur vérification:', error);
         toast({
           title: '❌ Erreur',
           description: 'Impossible de valider le lien de réinitialisation',
@@ -190,9 +132,27 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      console.log('🔄 Updating password...');
+      console.log('🔄 Vérification de la session...');
 
-      // Pour la réinitialisation, utiliser la méthode dédiée
+      // Vérifier explicitement que nous avons une session valide
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.error('❌ Pas de session active:', sessionError);
+        setErrorMessage(
+          'Session invalide ou expirée. Veuillez demander un nouveau lien de réinitialisation.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Session validée pour:', session.user.email);
+      console.log('🔄 Mise à jour du mot de passe...');
+
+      // Mettre à jour le mot de passe
       const { error } = await supabase.auth.updateUser({
         password: password,
       });
@@ -219,9 +179,13 @@ export default function ResetPasswordPage() {
 
       setSuccessMessage('Votre mot de passe a été réinitialisé avec succès');
 
+      // Déconnecter l'utilisateur pour nettoyer la session et permettre une connexion propre
+      await supabase.auth.signOut();
+      console.log('👋 Session de récupération terminée');
+
       // Rediriger vers la page de connexion
       setTimeout(() => {
-        router.push('/auth/login');
+        router.push('/particulier');
       }, 2000);
     } catch (error) {
       console.error('❌ Unexpected error:', error);

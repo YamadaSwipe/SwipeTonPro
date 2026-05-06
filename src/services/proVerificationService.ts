@@ -37,7 +37,10 @@ interface DocumentUpload {
 }
 
 // Cache
-let verificationCache: { data: ProfessionalProfile[]; timestamp: number } | null = null;
+let verificationCache: {
+  data: ProfessionalProfile[];
+  timestamp: number;
+} | null = null;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export const proVerificationService = {
@@ -53,9 +56,7 @@ export const proVerificationService = {
     try {
       const { status = 'all', search, limit = 50, offset = 0 } = filters || {};
 
-      let query = supabase
-        .from('pro_profiles')
-        .select('*', { count: 'exact' });
+      let query = supabase.from('pro_profiles').select('*', { count: 'exact' });
 
       // Filtre par statut
       if (status !== 'all') {
@@ -64,7 +65,9 @@ export const proVerificationService = {
 
       // Recherche texte
       if (search) {
-        query = query.or(`company_name.ilike.%${search}%,siret.ilike.%${search}%`);
+        query = query.or(
+          `company_name.ilike.%${search}%,siret.ilike.%${search}%`
+        );
       }
 
       const { data, error, count } = await query
@@ -78,7 +81,7 @@ export const proVerificationService = {
 
       return {
         professionals: data || [],
-        total: count || 0
+        total: count || 0,
       };
     } catch (error) {
       console.error('❌ Erreur service getProfessionals:', error);
@@ -102,9 +105,12 @@ export const proVerificationService = {
 
       const stats = {
         total: data?.length || 0,
-        pending: data?.filter(p => p.verification_status === 'pending').length || 0,
-        verified: data?.filter(p => p.verification_status === 'verified').length || 0,
-        rejected: data?.filter(p => p.verification_status === 'rejected').length || 0
+        pending:
+          data?.filter((p) => p.verification_status === 'pending').length || 0,
+        verified:
+          data?.filter((p) => p.verification_status === 'verified').length || 0,
+        rejected:
+          data?.filter((p) => p.verification_status === 'rejected').length || 0,
       };
 
       return stats;
@@ -154,7 +160,7 @@ export const proVerificationService = {
           verification_notes: notes,
           verified_at: new Date().toISOString(),
           verified_by: adminId,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', proId);
 
@@ -168,7 +174,7 @@ export const proVerificationService = {
         .from('profiles')
         .update({
           is_verified: status === 'verified',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', proId);
 
@@ -214,14 +220,14 @@ export const proVerificationService = {
         }
 
         // Mapper vers le format attendu
-        return (docsData || []).map(d => ({
+        return (docsData || []).map((d) => ({
           id: d.id,
           professional_id: d.user_id,
           document_type: d.type || 'other',
           file_url: d.url,
           file_name: d.name || 'document',
           is_verified: d.is_verified || false,
-          uploaded_at: d.created_at
+          uploaded_at: d.created_at,
         }));
       }
 
@@ -248,7 +254,7 @@ export const proVerificationService = {
           is_verified: isVerified,
           verified_at: new Date().toISOString(),
           verified_by: adminId,
-          verification_notes: notes
+          verification_notes: notes,
         })
         .eq('id', documentId);
 
@@ -272,7 +278,9 @@ export const proVerificationService = {
       const { data, error } = await supabase
         .from('pro_profiles')
         .select('*')
-        .or(`company_name.ilike.%${query}%,siret.ilike.%${query}%,vat_number.ilike.%${query}%`)
+        .or(
+          `company_name.ilike.%${query}%,siret.ilike.%${query}%,vat_number.ilike.%${query}%`
+        )
         .limit(20);
 
       if (error) {
@@ -303,19 +311,27 @@ export const proVerificationService = {
       }
 
       // Générer CSV
-      const headers = ['ID', 'Entreprise', 'SIRET', 'TVA', 'Métiers', 'Zones', 'Vérifié le'];
-      const rows = (data || []).map(p => [
+      const headers = [
+        'ID',
+        'Entreprise',
+        'SIRET',
+        'TVA',
+        'Métiers',
+        'Zones',
+        'Vérifié le',
+      ];
+      const rows = (data || []).map((p) => [
         p.id,
         p.company_name,
         p.siret,
         p.vat_number || '',
         (p.trades || []).join(', '),
         (p.service_areas || []).join(', '),
-        p.verified_at || ''
+        p.verified_at || '',
       ]);
 
       return [headers, ...rows]
-        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .map((row) => row.map((cell) => `"${cell}"`).join(','))
         .join('\n');
     } catch (error) {
       console.error('❌ Erreur service exportVerifiedProfessionals:', error);
@@ -326,19 +342,21 @@ export const proVerificationService = {
   /**
    * Envoie une notification au pro
    */
-  private async sendVerificationNotification(
+  async sendVerificationNotification(
     proId: string,
     status: 'verified' | 'rejected',
     notes?: string
   ): Promise<void> {
     try {
-      const title = status === 'verified'
-        ? '✅ Vérification approuvée'
-        : '❌ Vérification refusée';
+      const title =
+        status === 'verified'
+          ? '✅ Vérification approuvée'
+          : '❌ Vérification refusée';
 
-      const message = status === 'verified'
-        ? 'Votre profil professionnel a été vérifié et approuvé. Vous pouvez maintenant répondre aux projets.'
-        : `Votre profil professionnel n'a pas été vérifié. ${notes ? `Motif : ${notes}` : ''}`;
+      const message =
+        status === 'verified'
+          ? 'Votre profil professionnel a été vérifié et approuvé. Vous pouvez maintenant répondre aux projets.'
+          : `Votre profil professionnel n'a pas été vérifié. ${notes ? `Motif : ${notes}` : ''}`;
 
       await supabase.from('notifications').insert({
         user_id: proId,
@@ -346,7 +364,7 @@ export const proVerificationService = {
         message,
         type: 'verification',
         read: false,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
     } catch (error) {
       console.error('❌ Erreur envoi notification:', error);
@@ -356,7 +374,7 @@ export const proVerificationService = {
   /**
    * Logger l'action de vérification
    */
-  private async logVerificationAction(
+  async logVerificationAction(
     proId: string,
     status: string,
     notes: string,
@@ -367,7 +385,7 @@ export const proVerificationService = {
       status,
       notes,
       adminId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     // Insérer dans une table d'audit si nécessaire
@@ -378,12 +396,12 @@ export const proVerificationService = {
         entity_id: proId,
         admin_id: adminId,
         details: { status, notes },
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
     } catch (e) {
       // Table peut ne pas exister
     }
-  }
+  },
 };
 
 export type { ProfessionalProfile, VerificationStats, DocumentUpload };

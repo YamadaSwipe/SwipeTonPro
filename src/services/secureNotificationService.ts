@@ -129,7 +129,7 @@ export class SecureNotificationService {
   /**
    * Logger les notifications pour audit
    */
-  private async logNotification(
+  async logNotification(
     data: SecureNotificationData,
     status: 'pending' | 'sent' | 'failed',
     errorMessage?: string

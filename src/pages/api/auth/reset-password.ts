@@ -8,7 +8,10 @@ const supabaseAdmin = createClient(
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -20,60 +23,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // 1. Vérifier que l'utilisateur existe dans auth.users
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
-
-    if (userError) {
-      console.error('❌ Erreur listUsers:', userError);
-      return res.status(500).json({ error: 'Impossible de vérifier les utilisateurs' });
-    }
-
-    const userExists = userData.users.some((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-
-    if (!userExists) {
-      // Pour la sécurité, ne pas révéler si l'email existe ou pas
-      return res.status(200).json({
-        success: true,
-        message: 'Si cet email existe, un lien de réinitialisation a été généré.'
+    // Générer directement le lien de récupération avec le service role (bypass SMTP)
+    // Si l'utilisateur n'existe pas, generateLink retournera une erreur
+    const { data: linkData, error: linkError } =
+      await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+        options: {
+          redirectTo: `${BASE_URL}/auth/reset-password`,
+        },
       });
-    }
-
-    // 2. Générer le lien de récupération avec le service role (bypass SMTP)
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-      options: {
-        redirectTo: `${BASE_URL}/auth/reset-password`
-      }
-    });
 
     if (linkError) {
       console.error('❌ Erreur generateLink:', linkError);
+
+      // Si l'utilisateur n'existe pas, on retourne quand même un succès (sécurité)
+      // pour ne pas révéler si l'email existe dans la base
+      if (
+        linkError.message?.includes('User not found') ||
+        linkError.message?.includes('user not found')
+      ) {
+        return res.status(200).json({
+          success: true,
+          message:
+            'Si cet email existe dans notre système, un lien de réinitialisation a été généré.',
+        });
+      }
+
       return res.status(500).json({
         error: 'Impossible de générer le lien de réinitialisation',
-        details: linkError.message
+        details: linkError.message,
       });
     }
 
-    const resetLink = linkData.properties?.action_link || linkData.properties?.link;
+    const resetLink =
+      linkData.properties?.action_link || linkData.properties?.link;
 
     console.log('✅ Lien de réinitialisation généré pour:', email);
 
-    // 3. Retourner le lien (en dev, l'utilisateur peut l'utiliser directement)
+    // Retourner le lien (en dev, l'utilisateur peut l'utiliser directement)
     return res.status(200).json({
       success: true,
       message: 'Lien de réinitialisation généré avec succès',
       resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined,
-      note: process.env.NODE_ENV === 'development'
-        ? 'En développement, utilisez le lien ci-dessus. En production, configurez SMTP dans Supabase.'
-        : 'Un email de réinitialisation a été envoyé.'
+      note:
+        process.env.NODE_ENV === 'development'
+          ? 'En développement, utilisez le lien ci-dessus. En production, configurez SMTP dans Supabase.'
+          : 'Un email de réinitialisation a été envoyé.',
     });
-
   } catch (error: any) {
     console.error('❌ Erreur reset-password API:', error);
     return res.status(500).json({
       error: 'Erreur serveur',
-      details: error.message
+      details: error.message,
     });
   }
 }

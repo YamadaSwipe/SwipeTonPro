@@ -5,20 +5,20 @@ const CONTACT_PATTERNS = {
   phone: [
     /\b(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}\b/g, // Français
     /\b\d{2,4}[-.\s]?\d{2,4}[-.\s]?\d{2,4}[-.\s]?\d{2,4}\b/g, // International
-    /\b(?:06|07)\s*?\d{2}\s*?\d{2}\s*?\d{2}\s*?\d{2}\b/g // Mobile FR
+    /\b(?:06|07)\s*?\d{2}\s*?\d{2}\s*?\d{2}\s*?\d{2}\b/g, // Mobile FR
   ],
   email: [
     /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, // Standard
-    /\b[A-Za-z0-9._%+-]+\s*@\s*[A-Za-z0-9.-]+\s*\.\s*[A-Z|a-z]{2,}\b/g // Avec espaces
+    /\b[A-Za-z0-9._%+-]+\s*@\s*[A-Za-z0-9.-]+\s*\.\s*[A-Z|a-z]{2,}\b/g, // Avec espaces
   ],
   website: [
     /\b(?:https?:\/\/)?(?:www\.)?[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}(?:\/[^\s]*)?\b/g, // URLs
-    /\b[A-Za-z0-9.-]+\.(?:com|fr|org|net|io|co|app|dev)\b/g // Domaines
+    /\b[A-Za-z0-9.-]+\.(?:com|fr|org|net|io|co|app|dev)\b/g, // Domaines
   ],
   external_messaging: [
     /\b(?:whatsapp|telegram|signal|viber|messenger|instagram|facebook)\b/gi,
-    /\b@[\w.-]+/g // Noms d'utilisateur
-  ]
+    /\b@[\w.-]+/g, // Noms d'utilisateur
+  ],
 };
 
 interface MessageContent {
@@ -73,7 +73,12 @@ export const anonymousMessagingService = {
 
     // Logger la détection
     if (isBlocked || containsContactInfo) {
-      await this.logModeration(content, detectedPatterns, detectedContent, confidence);
+      await this.logModeration(
+        content,
+        detectedPatterns,
+        detectedContent,
+        confidence
+      );
     }
 
     return {
@@ -82,7 +87,7 @@ export const anonymousMessagingService = {
       blockedPatterns: detectedPatterns,
       detectedContent,
       confidence,
-      reason: isBlocked ? 'Coordonnées détectées' : undefined
+      reason: isBlocked ? 'Coordonnées détectées' : undefined,
     };
   },
 
@@ -110,7 +115,7 @@ export const anonymousMessagingService = {
           canSend: false,
           messageNumber: 0,
           remainingMessages: 0,
-          isRevealed: false
+          isRevealed: false,
         };
       }
 
@@ -121,22 +126,23 @@ export const anonymousMessagingService = {
       const nextMessageNumber = messageCount + 1;
 
       // Vérifier si les coordonnées sont déjà révélées
-      const isRevealed = existingMessages?.some(msg => !msg.is_anonymous || msg.revealed_at);
+      const isRevealed = existingMessages?.some(
+        (msg) => !msg.is_anonymous || msg.revealed_at
+      );
 
       return {
         canSend: canSend || isRevealed, // Si révélé, pas de limite
         messageNumber: nextMessageNumber,
         remainingMessages: isRevealed ? 999 : remainingMessages,
-        isRevealed: isRevealed || false
+        isRevealed: isRevealed || false,
       };
-
     } catch (error) {
       console.error('❌ Erreur service checkMessageLimit:', error);
       return {
         canSend: false,
         messageNumber: 0,
         remainingMessages: 0,
-        isRevealed: false
+        isRevealed: false,
       };
     }
   },
@@ -161,9 +167,9 @@ export const anonymousMessagingService = {
       if (!limitCheck.canSend) {
         return {
           success: false,
-          error: limitCheck.isRevealed 
+          error: limitCheck.isRevealed
             ? 'Messages illimités après révélation des coordonnées'
-            : `Limite de ${limitCheck.remainingMessages} messages anonymes atteinte`
+            : `Limite de ${limitCheck.remainingMessages} messages anonymes atteinte`,
         };
       }
 
@@ -174,7 +180,7 @@ export const anonymousMessagingService = {
         return {
           success: false,
           error: 'Message bloqué : coordonnées détectées',
-          moderationResult
+          moderationResult,
         };
       }
 
@@ -187,10 +193,12 @@ export const anonymousMessagingService = {
           sender_id: messageData.senderId,
           content: messageData.content,
           message_number: limitCheck.messageNumber,
-          moderation_status: moderationResult.containsContactInfo ? 'flagged' : 'approved',
+          moderation_status: moderationResult.containsContactInfo
+            ? 'flagged'
+            : 'approved',
           contains_contact_info: moderationResult.containsContactInfo,
           blocked_patterns: moderationResult.blockedPatterns,
-          is_anonymous: !limitCheck.isRevealed
+          is_anonymous: !limitCheck.isRevealed,
         })
         .select()
         .single();
@@ -199,7 +207,7 @@ export const anonymousMessagingService = {
         console.error('❌ Erreur insertion message:', error);
         return {
           success: false,
-          error: 'Erreur lors de l\'envoi du message'
+          error: "Erreur lors de l'envoi du message",
         };
       }
 
@@ -211,14 +219,13 @@ export const anonymousMessagingService = {
       return {
         success: true,
         messageId: message.id,
-        moderationResult
+        moderationResult,
       };
-
     } catch (error) {
       console.error('❌ Erreur service sendMessage:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de l\'envoi du message'
+        error: "Erreur serveur lors de l'envoi du message",
       };
     }
   },
@@ -236,7 +243,7 @@ export const anonymousMessagingService = {
         .from('anonymous_messages')
         .update({
           is_anonymous: false,
-          revealed_at: new Date().toISOString()
+          revealed_at: new Date().toISOString(),
         })
         .eq('match_id', matchId);
 
@@ -244,7 +251,7 @@ export const anonymousMessagingService = {
         console.error('❌ Erreur révélation coordonnées:', error);
         return {
           success: false,
-          error: 'Erreur lors de la révélation des coordonnées'
+          error: 'Erreur lors de la révélation des coordonnées',
         };
       }
 
@@ -252,12 +259,11 @@ export const anonymousMessagingService = {
       await this.notifyContactReveal(matchId);
 
       return { success: true };
-
     } catch (error) {
       console.error('❌ Erreur service revealContactInfo:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la révélation'
+        error: 'Erreur serveur lors de la révélation',
       };
     }
   },
@@ -285,27 +291,32 @@ export const anonymousMessagingService = {
         console.error('❌ Erreur récupération messages:', error);
         return {
           success: false,
-          error: 'Erreur lors de la récupération des messages'
+          error: 'Erreur lors de la récupération des messages',
         };
       }
 
       // Filtrer les messages selon le statut
-      const filteredMessages = messages?.map(msg => ({
+      const filteredMessages = messages?.map((msg) => ({
         ...msg,
-        content: msg.is_anonymous && msg.sender_type !== userType ? '[Message anonyme]' : msg.content,
-        senderType: msg.is_anonymous && msg.sender_type !== userType ? 'anonymous' : msg.sender_type
+        content:
+          msg.is_anonymous && msg.sender_type !== userType
+            ? '[Message anonyme]'
+            : msg.content,
+        senderType:
+          msg.is_anonymous && msg.sender_type !== userType
+            ? 'anonymous'
+            : msg.sender_type,
       }));
 
       return {
         success: true,
-        messages: filteredMessages
+        messages: filteredMessages,
       };
-
     } catch (error) {
       console.error('❌ Erreur service getMatchMessages:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la récupération'
+        error: 'Erreur serveur lors de la récupération',
       };
     }
   },
@@ -313,7 +324,7 @@ export const anonymousMessagingService = {
   /**
    * Logger la modération pour analyse
    */
-  private async logModeration(
+  async logModeration(
     content: string,
     patterns: string[],
     detectedContent: string[],
@@ -326,7 +337,7 @@ export const anonymousMessagingService = {
         patterns,
         detectedContent,
         confidence,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error('❌ Erreur log modération:', error);
@@ -336,14 +347,14 @@ export const anonymousMessagingService = {
   /**
    * Marquer un match pour révision admin
    */
-  private async flagMatchForReview(matchId: string): Promise<void> {
+  async flagMatchForReview(matchId: string): Promise<void> {
     try {
       // Mettre à jour le statut du match
       await supabase
         .from('match_payments')
         .update({
           status: 'flagged',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', matchId);
     } catch (error) {
@@ -354,12 +365,13 @@ export const anonymousMessagingService = {
   /**
    * Notifier les utilisateurs de la révélation des coordonnées
    */
-  private async notifyContactReveal(matchId: string): Promise<void> {
+  async notifyContactReveal(matchId: string): Promise<void> {
     try {
       // Récupérer les informations du match
       const { data: match } = await supabase
         .from('match_payments')
-        .select(`
+        .select(
+          `
           *,
           projects!inner(
             client_id,
@@ -369,7 +381,8 @@ export const anonymousMessagingService = {
             user_id,
             company_name
           )
-        `)
+        `
+        )
         .eq('id', matchId)
         .single();
 
@@ -379,13 +392,13 @@ export const anonymousMessagingService = {
         console.log('📧 NOTIFICATION RÉVÉLATION COORDONNÉES:', {
           matchId,
           client: match.projects.client_id,
-          professional: match.professionals.user_id
+          professional: match.professionals.user_id,
         });
       }
     } catch (error) {
       console.error('❌ Erreur notification révélation:', error);
     }
-  }
+  },
 };
 
 export type { MessageContent, ModerationResult, MessageLimitResult };

@@ -577,7 +577,7 @@ export class EmailNotificationService {
   /**
    * Send email using the email service
    */
-  private async _sendEmail(params: {
+  async _sendEmail(params: {
     to: string;
     template: string;
     data: any;

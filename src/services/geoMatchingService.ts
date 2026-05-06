@@ -170,7 +170,7 @@ export class GeoMatchingService {
   /**
    * Get project coordinates (with fallback geocoding)
    */
-  private async _getProjectCoordinates(
+  async _getProjectCoordinates(
     project: any
   ): Promise<{ latitude: number; longitude: number } | null> {
     // If coordinates exist, use them
@@ -355,7 +355,7 @@ export class GeoMatchingService {
   /**
    * Create project notification for professional
    */
-  private async _createProjectNotification(
+  async _createProjectNotification(
     userId: string,
     projectId: string
   ): Promise<void> {

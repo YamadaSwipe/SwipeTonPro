@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Users, 
+import {
+  Users,
   Target,
   Settings,
   BarChart3,
@@ -24,230 +24,251 @@ import {
   Edit,
   Download,
   Search,
-  Filter
+  Filter,
+  MessageCircle,
 } from 'lucide-react';
 
 export default function AdminNavigationPage() {
   const adminPages = [
     // Pages principales
     {
-      category: "🏠 Pages Principales",
+      category: '🏠 Pages Principales',
       pages: [
         {
-          title: "Dashboard Admin",
+          title: 'Dashboard Admin',
           description: "Vue d'ensemble complète avec stats et accès rapide",
-          url: "/admin/index",
+          url: '/admin/index',
           icon: <BarChart3 className="w-5 h-5" />,
-          status: "actif",
-          features: ["Stats temps réel", "Accès rapide", "Actions recommandées"]
+          status: 'actif',
+          features: [
+            'Stats temps réel',
+            'Accès rapide',
+            'Actions recommandées',
+          ],
         },
         {
-          title: "CRM Leads",
-          description: "Gestion complète des leads et qualification",
-          url: "/admin/crm",
+          title: 'CRM Leads',
+          description: 'Gestion complète des leads et qualification',
+          url: '/admin/crm',
           icon: <Users className="w-5 h-5" />,
-          status: "actif",
-          features: ["Filtres avancés", "Export CSV", "Détails lead"]
+          status: 'actif',
+          features: ['Filtres avancés', 'Export CSV', 'Détails lead'],
         },
         {
-          title: "Paramètres Admin",
-          description: "Activer/désactiver les fonctionnalités",
-          url: "/admin/settings-page",
+          title: 'Paramètres Admin',
+          description: 'Activer/désactiver les fonctionnalités',
+          url: '/admin/settings-page',
           icon: <Settings className="w-5 h-5" />,
-          status: "actif",
-          features: ["Features toggle", "Configuration", "IA Matching"]
-        }
-      ]
+          status: 'actif',
+          features: ['Features toggle', 'Configuration', 'IA Matching'],
+        },
+      ],
     },
     // Gestion utilisateurs
     {
-      category: "👥 Gestion Utilisateurs",
+      category: '👥 Gestion Utilisateurs',
       pages: [
         {
-          title: "Utilisateurs",
-          description: "Créer et gérer tous les comptes utilisateurs",
-          url: "/admin/users",
+          title: 'Utilisateurs',
+          description: 'Créer et gérer tous les comptes utilisateurs',
+          url: '/admin/users',
           icon: <Users className="w-5 h-5" />,
-          status: "actif",
-          features: ["CRUD complet", "Rôles", "Permissions"]
+          status: 'actif',
+          features: ['CRUD complet', 'Rôles', 'Permissions'],
         },
         {
-          title: "Validation Professionnels",
-          description: "Valider les nouveaux artisans et documents",
-          url: "/admin/professionals-validation",
+          title: 'Validation Professionnels',
+          description: 'Valider les nouveaux artisans et documents',
+          url: '/admin/professionals-validation',
           icon: <CheckCircle className="w-5 h-5" />,
-          status: "actif",
-          features: ["Documents", "Vérification", "Validation"]
+          status: 'actif',
+          features: ['Documents', 'Vérification', 'Validation'],
         },
         {
-          title: "Rôles et Permissions",
-          description: "Gérer les rôles et permissions des utilisateurs",
-          url: "/admin/roles",
+          title: 'Rôles et Permissions',
+          description: 'Gérer les rôles et permissions des utilisateurs',
+          url: '/admin/roles',
           icon: <Settings className="w-5 h-5" />,
-          status: "actif",
-          features: ["Rôles", "Permissions", "Accès"]
-        }
-      ]
+          status: 'actif',
+          features: ['Rôles', 'Permissions', 'Accès'],
+        },
+      ],
     },
     // Gestion projets
     {
-      category: "📋 Gestion Projets",
+      category: '📋 Gestion Projets',
       pages: [
         {
-          title: "Création Projets",
-          description: "Créer des projets au nom des clients",
-          url: "/admin/create-project",
+          title: 'Création Projets',
+          description: 'Créer des projets au nom des clients',
+          url: '/admin/create-project',
           icon: <Target className="w-5 h-5" />,
-          status: "actif",
-          features: ["Formulaire complet", "Client proxy", "Publication"]
+          status: 'actif',
+          features: ['Formulaire complet', 'Client proxy', 'Publication'],
         },
         {
-          title: "Validation Projets",
-          description: "Valider et modérer les projets soumis",
-          url: "/admin/validate-projects",
+          title: 'Validation Projets',
+          description: 'Valider et modérer les projets soumis',
+          url: '/admin/validate-projects',
           icon: <CheckCircle className="w-5 h-5" />,
-          status: "actif",
-          features: ["Modération", "Validation", "Publication"]
-        }
-      ]
+          status: 'actif',
+          features: ['Modération', 'Validation', 'Publication'],
+        },
+      ],
     },
     // Analytics et stats
     {
-      category: "📊 Analytics et Statistiques",
+      category: '📊 Analytics et Statistiques',
       pages: [
         {
-          title: "Dashboard Graphiques",
-          description: "Visualisations avancées avec Recharts",
-          url: "/admin/dashboard-enhanced",
+          title: 'Dashboard Graphiques',
+          description: 'Visualisations avancées avec Recharts',
+          url: '/admin/dashboard-enhanced',
           icon: <BarChart3 className="w-5 h-5" />,
-          status: "actif",
-          features: ["Charts", "Responsive", "Temps réel"]
+          status: 'actif',
+          features: ['Charts', 'Responsive', 'Temps réel'],
         },
         {
-          title: "Analytics Général",
-          description: "Statistiques détaillées de la plateforme",
-          url: "/admin/analytics",
+          title: 'Analytics Général',
+          description: 'Statistiques détaillées de la plateforme',
+          url: '/admin/analytics',
           icon: <TrendingUp className="w-5 h-5" />,
-          status: "actif",
-          features: ["Metrics", "KPIs", "Tendances"]
+          status: 'actif',
+          features: ['Metrics', 'KPIs', 'Tendances'],
         },
         {
-          title: "Stats Homepage",
+          title: 'Stats Homepage',
           description: "Statistiques de la page d'accueil",
-          url: "/admin/homepage-stats",
+          url: '/admin/homepage-stats',
           icon: <BarChart3 className="w-5 h-5" />,
-          status: "actif",
-          features: ["Visites", "Conversions", "Performance"]
-        }
-      ]
+          status: 'actif',
+          features: ['Visites', 'Conversions', 'Performance'],
+        },
+      ],
     },
     // Finance et monétisation
     {
-      category: "💰 Finance et Monétisation",
+      category: '💰 Finance et Monétisation',
       pages: [
         {
-          title: "Commission Dashboard",
-          description: "Suivi des commissions et paiements",
-          url: "/admin/commission-dashboard",
+          title: 'Commission Dashboard',
+          description: 'Suivi des commissions et paiements',
+          url: '/admin/commission-dashboard',
           icon: <DollarSign className="w-5 h-5" />,
-          status: "inactif",
-          features: ["Commissions", "Paiements", "Tiers"]
+          status: 'inactif',
+          features: ['Commissions', 'Paiements', 'Tiers'],
         },
         {
-          title: "Finances",
-          description: "Gestion financière et rapports",
-          url: "/admin/finances",
+          title: 'Finances',
+          description: 'Gestion financière et rapports',
+          url: '/admin/finances',
           icon: <DollarSign className="w-5 h-5" />,
-          status: "actif",
-          features: ["Rapports", "Transactions", "Budget"]
+          status: 'actif',
+          features: ['Rapports', 'Transactions', 'Budget'],
         },
         {
-          title: "Pricing",
-          description: "Configuration des prix et tarifs",
-          url: "/admin/pricing",
+          title: 'Pricing',
+          description: 'Configuration des prix et tarifs',
+          url: '/admin/pricing',
           icon: <DollarSign className="w-5 h-5" />,
-          status: "actif",
-          features: ["Tarifs", "Packs", "Abonnements"]
-        }
-      ]
+          status: 'actif',
+          features: ['Tarifs', 'Packs', 'Abonnements'],
+        },
+      ],
     },
     // Communication
     {
-      category: "📧 Communication",
+      category: '📧 Communication',
       pages: [
         {
-          title: "Emails",
+          title: 'Emails',
           description: "Gestion des templates et envois d'emails",
-          url: "/admin/emails",
+          url: '/admin/emails',
           icon: <Mail className="w-5 h-5" />,
-          status: "actif",
-          features: ["Templates", "Envois", "Tracking"]
+          status: 'actif',
+          features: ['Templates', 'Envois', 'Tracking'],
         },
         {
-          title: "Notifications",
-          description: "Configuration des notifications système",
-          url: "/admin/notification-settings",
+          title: 'Notifications',
+          description: 'Configuration des notifications système',
+          url: '/admin/notification-settings',
           icon: <MessageSquare className="w-5 h-5" />,
-          status: "actif",
-          features: ["Push", "Email", "SMS"]
+          status: 'actif',
+          features: ['Push', 'Email', 'SMS'],
         },
         {
-          title: "SMTP Config",
-          description: "Configuration du serveur SMTP",
-          url: "/admin/smtp-config",
-          icon: <Settings className="w-5 h-5" />,
-          status: "actif",
-          features: ["SMTP", "Email", "Configuration"]
-        }
-      ]
+          title: 'SMTP Config',
+          description: 'Configuration des emails SMTP',
+          url: '/admin/smtp-config',
+          icon: <Mail className="w-5 h-5" />,
+          status: 'actif',
+          features: ['SMTP', 'Email', 'Configuration'],
+        },
+        {
+          title: 'WhatsApp',
+          description: 'Configuration du bouton WhatsApp',
+          url: '/admin/whatsapp-settings',
+          icon: <MessageCircle className="w-5 h-5" />,
+          status: 'actif',
+          features: ['WhatsApp', 'Contact', 'Numéro modifiable'],
+        },
+      ],
     },
     // Système et logs
     {
-      category: "⚙️ Système et Logs",
+      category: '⚙️ Système et Logs',
       pages: [
         {
-          title: "Activity Logs",
+          title: 'Activity Logs',
           description: "Journal d'activité du système",
-          url: "/admin/activity-logs",
+          url: '/admin/activity-logs',
           icon: <FileText className="w-5 h-5" />,
-          status: "actif",
-          features: ["Logs", "Audit", "Historique"]
+          status: 'actif',
+          features: ['Logs', 'Audit', 'Historique'],
         },
         {
-          title: "Audit Test",
+          title: 'Audit Test',
           description: "Tests d'audit et vérifications",
-          url: "/admin/audit-test",
+          url: '/admin/audit-test',
           icon: <CheckCircle className="w-5 h-5" />,
-          status: "actif",
-          features: ["Tests", "Vérifications", "Rapports"]
+          status: 'actif',
+          features: ['Tests', 'Vérifications', 'Rapports'],
         },
         {
-          title: "Setup",
-          description: "Configuration initiale du système",
-          url: "/admin/setup",
+          title: 'Setup',
+          description: 'Configuration initiale du système',
+          url: '/admin/setup',
           icon: <Settings className="w-5 h-5" />,
-          status: "actif",
-          features: ["Setup", "Configuration", "Initialisation"]
-        }
-      ]
-    }
+          status: 'actif',
+          features: ['Setup', 'Configuration', 'Initialisation'],
+        },
+      ],
+    },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'actif': return 'bg-green-100 text-green-800';
-      case 'inactif': return 'bg-gray-100 text-gray-800';
-      case 'beta': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'actif':
+        return 'bg-green-100 text-green-800';
+      case 'inactif':
+        return 'bg-gray-100 text-gray-800';
+      case 'beta':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'actif': return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'inactif': return <AlertCircle className="w-4 h-4 text-gray-600" />;
-      case 'beta': return <AlertCircle className="w-4 h-4 text-purple-600" />;
-      default: return <AlertCircle className="w-4 h-4 text-gray-600" />;
+      case 'actif':
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'inactif':
+        return <AlertCircle className="w-4 h-4 text-gray-600" />;
+      case 'beta':
+        return <AlertCircle className="w-4 h-4 text-purple-600" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-gray-600" />;
     }
   };
 
@@ -323,28 +344,34 @@ export default function AdminNavigationPage() {
                           </div>
                           <div className="flex items-center space-x-1">
                             {getStatusIcon(page.status)}
-                            <Badge className={`text-xs ${getStatusColor(page.status)}`}>
+                            <Badge
+                              className={`text-xs ${getStatusColor(page.status)}`}
+                            >
                               {page.status}
                             </Badge>
                           </div>
                         </div>
-                        
+
                         <h3 className="font-semibold text-gray-900 mb-2">
                           {page.title}
                         </h3>
                         <p className="text-sm text-gray-600 mb-3">
                           {page.description}
                         </p>
-                        
+
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-1">
                             {page.features.map((feature, featureIndex) => (
-                              <Badge key={featureIndex} variant="outline" className="text-xs">
+                              <Badge
+                                key={featureIndex}
+                                variant="outline"
+                                className="text-xs"
+                              >
                                 {feature}
                               </Badge>
                             ))}
                           </div>
-                          
+
                           <div className="flex items-center justify-between pt-2 border-t">
                             <span className="text-xs text-gray-500">
                               {page.url}
@@ -369,30 +396,53 @@ export default function AdminNavigationPage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-medium text-blue-800 mb-2">🎯 Pages recommandées pour commencer</h4>
+                <h4 className="font-medium text-blue-800 mb-2">
+                  🎯 Pages recommandées pour commencer
+                </h4>
                 <ol className="space-y-1 text-sm text-blue-700">
-                  <li>1. <strong>/admin/index</strong> - Dashboard principal</li>
-                  <li>2. <strong>/admin/settings-page</strong> - Configurer les features</li>
-                  <li>3. <strong>/admin/crm</strong> - Gérer les leads</li>
-                  <li>4. <strong>/admin/users</strong> - Gérer les utilisateurs</li>
+                  <li>
+                    1. <strong>/admin/index</strong> - Dashboard principal
+                  </li>
+                  <li>
+                    2. <strong>/admin/settings-page</strong> - Configurer les
+                    features
+                  </li>
+                  <li>
+                    3. <strong>/admin/crm</strong> - Gérer les leads
+                  </li>
+                  <li>
+                    4. <strong>/admin/users</strong> - Gérer les utilisateurs
+                  </li>
                 </ol>
               </div>
               <div>
-                <h4 className="font-medium text-blue-800 mb-2">⚙️ Pages de configuration</h4>
+                <h4 className="font-medium text-blue-800 mb-2">
+                  ⚙️ Pages de configuration
+                </h4>
                 <ol className="space-y-1 text-sm text-blue-700">
-                  <li>1. <strong>/admin/settings-page</strong> - Features IA/automatisation</li>
-                  <li>2. <strong>/admin/pricing</strong> - Tarifs et monétisation</li>
-                  <li>3. <strong>/admin/emails</strong> - Templates emails</li>
-                  <li>4. <strong>/admin/roles</strong> - Permissions et rôles</li>
+                  <li>
+                    1. <strong>/admin/settings-page</strong> - Features
+                    IA/automatisation
+                  </li>
+                  <li>
+                    2. <strong>/admin/pricing</strong> - Tarifs et monétisation
+                  </li>
+                  <li>
+                    3. <strong>/admin/emails</strong> - Templates emails
+                  </li>
+                  <li>
+                    4. <strong>/admin/roles</strong> - Permissions et rôles
+                  </li>
                 </ol>
               </div>
             </div>
-            
+
             <div className="mt-4 p-3 bg-white rounded-lg">
               <p className="text-sm text-blue-700">
-                💡 <strong>Astuce:</strong> Toutes les pages sont déjà créées et fonctionnelles. 
-                Cliquez sur les liens pour y accéder directement. Les pages "inactives" nécessitent 
-                d'activer les fonctionnalités correspondantes dans les paramètres.
+                💡 <strong>Astuce:</strong> Toutes les pages sont déjà créées et
+                fonctionnelles. Cliquez sur les liens pour y accéder
+                directement. Les pages "inactives" nécessitent d'activer les
+                fonctionnalités correspondantes dans les paramètres.
               </p>
             </div>
           </CardContent>
@@ -401,7 +451,9 @@ export default function AdminNavigationPage() {
         {/* Stats */}
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">📊 Statistiques des pages admin</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              📊 Statistiques des pages admin
+            </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">25+</div>

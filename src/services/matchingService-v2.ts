@@ -198,7 +198,7 @@ export class MatchingServiceV2 {
    * Send notification for project interest
    * Private method to handle notification logic
    */
-  private async _sendInterestNotification(data: {
+  async _sendInterestNotification(data: {
     userId: string;
     projectId: string;
     projectName: string;

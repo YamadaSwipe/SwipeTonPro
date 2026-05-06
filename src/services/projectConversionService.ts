@@ -27,17 +27,20 @@ export const projectConversionService = {
   /**
    * Convertit une estimation en projet ferme
    */
-  async convertEstimationToProject(conversionData: ConversionData): Promise<ConversionResult> {
+  async convertEstimationToProject(
+    conversionData: ConversionData
+  ): Promise<ConversionResult> {
     try {
       console.log('🔄 Début conversion estimation → projet ferme:', {
         estimationId: conversionData.estimationId,
-        professionalId: conversionData.professionalId
+        professionalId: conversionData.professionalId,
       });
 
       // 1. Récupérer les données de l'estimation
       const { data: estimation, error: estimationError } = await supabase
         .from('projects')
-        .select(`
+        .select(
+          `
           *,
           client_id,
           title,
@@ -50,7 +53,8 @@ export const projectConversionService = {
           budget_max,
           photos,
           ai_price_estimate
-        `)
+        `
+        )
         .eq('id', conversionData.estimationId)
         .eq('project_type', 'estimation')
         .single();
@@ -59,7 +63,7 @@ export const projectConversionService = {
         console.error('❌ Erreur récupération estimation:', estimationError);
         return {
           success: false,
-          error: 'Estimation non trouvée ou déjà convertie'
+          error: 'Estimation non trouvée ou déjà convertie',
         };
       }
 
@@ -67,7 +71,7 @@ export const projectConversionService = {
       if (estimation.estimation_status === 'converted') {
         return {
           success: false,
-          error: 'Cette estimation a déjà été convertie en projet'
+          error: 'Cette estimation a déjà été convertie en projet',
         };
       }
 
@@ -82,19 +86,21 @@ export const projectConversionService = {
       if (matchError || !existingMatch) {
         return {
           success: false,
-          error: 'Aucun match trouvé entre ce professionnel et cette estimation'
+          error:
+            'Aucun match trouvé entre ce professionnel et cette estimation',
         };
       }
 
       // 4. Calculer le budget du projet ferme
-      const projectBudget = conversionData.estimatedBudget || 
-        estimation.ai_price_estimate?.max || 
+      const projectBudget =
+        conversionData.estimatedBudget ||
+        estimation.ai_price_estimate?.max ||
         estimation.budget_max;
 
       if (!projectBudget || projectBudget < 1000) {
         return {
           success: false,
-          error: 'Budget invalide pour la création du projet ferme'
+          error: 'Budget invalide pour la création du projet ferme',
         };
       }
 
@@ -103,8 +109,10 @@ export const projectConversionService = {
         .from('projects')
         .insert({
           client_id: estimation.client_id,
-          title: conversionData.projectTitle || `[PROJET FERME] ${estimation.title}`,
-          description: conversionData.projectDescription || estimation.description,
+          title:
+            conversionData.projectTitle || `[PROJET FERME] ${estimation.title}`,
+          description:
+            conversionData.projectDescription || estimation.description,
           category: estimation.category,
           city: estimation.city,
           postal_code: estimation.postal_code,
@@ -116,7 +124,7 @@ export const projectConversionService = {
           ai_price_estimate: estimation.ai_price_estimate,
           photos: estimation.photos,
           parent_project_id: conversionData.estimationId,
-          validation_status: 'approved' // Auto-approuvé car conversion
+          validation_status: 'approved', // Auto-approuvé car conversion
         })
         .select()
         .single();
@@ -125,7 +133,7 @@ export const projectConversionService = {
         console.error('❌ Erreur création projet ferme:', projectError);
         return {
           success: false,
-          error: 'Erreur lors de la création du projet ferme'
+          error: 'Erreur lors de la création du projet ferme',
         };
       }
 
@@ -140,7 +148,7 @@ export const projectConversionService = {
         await supabase.from('projects').delete().eq('id', newProject.id);
         return {
           success: false,
-          error: 'Erreur lors de la création des étapes de paiement'
+          error: 'Erreur lors de la création des étapes de paiement',
         };
       }
 
@@ -157,7 +165,7 @@ export const projectConversionService = {
           fee_amount: matchingFee,
           status: 'pending',
           payment_method: 'stripe_escrow',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -166,7 +174,7 @@ export const projectConversionService = {
         console.error('❌ Erreur création match:', newMatchError);
         return {
           success: false,
-          error: 'Erreur lors de la création du match'
+          error: 'Erreur lors de la création du match',
         };
       }
 
@@ -175,7 +183,7 @@ export const projectConversionService = {
         .from('projects')
         .update({
           estimation_status: 'converted',
-          converted_at: new Date().toISOString()
+          converted_at: new Date().toISOString(),
         })
         .eq('id', conversionData.estimationId);
 
@@ -209,21 +217,20 @@ export const projectConversionService = {
         estimationId: conversionData.estimationId,
         projectId: newProject.id,
         matchId: newMatch.id,
-        budget: projectBudget
+        budget: projectBudget,
       });
 
       return {
         success: true,
         projectId: newProject.id,
         matchId: newMatch.id,
-        stripeCheckoutUrl
+        stripeCheckoutUrl,
       };
-
     } catch (error) {
       console.error('❌ Erreur service convertEstimationToProject:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la conversion'
+        error: 'Erreur serveur lors de la conversion',
       };
     }
   },
@@ -231,7 +238,7 @@ export const projectConversionService = {
   /**
    * Crée une session Stripe checkout pour le paiement
    */
-  private async createStripeCheckoutSession(
+  async createStripeCheckoutSession(
     projectId: string,
     matchId: string,
     projectAmount: number,
@@ -248,11 +255,10 @@ export const projectConversionService = {
         projectAmount,
         feeAmount,
         totalAmount: projectAmount + feeAmount,
-        checkoutSessionId
+        checkoutSessionId,
       });
 
       return checkoutUrl;
-
     } catch (error) {
       console.error('❌ Erreur création session Stripe:', error);
       throw new Error('Erreur lors de la création de la session de paiement');
@@ -262,7 +268,7 @@ export const projectConversionService = {
   /**
    * Notifie le professionnel de la conversion
    */
-  private async notifyProfessionalConversion(
+  async notifyProfessionalConversion(
     professionalId: string,
     estimation: any,
     newProject: any
@@ -282,7 +288,7 @@ export const projectConversionService = {
           companyName: professional.company_name,
           estimationTitle: estimation.title,
           newProjectId: newProject.id,
-          budget: newProject.budget_max
+          budget: newProject.budget_max,
         });
       }
     } catch (error) {
@@ -293,7 +299,7 @@ export const projectConversionService = {
   /**
    * Notifie le client de la conversion
    */
-  private async notifyClientConversion(
+  async notifyClientConversion(
     clientId: string,
     estimation: any,
     newProject: any
@@ -305,7 +311,7 @@ export const projectConversionService = {
         estimationTitle: estimation.title,
         newProjectId: newProject.id,
         budget: newProject.budget_max,
-        stripeEscrow: newProject.stripe_escrow_active
+        stripeEscrow: newProject.stripe_escrow_active,
       });
     } catch (error) {
       console.error('❌ Erreur notification client conversion:', error);
@@ -323,13 +329,15 @@ export const projectConversionService = {
     try {
       const { data: conversions, error } = await supabase
         .from('projects')
-        .select(`
+        .select(
+          `
           *,
           parent:projects!projects_parent_project_id_fkey(
             title,
             created_at
           )
-        `)
+        `
+        )
         .eq('client_id', clientId)
         .eq('project_type', 'firm_project')
         .not('parent_project_id', 'is', null)
@@ -339,20 +347,19 @@ export const projectConversionService = {
         console.error('❌ Erreur récupération conversions:', error);
         return {
           success: false,
-          error: 'Erreur lors de la récupération des conversions'
+          error: 'Erreur lors de la récupération des conversions',
         };
       }
 
       return {
         success: true,
-        conversions
+        conversions,
       };
-
     } catch (error) {
       console.error('❌ Erreur service getClientConversions:', error);
       return {
         success: false,
-        error: 'Erreur serveur lors de la récupération'
+        error: 'Erreur serveur lors de la récupération',
       };
     }
   },
@@ -380,7 +387,7 @@ export const projectConversionService = {
       if (error || !estimation) {
         return {
           canConvert: false,
-          reason: 'Estimation non trouvée'
+          reason: 'Estimation non trouvée',
         };
       }
 
@@ -388,14 +395,14 @@ export const projectConversionService = {
       if (estimation.estimation_status === 'converted') {
         return {
           canConvert: false,
-          reason: 'Cette estimation a déjà été convertie'
+          reason: 'Cette estimation a déjà été convertie',
         };
       }
 
       if (estimation.estimation_status === 'expired') {
         return {
           canConvert: false,
-          reason: 'Cette estimation a expiré'
+          reason: 'Cette estimation a expiré',
         };
       }
 
@@ -410,23 +417,22 @@ export const projectConversionService = {
       if (!match) {
         return {
           canConvert: false,
-          reason: 'Aucun match trouvé pour ce professionnel'
+          reason: 'Aucun match trouvé pour ce professionnel',
         };
       }
 
       return {
         canConvert: true,
-        estimation
+        estimation,
       };
-
     } catch (error) {
       console.error('❌ Erreur service canConvertEstimation:', error);
       return {
         canConvert: false,
-        reason: 'Erreur lors de la vérification'
+        reason: 'Erreur lors de la vérification',
       };
     }
-  }
+  },
 };
 
 export type { ConversionData, ConversionResult };

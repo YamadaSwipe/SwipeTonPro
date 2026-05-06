@@ -11,6 +11,15 @@ const ErrorBoundary = dynamic(() => import('@/components/ErrorBoundary'), {
 const ScrollToTop = dynamic(() => import('@/components/ScrollToTop'), {
   ssr: false,
 });
+const WhatsAppButton = dynamic(
+  () =>
+    import('@/components/WhatsAppButton').then((m) => ({
+      default: m.WhatsAppButton,
+    })),
+  {
+    ssr: false,
+  }
+);
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -19,6 +28,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
         <Toaster />
         <ScrollToTop />
+        <WhatsAppButton />
       </AuthProvider>
     </ErrorBoundary>
   );
