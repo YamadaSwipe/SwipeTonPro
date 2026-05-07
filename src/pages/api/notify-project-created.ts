@@ -198,7 +198,9 @@ export default async function handler(
           budgetMin: project.budget_min,
           budgetMax: project.budget_max,
           description: project.description || '',
-          workType: project.work_types?.join(', ') || project.category || '',
+          workType: Array.isArray(project.work_type)
+            ? project.work_type.join(', ')
+            : project.work_type || project.category || '',
           urgency: project.urgency || 'medium',
           adminUrl: `${BASE_URL}/admin/projects`,
         }),
