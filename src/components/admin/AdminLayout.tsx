@@ -74,9 +74,9 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   // SÉCURITÉ RENFORCÉE: Vérification stricte de l'accès admin
   useEffect(() => {
     // Vérifier si c'est un admin Supabase valide
+    const userRole = (supabaseUser as any)?.role;
     const isSupabaseAdmin =
-      supabaseUser &&
-      (supabaseUser.role === 'admin' || supabaseUser.role === 'super_admin');
+      supabaseUser && (userRole === 'admin' || userRole === 'super_admin');
 
     // Conditions d'accès:
     // - Admin fantôme avec isolation vérifiée
