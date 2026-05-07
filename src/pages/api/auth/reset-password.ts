@@ -56,8 +56,10 @@ export default async function handler(
       });
     }
 
+    // @ts-ignore - properties properties not fully typed
     const resetLink =
-      linkData.properties?.action_link || linkData.properties?.link;
+      (linkData.properties as any)?.action_link ||
+      (linkData.properties as any)?.link;
 
     console.log('✅ Lien de réinitialisation généré pour:', email);
 
