@@ -9,7 +9,10 @@ interface QuotaCheck {
   professionalId?: string;
 }
 
-export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaCheck): Promise<{
+export async function quotaMiddleware(
+  request: NextRequest,
+  quotaCheck: QuotaCheck
+): Promise<{
   canProceed: boolean;
   response?: NextResponse;
   moderationMessage?: any;
@@ -23,9 +26,12 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
           return {
             canProceed: false,
             response: NextResponse.json(
-              { error: 'professionalId requis pour vérifier le quota professionnel' },
+              {
+                error:
+                  'professionalId requis pour vérifier le quota professionnel',
+              },
               { status: 400 }
-            )
+            ),
           };
         }
 
@@ -34,9 +40,10 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
         );
 
         if (!result.canSendEstimate) {
-          const moderationMessage = await fluxModerationService.checkProfessionalFlux(
-            quotaCheck.professionalId
-          );
+          const moderationMessage =
+            await fluxModerationService.checkProfessionalFlux(
+              quotaCheck.professionalId
+            );
 
           return {
             canProceed: false,
@@ -48,12 +55,12 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
                 quotaInfo: {
                   currentCount: result.currentCount,
                   remainingCount: result.remainingCount,
-                  resetTime: result.resetTime
+                  resetTime: result.resetTime,
                 },
-                moderationMessage: moderationMessage.message
+                moderationMessage: moderationMessage.message,
               },
               { status: 429 } // Too Many Requests
-            )
+            ),
           };
         }
         break;
@@ -65,7 +72,7 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
             response: NextResponse.json(
               { error: 'userId requis pour vérifier le quota client' },
               { status: 400 }
-            )
+            ),
           };
         }
 
@@ -88,12 +95,12 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
                 quotaInfo: {
                   currentCount: result.currentCount,
                   remainingCount: result.remainingCount,
-                  resetTime: result.resetTime
+                  resetTime: result.resetTime,
                 },
-                moderationMessage: moderationMessage.message
+                moderationMessage: moderationMessage.message,
               },
               { status: 429 }
-            )
+            ),
           };
         }
         break;
@@ -105,7 +112,7 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
             response: NextResponse.json(
               { error: 'projectId requis pour vérifier le quota de projet' },
               { status: 400 }
-            )
+            ),
           };
         }
 
@@ -114,9 +121,8 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
         );
 
         if (!result.canReceiveEstimate) {
-          const moderationMessage = await fluxModerationService.checkProjectFlux(
-            quotaCheck.projectId
-          );
+          const moderationMessage =
+            await fluxModerationService.checkProjectFlux(quotaCheck.projectId);
 
           return {
             canProceed: false,
@@ -128,12 +134,12 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
                 quotaInfo: {
                   currentCount: result.currentCount,
                   remainingCount: result.remainingCount,
-                  projectStatus: result.projectStatus
+                  projectStatus: result.projectStatus,
                 },
-                moderationMessage: moderationMessage.message
+                moderationMessage: moderationMessage.message,
               },
               { status: 429 }
-            )
+            ),
           };
         }
         break;
@@ -144,12 +150,11 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
           response: NextResponse.json(
             { error: 'Type de quota non valide' },
             { status: 400 }
-          )
+          ),
         };
     }
 
     return { canProceed: true };
-
   } catch (error) {
     console.error('❌ Erreur quotaMiddleware:', error);
     return {
@@ -157,7 +162,7 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
       response: NextResponse.json(
         { error: 'Erreur serveur lors de la vérification des quotas' },
         { status: 500 }
-      )
+      ),
     };
   }
 }
@@ -168,7 +173,7 @@ export async function quotaMiddleware(request: NextRequest, quotaCheck: QuotaChe
 export function withQuotaCheck(quotaCheck: QuotaCheck) {
   return async (request: NextRequest, context?: any) => {
     const quotaResult = await quotaMiddleware(request, quotaCheck);
-    
+
     if (!quotaResult.canProceed) {
       return quotaResult.response;
     }
@@ -193,8 +198,9 @@ export async function checkEstimationQuotas(
   const checks = [];
 
   // Vérifier quota client hebdomadaire
+  // @ts-ignore - Type cast for internal API call
   const clientQuota = await quotaMiddleware(
-    new Request('http://localhost:3000'),
+    new Request('http://localhost:3000') as NextRequest,
     { type: 'client_weekly', userId: clientId }
   );
 
@@ -203,8 +209,9 @@ export async function checkEstimationQuotas(
   }
 
   // Vérifier quota professionnel quotidien
+  // @ts-ignore - Type cast for internal API call
   const proQuota = await quotaMiddleware(
-    new Request('http://localhost:3000'),
+    new Request('http://localhost:3000') as NextRequest,
     { type: 'professional_daily', professionalId }
   );
 
@@ -236,14 +243,20 @@ export function formatQuotaInfo(quotaInfo: any): string {
   const { currentCount, remainingCount, resetTime, projectStatus } = quotaInfo;
 
   let message = `Quota: ${currentCount} utilisés, ${remainingCount} restants`;
-  
+
   if (resetTime) {
     const resetDate = new Date(resetTime);
-    message += ` • Reset: ${resetDate.toLocaleString('fr-FR', { 
-      hour: '2-digit', 
+    message += ` • Reset: ${resetDate.toLocaleString('fr-FR', {
+      hour: '2-digit',
       minute: '2-digit',
-      day: resetDate.toDateString() !== new Date().toDateString() ? 'numeric' : undefined,
-      month: resetDate.toDateString() !== new Date().toDateString() ? 'numeric' : undefined
+      day:
+        resetDate.toDateString() !== new Date().toDateString()
+          ? 'numeric'
+          : undefined,
+      month:
+        resetDate.toDateString() !== new Date().toDateString()
+          ? 'numeric'
+          : undefined,
     })}`;
   }
 
