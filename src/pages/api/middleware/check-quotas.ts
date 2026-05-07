@@ -1,7 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { checkEstimationQuotas } from '@/middleware/quotaMiddleware';
 
-export default async function handler(req: NextApiRequest, response: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  response: NextApiResponse
+) {
   // Uniquement POST
   if (req.method !== 'POST') {
     return response.status(405).json({ error: 'Méthode non autorisée' });
@@ -12,20 +15,21 @@ export default async function handler(req: NextApiRequest, response: NextApiResp
 
     // Validation des données
     if (!clientId || !professionalId) {
-      return response.status(400).json({ 
-        error: 'clientId et professionalId requis' 
+      return response.status(400).json({
+        error: 'clientId et professionalId requis',
       });
     }
 
     if (typeof clientId !== 'string' || typeof professionalId !== 'string') {
-      return response.status(400).json({ 
-        error: 'clientId et professionalId doivent être des chaînes de caractères' 
+      return response.status(400).json({
+        error:
+          'clientId et professionalId doivent être des chaînes de caractères',
       });
     }
 
     if (projectId && typeof projectId !== 'string') {
-      return response.status(400).json({ 
-        error: 'projectId doit être une chaîne de caractères' 
+      return response.status(400).json({
+        error: 'projectId doit être une chaîne de caractères',
       });
     }
 
@@ -40,7 +44,7 @@ export default async function handler(req: NextApiRequest, response: NextApiResp
       return response.status(200).json({
         success: true,
         message: 'Tous les quotas sont respectés',
-        canProceed: true
+        canProceed: true,
       });
     } else {
       return response.status(429).json({
@@ -48,14 +52,16 @@ export default async function handler(req: NextApiRequest, response: NextApiResp
         error: 'Quota dépassé',
         canProceed: false,
         moderationMessage: quotaResult.moderationMessage,
-        quotaInfo: quotaResult.response ? JSON.parse(quotaResult.response.body) : null
+        // @ts-ignore - body type is ReadableStream
+        quotaInfo: quotaResult.response
+          ? JSON.parse(quotaResult.response.body as any)
+          : null,
       });
     }
-
   } catch (error) {
     console.error('❌ Erreur API middleware/check-quotas:', error);
-    return response.status(500).json({ 
-      error: 'Erreur serveur lors de la vérification des quotas' 
+    return response.status(500).json({
+      error: 'Erreur serveur lors de la vérification des quotas',
     });
   }
 }
