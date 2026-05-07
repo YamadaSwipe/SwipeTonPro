@@ -486,17 +486,18 @@ export default function AdminProjectsPage() {
 
                         {/* Détails */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {project.work_types &&
-                            project.work_types.length > 0 && (
-                              <div>
-                                <p className="text-xs text-gray-500 mb-1">
-                                  Type de travaux
-                                </p>
-                                <p className="text-sm text-white">
-                                  {project.work_types.join(', ')}
-                                </p>
-                              </div>
-                            )}
+                          {project.work_type && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">
+                                Type de travaux
+                              </p>
+                              <p className="text-sm text-white">
+                                {Array.isArray(project.work_type)
+                                  ? project.work_type.join(', ')
+                                  : project.work_type}
+                              </p>
+                            </div>
+                          )}
                           {project.urgency && (
                             <div>
                               <p className="text-xs text-gray-500 mb-1">
