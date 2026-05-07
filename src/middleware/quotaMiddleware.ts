@@ -205,7 +205,11 @@ export async function checkEstimationQuotas(
   );
 
   if (!clientQuota.canProceed) {
-    return clientQuota;
+    return {
+      canCreate: false,
+      response: clientQuota.response,
+      moderationMessage: clientQuota.moderationMessage,
+    };
   }
 
   // Vérifier quota professionnel quotidien
@@ -216,18 +220,27 @@ export async function checkEstimationQuotas(
   );
 
   if (!proQuota.canProceed) {
-    return proQuota;
+    return {
+      canCreate: false,
+      response: proQuota.response,
+      moderationMessage: proQuota.moderationMessage,
+    };
   }
 
   // Vérifier quota de projet si spécifié
   if (projectId) {
+    // @ts-ignore - Type cast for internal API call
     const projectQuota = await quotaMiddleware(
-      new Request('http://localhost:3000'),
+      new Request('http://localhost:3000') as NextRequest,
       { type: 'project_responses', projectId }
     );
 
     if (!projectQuota.canProceed) {
-      return projectQuota;
+      return {
+        canCreate: false,
+        response: projectQuota.response,
+        moderationMessage: projectQuota.moderationMessage,
+      };
     }
   }
 
