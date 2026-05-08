@@ -339,7 +339,7 @@ export default function ProfessionnelsCommentCaMarchePage() {
                   <CardContent className="p-8">
                     <div className="flex items-start gap-4">
                       <div className="h-12 w-12 rounded-lg bg-blue-600/10 flex items-center justify-center flex-shrink-0">
-                        {React.createElement(benefit.icon, {
+                        {React.createElement(benefit.icon as any, {
                           className: 'h-6 w-6 text-blue-600',
                         })}
                       </div>
