@@ -1,3 +1,4 @@
+import React from 'react';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -339,10 +340,9 @@ export default function ParticuliersCommentCaMarchePage() {
                   <CardContent className="p-8">
                     <div className="flex items-start gap-4">
                       <div className="h-12 w-12 rounded-lg bg-emerald-600/10 flex items-center justify-center flex-shrink-0">
-                        {(() => {
-                          const Icon = benefit.icon;
-                          return <Icon className="h-6 w-6 text-emerald-600" />;
-                        })()}
+                        {React.createElement(benefit.icon, {
+                          className: 'h-6 w-6 text-emerald-600',
+                        })}
                       </div>
                       <div className="flex-1">
                         <h3 className="text-xl font-heading font-bold mb-2">
@@ -385,7 +385,9 @@ export default function ParticuliersCommentCaMarchePage() {
                 >
                   <CardContent className="p-8">
                     <div className="h-16 w-16 rounded-lg bg-emerald-600/10 flex items-center justify-center mx-auto mb-6">
-                      <guarantee.icon className="h-8 w-8 text-emerald-600" />
+                      {React.createElement(guarantee.icon, {
+                        className: 'h-8 w-8 text-emerald-600',
+                      })}
                     </div>
                     <h3 className="text-xl font-heading font-bold mb-4">
                       {guarantee.title}
