@@ -138,7 +138,7 @@ export default function AdminManageUsers() {
     location: '',
     city: '',
     postal_code: '',
-    work_types: [],
+    work_type: [],
     budget_min: '',
     budget_max: '',
     urgency: 'medium',
