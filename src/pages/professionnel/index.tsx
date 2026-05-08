@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Users,
   Star,
+  Lock,
 } from 'lucide-react';
 import Link from 'next/link';
 
