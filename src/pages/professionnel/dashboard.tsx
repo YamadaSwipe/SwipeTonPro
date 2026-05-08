@@ -648,9 +648,9 @@ function ProfessionalDashboardContent() {
                         </div>
 
                         {/* Actions pour l'accord mutuel si le projet est matché */}
-                        {project.status === 'matched' && (
+                        {project.status === 'published' && (
                           <div className="mt-3 pt-3 border-t">
-                            {project.accord_status === 'generated' ? (
+                            {(project as any).accord_status === 'generated' ? (
                               <div className="flex gap-2">
                                 <Button
                                   variant="outline"
