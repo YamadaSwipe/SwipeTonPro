@@ -1,6 +1,13 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = "super_admin" | "admin" | "support" | "moderator" | "team" | "professionnel" | "particulier";
+export type UserRole =
+  | 'super_admin'
+  | 'admin'
+  | 'support'
+  | 'moderator'
+  | 'team'
+  | 'professionnel'
+  | 'particulier';
 
 interface CreateUserData {
   email: string;
@@ -18,7 +25,7 @@ interface CreateProjectData {
   location: string;
   city: string;
   postal_code: string;
-  work_types?: string[];
+  work_type?: string[];
   budget_min?: number;
   budget_max?: number;
   urgency?: string;
@@ -31,20 +38,22 @@ export const adminService = {
   /**
    * Create a user (API call, backend-only function)
    */
-  async createUser(userData: CreateUserData): Promise<{ success: boolean; userId?: string; error?: string }> {
+  async createUser(
+    userData: CreateUserData
+  ): Promise<{ success: boolean; userId?: string; error?: string }> {
     try {
       const session = await supabase.auth.getSession();
       if (!session.data.session) {
-        return { success: false, error: "Not authenticated" };
+        return { success: false, error: 'Not authenticated' };
       }
 
-      const response = await fetch("/api/admin/create-user", {
-        method: "POST",
+      const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.data.session.access_token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.data.session.access_token}`,
         },
-        body: JSON.stringify(userData)
+        body: JSON.stringify(userData),
       });
 
       const data = await response.json();
@@ -62,20 +71,22 @@ export const adminService = {
   /**
    * Create a project (API call, backend-only function)
    */
-  async createProject(projectData: CreateProjectData): Promise<{ success: boolean; projectId?: string; error?: string }> {
+  async createProject(
+    projectData: CreateProjectData
+  ): Promise<{ success: boolean; projectId?: string; error?: string }> {
     try {
       const session = await supabase.auth.getSession();
       if (!session.data.session) {
-        return { success: false, error: "Not authenticated" };
+        return { success: false, error: 'Not authenticated' };
       }
 
-      const response = await fetch("/api/admin/manage-projects", {
-        method: "POST",
+      const response = await fetch('/api/admin/manage-projects', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.data.session.access_token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.data.session.access_token}`,
         },
-        body: JSON.stringify(projectData)
+        body: JSON.stringify(projectData),
       });
 
       const data = await response.json();
@@ -93,24 +104,27 @@ export const adminService = {
   /**
    * Validate a project
    */
-  async validateProject(projectId: string, notes?: string): Promise<{ success: boolean; error?: string }> {
+  async validateProject(
+    projectId: string,
+    notes?: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const session = await supabase.auth.getSession();
       if (!session.data.session) {
-        return { success: false, error: "Not authenticated" };
+        return { success: false, error: 'Not authenticated' };
       }
 
-      const response = await fetch("/api/admin/manage-projects", {
-        method: "PATCH",
+      const response = await fetch('/api/admin/manage-projects', {
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.data.session.access_token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.data.session.access_token}`,
         },
         body: JSON.stringify({
           project_id: projectId,
-          action: "validate",
-          validation_notes: notes
-        })
+          action: 'validate',
+          validation_notes: notes,
+        }),
       });
 
       const data = await response.json();
@@ -128,24 +142,27 @@ export const adminService = {
   /**
    * Reject a project
    */
-  async rejectProject(projectId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+  async rejectProject(
+    projectId: string,
+    reason?: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const session = await supabase.auth.getSession();
       if (!session.data.session) {
-        return { success: false, error: "Not authenticated" };
+        return { success: false, error: 'Not authenticated' };
       }
 
-      const response = await fetch("/api/admin/manage-projects", {
-        method: "PATCH",
+      const response = await fetch('/api/admin/manage-projects', {
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.data.session.access_token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.data.session.access_token}`,
         },
         body: JSON.stringify({
           project_id: projectId,
-          action: "reject",
-          validation_notes: reason
-        })
+          action: 'reject',
+          validation_notes: reason,
+        }),
       });
 
       const data = await response.json();
@@ -163,11 +180,15 @@ export const adminService = {
   /**
    * Get all staff members with their roles and permissions
    */
-  async getStaffMembers(): Promise<{ data: any[] | null; error: Error | null }> {
+  async getStaffMembers(): Promise<{
+    data: any[] | null;
+    error: Error | null;
+  }> {
     try {
       const { data, error } = await (supabase as any)
-        .from("profiles")
-        .select(`
+        .from('profiles')
+        .select(
+          `
           id, 
           email, 
           full_name, 
@@ -175,16 +196,19 @@ export const adminService = {
           role, 
           created_at, 
           updated_at
-        `)
-        .order("created_at", { ascending: false });
+        `
+        )
+        .order('created_at', { ascending: false });
 
       if (error) {
         return { data: null, error };
       }
 
       // Filter for staff roles
-      const staffData = (data || []).filter((user: any) => 
-        ["super_admin", "admin", "support", "moderator", "team"].includes(user.role)
+      const staffData = (data || []).filter((user: any) =>
+        ['super_admin', 'admin', 'support', 'moderator', 'team'].includes(
+          user.role
+        )
       );
 
       return { data: staffData, error: null };
@@ -196,20 +220,23 @@ export const adminService = {
   /**
    * Get projects pending validation
    */
-  async getPendingProjects(): Promise<{ data: any[] | null; error: Error | null }> {
+  async getPendingProjects(): Promise<{
+    data: any[] | null;
+    error: Error | null;
+  }> {
     try {
       const { data, error } = await (supabase as any)
-        .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) {
         return { data: null, error };
       }
 
       // Filter for pending validation
-      const pendingData = (data || []).filter((project: any) => 
-        project.validation_status === "pending"
+      const pendingData = (data || []).filter(
+        (project: any) => project.validation_status === 'pending'
       );
 
       return { data: pendingData, error: null };
@@ -221,25 +248,28 @@ export const adminService = {
   /**
    * Get validated projects created by admin
    */
-  async getAdminCreatedProjects(): Promise<{ data: any[] | null; error: Error | null }> {
+  async getAdminCreatedProjects(): Promise<{
+    data: any[] | null;
+    error: Error | null;
+  }> {
     try {
       const { data, error } = await (supabase as any)
-        .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) {
         return { data: null, error };
       }
 
       // Filter for admin-created projects
-      const adminData = (data || []).filter((project: any) => 
-        project.created_by_admin === true
+      const adminData = (data || []).filter(
+        (project: any) => project.created_by_admin === true
       );
 
       return { data: adminData, error: null };
     } catch (err) {
       return { data: null, error: err as Error };
     }
-  }
+  },
 };

@@ -151,9 +151,12 @@ export const leadQualificationService = {
     }
 
     // Permis (5 points)
+    const workTypesStr = Array.isArray(project.work_type)
+      ? project.work_type.join(' ')
+      : project.work_type || '';
     if (
-      project.work_types &&
-      !project.work_types.join(' ').includes('démolition')
+      project.work_type &&
+      !workTypesStr.toLowerCase().includes('démolition')
     ) {
       criteria.hasPermit = true;
       score += 5;

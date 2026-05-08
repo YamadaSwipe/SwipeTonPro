@@ -6,22 +6,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileText, 
-  ArrowLeft, 
-  Plus, 
-  Trash2, 
-  Euro, 
-  Calendar, 
-  MapPin, 
+import {
+  FileText,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Euro,
+  Calendar,
+  MapPin,
   Building,
   CheckCircle,
   AlertCircle,
   Download,
-  Eye
+  Eye,
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,14 +56,14 @@ export default function AccordMutuelPage() {
   const router = useRouter();
   const { projectId } = router.query;
   const { toast } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [project, setProject] = useState<any>(null);
   const [professional, setProfessional] = useState<any>(null);
   const [accordGenerated, setAccordGenerated] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
-  
+
   const [formData, setFormData] = useState<AccordFormData>({
     nom_client: '',
     adresse_travaux: '',
@@ -68,11 +74,31 @@ export default function AccordMutuelPage() {
     duree_travaux: '',
     total_projet: 0,
     etapes: [
-      { label: 'Signature accord', pourcentage: 10, condition: 'Signature du contrat', montant: 0 },
-      { label: 'Début chantier', pourcentage: 30, condition: 'Démarrage effectif des travaux', montant: 0 },
-      { label: 'Mi-parcours', pourcentage: 30, condition: 'Achievement de 50% des travaux', montant: 0 },
-      { label: 'Fin chantier', pourcentage: 30, condition: 'Réception finale des travaux', montant: 0 }
-    ]
+      {
+        label: 'Signature accord',
+        pourcentage: 10,
+        condition: 'Signature du contrat',
+        montant: 0,
+      },
+      {
+        label: 'Début chantier',
+        pourcentage: 30,
+        condition: 'Démarrage effectif des travaux',
+        montant: 0,
+      },
+      {
+        label: 'Mi-parcours',
+        pourcentage: 30,
+        condition: 'Achievement de 50% des travaux',
+        montant: 0,
+      },
+      {
+        label: 'Fin chantier',
+        pourcentage: 30,
+        condition: 'Réception finale des travaux',
+        montant: 0,
+      },
+    ],
   });
 
   useEffect(() => {
@@ -83,23 +109,30 @@ export default function AccordMutuelPage() {
 
   useEffect(() => {
     // Recalculer les montants quand le total ou les pourcentages changent
-    const updatedEtapes = formData.etapes.map(etape => ({
+    const updatedEtapes = formData.etapes.map((etape) => ({
       ...etape,
-      montant: Math.round((formData.total_projet * etape.pourcentage) / 100)
+      montant: Math.round((formData.total_projet * etape.pourcentage) / 100),
     }));
-    
-    const totalPourcentage = updatedEtapes.reduce((sum, etape) => sum + etape.pourcentage, 0);
-    
+
+    const totalPourcentage = updatedEtapes.reduce(
+      (sum, etape) => sum + etape.pourcentage,
+      0
+    );
+
     if (totalPourcentage !== 100 && formData.total_projet > 0) {
       // Ajuster la dernière étape pour atteindre 100%
       const diff = 100 - totalPourcentage;
       if (updatedEtapes.length > 0) {
         updatedEtapes[updatedEtapes.length - 1].pourcentage += diff;
-        updatedEtapes[updatedEtapes.length - 1].montant = Math.round((formData.total_projet * updatedEtapes[updatedEtapes.length - 1].pourcentage) / 100);
+        updatedEtapes[updatedEtapes.length - 1].montant = Math.round(
+          (formData.total_projet *
+            updatedEtapes[updatedEtapes.length - 1].pourcentage) /
+            100
+        );
       }
     }
-    
-    setFormData(prev => ({ ...prev, etapes: updatedEtapes }));
+
+    setFormData((prev) => ({ ...prev, etapes: updatedEtapes }));
   }, [formData.total_projet]);
 
   const loadProjectData = async () => {
@@ -150,17 +183,19 @@ export default function AccordMutuelPage() {
         setProfessional(professionalData);
 
         // Pré-remplir le formulaire
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           nom_client: clientData?.full_name || '',
           adresse_travaux: `${projectData.address}, ${projectData.postal_code} ${projectData.city}`,
           nom_entreprise: professionalData?.company_name || '',
           siret_pro: professionalData?.siret || '',
-          nature_travaux: projectData.work_types?.join(', ') || projectData.description || '',
-          total_projet: projectData.budget_max || projectData.estimated_budget_max || 0
+          nature_travaux: Array.isArray(projectData.work_type)
+            ? projectData.work_type.join(', ')
+            : projectData.work_type || projectData.description || '',
+          total_projet:
+            projectData.budget_max || projectData.estimated_budget_max || 0,
         }));
       }
-
     } catch (error) {
       console.error('Erreur chargement données:', error);
       toast({
@@ -174,38 +209,45 @@ export default function AccordMutuelPage() {
   };
 
   const addEtape = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      etapes: [...prev.etapes, { 
-        label: `Étape ${prev.etapes.length + 1}`, 
-        pourcentage: 10, 
-        condition: 'À définir', 
-        montant: Math.round((prev.total_projet * 10) / 100) 
-      }]
+      etapes: [
+        ...prev.etapes,
+        {
+          label: `Étape ${prev.etapes.length + 1}`,
+          pourcentage: 10,
+          condition: 'À définir',
+          montant: Math.round((prev.total_projet * 10) / 100),
+        },
+      ],
     }));
   };
 
   const removeEtape = (index: number) => {
     if (formData.etapes.length > 1) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        etapes: prev.etapes.filter((_, i) => i !== index)
+        etapes: prev.etapes.filter((_, i) => i !== index),
       }));
     }
   };
 
-  const updateEtape = (index: number, field: keyof EtapePaiement, value: string | number) => {
-    setFormData(prev => ({
+  const updateEtape = (
+    index: number,
+    field: keyof EtapePaiement,
+    value: string | number
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      etapes: prev.etapes.map((etape, i) => 
+      etapes: prev.etapes.map((etape, i) =>
         i === index ? { ...etape, [field]: value } : etape
-      )
+      ),
     }));
   };
 
   const generatePDF = async () => {
     setSubmitting(true);
-    
+
     try {
       const response = await fetch('/api/generate-accord-pdf', {
         method: 'POST',
@@ -213,8 +255,8 @@ export default function AccordMutuelPage() {
         body: JSON.stringify({
           projectId,
           formData,
-          date_signature: new Date().toLocaleDateString('fr-FR')
-        })
+          date_signature: new Date().toLocaleDateString('fr-FR'),
+        }),
       });
 
       if (!response.ok) {
@@ -222,24 +264,23 @@ export default function AccordMutuelPage() {
       }
 
       const result = await response.json();
-      
+
       // Mettre à jour le projet avec l'URL du PDF
       await supabase
         .from('projects')
-        .update({ 
+        .update({
           accord_pdf_url: result.pdfUrl,
           accord_generated_at: new Date().toISOString(),
-          accord_status: 'generated'
+          accord_status: 'generated',
         })
         .eq('id', projectId);
 
       setAccordGenerated(true);
-      
+
       toast({
         title: 'Succès',
         description: "L'accord mutuel a été généré avec succès",
       });
-
     } catch (error) {
       console.error('Erreur génération PDF:', error);
       toast({
@@ -254,7 +295,9 @@ export default function AccordMutuelPage() {
 
   const downloadPDF = async () => {
     try {
-      const response = await fetch(`/api/download-accord-pdf?projectId=${projectId}`);
+      const response = await fetch(
+        `/api/download-accord-pdf?projectId=${projectId}`
+      );
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -287,7 +330,7 @@ export default function AccordMutuelPage() {
   return (
     <>
       <SEO title="Accord Mutuel - EDSwipe" />
-      
+
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
@@ -300,11 +343,16 @@ export default function AccordMutuelPage() {
                     Retour
                   </Button>
                 </Link>
-                <h1 className="text-xl font-semibold text-gray-900">Accord Mutuel</h1>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Accord Mutuel
+                </h1>
               </div>
               {accordGenerated && (
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <Badge
+                    variant="outline"
+                    className="bg-green-50 text-green-700 border-green-200"
+                  >
                     <CheckCircle className="w-3 h-3 mr-1" />
                     Accord généré
                   </Badge>
@@ -337,16 +385,28 @@ export default function AccordMutuelPage() {
                       <Input
                         id="nom_client"
                         value={formData.nom_client}
-                        onChange={(e) => setFormData(prev => ({ ...prev, nom_client: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            nom_client: e.target.value,
+                          }))
+                        }
                         placeholder="Nom complet du client"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="nom_entreprise">Nom de l'entreprise</Label>
+                      <Label htmlFor="nom_entreprise">
+                        Nom de l'entreprise
+                      </Label>
                       <Input
                         id="nom_entreprise"
                         value={formData.nom_entreprise}
-                        onChange={(e) => setFormData(prev => ({ ...prev, nom_entreprise: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            nom_entreprise: e.target.value,
+                          }))
+                        }
                         placeholder="Nom de l'entreprise artisan"
                       />
                     </div>
@@ -357,7 +417,12 @@ export default function AccordMutuelPage() {
                     <Input
                       id="adresse_travaux"
                       value={formData.adresse_travaux}
-                      onChange={(e) => setFormData(prev => ({ ...prev, adresse_travaux: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          adresse_travaux: e.target.value,
+                        }))
+                      }
                       placeholder="Adresse complète du chantier"
                     />
                   </div>
@@ -368,17 +433,29 @@ export default function AccordMutuelPage() {
                       <Input
                         id="siret_pro"
                         value={formData.siret_pro}
-                        onChange={(e) => setFormData(prev => ({ ...prev, siret_pro: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            siret_pro: e.target.value,
+                          }))
+                        }
                         placeholder="Numéro SIRET"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="total_projet">Montant total du projet (€)</Label>
+                      <Label htmlFor="total_projet">
+                        Montant total du projet (€)
+                      </Label>
                       <Input
                         id="total_projet"
                         type="number"
                         value={formData.total_projet}
-                        onChange={(e) => setFormData(prev => ({ ...prev, total_projet: parseInt(e.target.value) || 0 }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            total_projet: parseInt(e.target.value) || 0,
+                          }))
+                        }
                         placeholder="Montant total TTC"
                       />
                     </div>
@@ -389,7 +466,12 @@ export default function AccordMutuelPage() {
                     <Textarea
                       id="nature_travaux"
                       value={formData.nature_travaux}
-                      onChange={(e) => setFormData(prev => ({ ...prev, nature_travaux: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          nature_travaux: e.target.value,
+                        }))
+                      }
                       placeholder="Description détaillée des travaux à réaliser"
                       rows={3}
                     />
@@ -402,7 +484,12 @@ export default function AccordMutuelPage() {
                         id="date_debut"
                         type="date"
                         value={formData.date_debut}
-                        onChange={(e) => setFormData(prev => ({ ...prev, date_debut: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            date_debut: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div>
@@ -410,7 +497,12 @@ export default function AccordMutuelPage() {
                       <Input
                         id="duree_travaux"
                         value={formData.duree_travaux}
-                        onChange={(e) => setFormData(prev => ({ ...prev, duree_travaux: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            duree_travaux: e.target.value,
+                          }))
+                        }
                         placeholder="Ex: 2 semaines, 1 mois..."
                       />
                     </div>
@@ -435,12 +527,17 @@ export default function AccordMutuelPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {formData.etapes.map((etape, index) => (
-                      <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                      <div
+                        key={index}
+                        className="border rounded-lg p-3 bg-gray-50"
+                      >
                         <div className="grid grid-cols-12 gap-2 items-center">
                           <div className="col-span-4">
                             <Input
                               value={etape.label}
-                              onChange={(e) => updateEtape(index, 'label', e.target.value)}
+                              onChange={(e) =>
+                                updateEtape(index, 'label', e.target.value)
+                              }
                               placeholder="Libellé de l'étape"
                               className="text-sm"
                             />
@@ -450,17 +547,27 @@ export default function AccordMutuelPage() {
                               <Input
                                 type="number"
                                 value={etape.pourcentage}
-                                onChange={(e) => updateEtape(index, 'pourcentage', parseInt(e.target.value) || 0)}
+                                onChange={(e) =>
+                                  updateEtape(
+                                    index,
+                                    'pourcentage',
+                                    parseInt(e.target.value) || 0
+                                  )
+                                }
                                 placeholder="%"
                                 className="text-sm pr-8"
                               />
-                              <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
+                              <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                                %
+                              </span>
                             </div>
                           </div>
                           <div className="col-span-3">
                             <Input
                               value={etape.condition}
-                              onChange={(e) => updateEtape(index, 'condition', e.target.value)}
+                              onChange={(e) =>
+                                updateEtape(index, 'condition', e.target.value)
+                              }
                               placeholder="Condition"
                               className="text-sm"
                             />
@@ -489,12 +596,23 @@ export default function AccordMutuelPage() {
                       </div>
                     ))}
                   </div>
-                  
+
                   <Alert className="mt-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Total : <strong>{formData.etapes.reduce((sum, e) => sum + e.pourcentage, 0)}%</strong> 
-                      ({formData.etapes.reduce((sum, e) => sum + e.montant, 0).toLocaleString()}€)
+                      Total :{' '}
+                      <strong>
+                        {formData.etapes.reduce(
+                          (sum, e) => sum + e.pourcentage,
+                          0
+                        )}
+                        %
+                      </strong>
+                      (
+                      {formData.etapes
+                        .reduce((sum, e) => sum + e.montant, 0)
+                        .toLocaleString()}
+                      €)
                     </AlertDescription>
                   </Alert>
                 </CardContent>
@@ -512,7 +630,12 @@ export default function AccordMutuelPage() {
                 {!accordGenerated && (
                   <Button
                     onClick={generatePDF}
-                    disabled={submitting || !formData.nom_client || !formData.nom_entreprise || formData.total_projet === 0}
+                    disabled={
+                      submitting ||
+                      !formData.nom_client ||
+                      !formData.nom_entreprise ||
+                      formData.total_projet === 0
+                    }
                   >
                     {submitting ? 'Génération...' : 'Générer le PDF'}
                   </Button>
@@ -528,11 +651,14 @@ export default function AccordMutuelPage() {
                     <CardTitle>Prévisualisation du contrat</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div 
+                    <div
                       className="border rounded-lg p-4 bg-white"
                       style={{ fontSize: '12px', lineHeight: '1.2' }}
-                      dangerouslySetInnerHTML={{ 
-                        __html: generateContractHTML(formData, new Date().toLocaleDateString('fr-FR')) 
+                      dangerouslySetInnerHTML={{
+                        __html: generateContractHTML(
+                          formData,
+                          new Date().toLocaleDateString('fr-FR')
+                        ),
                       }}
                     />
                   </CardContent>
@@ -546,15 +672,22 @@ export default function AccordMutuelPage() {
   );
 }
 
-function generateContractHTML(data: AccordFormData, dateSignature: string): string {
-  const etapesHTML = data.etapes.map(etape => `
+function generateContractHTML(
+  data: AccordFormData,
+  dateSignature: string
+): string {
+  const etapesHTML = data.etapes
+    .map(
+      (etape) => `
     <tr>
       <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${etape.label}</td>
       <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${etape.pourcentage}%</td>
       <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${etape.condition}</td>
       <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${etape.montant} €</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
   return `
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">

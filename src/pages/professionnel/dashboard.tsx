@@ -636,7 +636,9 @@ function ProfessionalDashboardContent() {
 
                         <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
                           <span>
-                            {project.work_types?.join(', ') || 'Autre'}
+                            {Array.isArray(project.work_type)
+                              ? project.work_type.join(', ')
+                              : project.work_type || 'Autre'}
                           </span>
                           <span>
                             {new Date(project.created_at).toLocaleDateString(

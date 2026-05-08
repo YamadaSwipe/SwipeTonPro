@@ -14,8 +14,8 @@
 
 import { SEO } from '@/components/SEO';
 import { useState, useCallback, useMemo } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/router';
+import { authService } from '@/services/authService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -109,7 +109,6 @@ export default function ProfessionalSignupPage() {
   }
 
   const router = useRouter();
-  const { signUp } = useAuth();
 
   // État unifié pour réduire la complexité
   const [formData, setFormData] = useState<FormData>({
@@ -422,18 +421,15 @@ export default function ProfessionalSignupPage() {
           });
         }
 
-        // Utiliser useAuth().signUp() pour l'inscription
-        await signUp(formData.basicInfo.email, formData.basicInfo.password, {
-          full_name: formData.basicInfo.companyName,
-          role: 'professional',
-          company_name: formData.basicInfo.companyName,
-          siret: formData.basicInfo.siret,
-          phone: formData.basicInfo.phone,
-          address: formData.basicInfo.address,
-          city: formData.basicInfo.city,
-          postal_code: formData.basicInfo.postalCode,
-          description: formData.basicInfo.description,
-        });
+        // Utiliser authService.signUp() pour l'inscription
+        const { error: signUpError } = await authService.signUp(
+          formData.basicInfo.email,
+          formData.basicInfo.password
+        );
+
+        if (signUpError) {
+          throw new Error(signUpError.message);
+        }
 
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ ProSignupPage: Professional signup successful');
@@ -453,7 +449,7 @@ export default function ProfessionalSignupPage() {
         setLoading(false);
       }
     },
-    [formData, validateStep, setLoading, setError, setSuccess, signUp, router]
+    [formData, validateStep, setLoading, setError, setSuccess, router]
   );
 
   return (

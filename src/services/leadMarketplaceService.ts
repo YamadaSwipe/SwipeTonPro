@@ -21,7 +21,7 @@ export interface LeadForSale {
     name: string;
   };
   project_details: {
-    work_types: string[];
+    work_type: string[];
     surface?: number;
     rooms?: number;
     specific_requirements?: string;
@@ -112,7 +112,7 @@ export const leadMarketplaceService = {
         .select(
           `
           *,
-          project:projects(id, title, category, city, budget_min, budget_max, description, work_types),
+          project:projects(id, title, category, city, budget_min, budget_max, description, work_type),
           client:profiles(id, email, phone, full_name)
         `
         )
@@ -149,7 +149,7 @@ export const leadMarketplaceService = {
           name: lead.client?.full_name || 'Client',
         },
         project_details: {
-          work_types: lead.project?.work_types || [],
+          work_type: lead.project?.work_type || [],
           surface: 0, // À implémenter
           rooms: 0, // À implémenter
           specific_requirements: '', // À implémenter

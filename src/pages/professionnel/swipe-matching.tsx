@@ -1,14 +1,21 @@
-import { SEO } from "@/components/SEO";
-import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Heart, X, ArrowUp, RotateCcw, Sparkles } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import SwipeCard from "@/components/SwipeCard";
+import { SEO } from '@/components/SEO';
+import { useEffect, useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useToast } from '@/hooks/use-toast';
+import {
+  ArrowLeft,
+  Heart,
+  X,
+  ArrowUp,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import SwipeCard from '@/components/SwipeCard';
 
 interface Project {
   id: string;
@@ -20,7 +27,7 @@ interface Project {
   description: string;
   urgency: string;
   created_at: string;
-  work_types: string[];
+  work_type: string | string[];
 }
 
 export default function SwipeMatchingPage() {
@@ -35,32 +42,36 @@ export default function SwipeMatchingPage() {
   const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { 
-        router.push("/auth/login"); 
-        return; 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
       }
 
       const { data: pro } = await (supabase as any)
-        .from("professionals")
-        .select("id, categories, city, activity_score")
-        .eq("user_id", user.id)
+        .from('professionals')
+        .select('id, categories, city, activity_score')
+        .eq('user_id', user.id)
         .single();
 
       if (!pro) return;
 
       // Algorithme de matching intelligent basé sur l'activité et les préférences
       const { data: availableProjects } = await (supabase as any)
-        .from("projects")
-        .select(`
+        .from('projects')
+        .select(
+          `
           id, title, city, category, 
           estimated_budget_min, estimated_budget_max,
-          description, urgency, created_at, work_types,
+          description, urgency, created_at, work_type,
           status
-        `)
-        .eq("status", "published")
-        .neq("user_id", user.id)
-        .order("created_at", { ascending: false })
+        `
+        )
+        .eq('status', 'published')
+        .neq('user_id', user.id)
+        .order('created_at', { ascending: false })
         .limit(50);
 
       if (!availableProjects) {
@@ -94,7 +105,9 @@ export default function SwipeMatchingPage() {
           else if (project.urgency === 'normal') score += 10;
 
           // Score basé sur la récence (15 points)
-          const daysSinceCreation = (Date.now() - new Date(project.created_at).getTime()) / (1000 * 60 * 60 * 24);
+          const daysSinceCreation =
+            (Date.now() - new Date(project.created_at).getTime()) /
+            (1000 * 60 * 60 * 24);
           if (daysSinceCreation < 1) score += 15;
           else if (daysSinceCreation < 3) score += 10;
           else if (daysSinceCreation < 7) score += 5;
@@ -109,11 +122,11 @@ export default function SwipeMatchingPage() {
 
       setProjects(scoredProjects);
     } catch (err) {
-      console.error("Erreur chargement projets:", err);
-      toast({ 
-        title: "Erreur", 
-        description: "Impossible de charger les projets",
-        variant: "destructive" 
+      console.error('Erreur chargement projets:', err);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger les projets',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -125,67 +138,72 @@ export default function SwipeMatchingPage() {
   }, [loadProjects]);
 
   // Gérer le swipe
-  const handleSwipe = useCallback(async (direction: 'left' | 'right' | 'up') => {
-    if (currentIndex >= projects.length || processing) return;
+  const handleSwipe = useCallback(
+    async (direction: 'left' | 'right' | 'up') => {
+      if (currentIndex >= projects.length || processing) return;
 
-    setProcessing(true);
-    const currentProject = projects[currentIndex];
+      setProcessing(true);
+      const currentProject = projects[currentIndex];
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { data: pro } = await (supabase as any)
-        .from("professionals")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
+        const { data: pro } = await (supabase as any)
+          .from('professionals')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
 
-      if (!pro) return;
+        if (!pro) return;
 
-      if (direction === 'up') {
-        // Intéressé - créer une candidature
-        const { error } = await (supabase as any)
-          .from("project_interests")
-          .insert({
-            project_id: currentProject.id,
-            professional_id: pro.id,
-            status: "interested",
-            matching_score: (currentProject as any).matchingScore,
-            created_at: new Date().toISOString()
-          });
+        if (direction === 'up') {
+          // Intéressé - créer une candidature
+          const { error } = await (supabase as any)
+            .from('project_interests')
+            .insert({
+              project_id: currentProject.id,
+              professional_id: pro.id,
+              status: 'interested',
+              matching_score: (currentProject as any).matchingScore,
+              created_at: new Date().toISOString(),
+            });
 
-        if (error) {
-          console.error("Erreur création intérêt:", error);
+          if (error) {
+            console.error('Erreur création intérêt:', error);
+            toast({
+              title: 'Erreur',
+              description: "Impossible d'exprimer votre intérêt",
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: '✅ Intérêt enregistré !',
+              description: 'Le client sera notifié de votre candidature',
+            });
+          }
+        } else if (direction === 'right') {
+          // Peut-être plus tard - sauvegarder pour plus tard
+          // TODO: Implémenter la fonctionnalité "plus tard"
           toast({
-            title: "Erreur",
-            description: "Impossible d'exprimer votre intérêt",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "✅ Intérêt enregistré !",
-            description: "Le client sera notifié de votre candidature",
+            title: '📝 Sauvegardé',
+            description: 'Projet conservé pour plus tard',
           });
         }
-      } else if (direction === 'right') {
-        // Peut-être plus tard - sauvegarder pour plus tard
-        // TODO: Implémenter la fonctionnalité "plus tard"
-        toast({
-          title: "📝 Sauvegardé",
-          description: "Projet conservé pour plus tard",
-        });
-      }
-      // direction === 'left' = passer, aucune action nécessaire
+        // direction === 'left' = passer, aucune action nécessaire
 
-      // Passer au projet suivant
-      setCurrentIndex(prev => prev + 1);
-    } catch (err) {
-      console.error("Erreur swipe:", err);
-    } finally {
-      setProcessing(false);
-    }
-  }, [currentIndex, projects, processing, toast]);
+        // Passer au projet suivant
+        setCurrentIndex((prev) => prev + 1);
+      } catch (err) {
+        console.error('Erreur swipe:', err);
+      } finally {
+        setProcessing(false);
+      }
+    },
+    [currentIndex, projects, processing, toast]
+  );
 
   // Actions manuelles
   const handlePass = () => handleSwipe('left');
@@ -196,7 +214,7 @@ export default function SwipeMatchingPage() {
   const hasMoreProjects = currentIndex < projects.length;
 
   return (
-    <ProtectedRoute allowedRoles={["professional"]}>
+    <ProtectedRoute allowedRoles={['professional']}>
       <SEO title="Matching Intelligent | SwipeTonPro" />
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white">
         {/* Header */}
@@ -242,15 +260,19 @@ export default function SwipeMatchingPage() {
                       <CardContent>
                         <Heart className="mx-auto h-16 w-16 text-gray-300 mb-4" />
                         <h3 className="text-xl font-semibold mb-2">
-                          {projects.length === 0 ? "Aucun projet disponible" : "Tous les projets vus !"}
+                          {projects.length === 0
+                            ? 'Aucun projet disponible'
+                            : 'Tous les projets vus !'}
                         </h3>
                         <p className="text-gray-600 mb-6">
-                          {projects.length === 0 
-                            ? "Revenez plus tard pour découvrir de nouveaux projets"
-                            : "Vous avez vu tous les projets disponibles pour aujourd'hui"
-                          }
+                          {projects.length === 0
+                            ? 'Revenez plus tard pour découvrir de nouveaux projets'
+                            : "Vous avez vu tous les projets disponibles pour aujourd'hui"}
                         </p>
-                        <Button onClick={loadProjects} className="bg-orange-500 hover:bg-orange-600">
+                        <Button
+                          onClick={loadProjects}
+                          className="bg-orange-500 hover:bg-orange-600"
+                        >
                           <RotateCcw className="w-4 h-4 mr-2" />
                           Actualiser
                         </Button>
@@ -260,23 +282,25 @@ export default function SwipeMatchingPage() {
                 ) : (
                   <>
                     {/* Cartes empilées */}
-                    {projects.slice(currentIndex, currentIndex + 3).map((project, index) => (
-                      <div
-                        key={project.id}
-                        className="absolute inset-4"
-                        style={{
-                          zIndex: projects.length - currentIndex - index,
-                          transform: `scale(${1 - index * 0.05}) translateY(${index * 8}px)`,
-                          opacity: index === 0 ? 1 : 0.6 - index * 0.2
-                        }}
-                      >
-                        <SwipeCard
-                          project={project}
-                          onSwipe={handleSwipe}
-                          isActive={index === 0}
-                        />
-                      </div>
-                    ))}
+                    {projects
+                      .slice(currentIndex, currentIndex + 3)
+                      .map((project, index) => (
+                        <div
+                          key={project.id}
+                          className="absolute inset-4"
+                          style={{
+                            zIndex: projects.length - currentIndex - index,
+                            transform: `scale(${1 - index * 0.05}) translateY(${index * 8}px)`,
+                            opacity: index === 0 ? 1 : 0.6 - index * 0.2,
+                          }}
+                        >
+                          <SwipeCard
+                            project={project}
+                            onSwipe={handleSwipe}
+                            isActive={index === 0}
+                          />
+                        </div>
+                      ))}
                   </>
                 )}
               </div>
@@ -294,7 +318,7 @@ export default function SwipeMatchingPage() {
                     <X className="w-5 h-5 mr-2 text-red-500" />
                     Passer
                   </Button>
-                  
+
                   <Button
                     variant="outline"
                     size="lg"
@@ -305,7 +329,7 @@ export default function SwipeMatchingPage() {
                     <Heart className="w-5 h-5 mr-2 text-blue-500" />
                     Plus tard
                   </Button>
-                  
+
                   <Button
                     size="lg"
                     onClick={handleInterested}
@@ -332,10 +356,14 @@ export default function SwipeMatchingPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Restants</span>
-                      <span className="font-semibold">{Math.max(0, projects.length - currentIndex)}</span>
+                      <span className="font-semibold">
+                        {Math.max(0, projects.length - currentIndex)}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Total disponible</span>
+                      <span className="text-sm text-gray-600">
+                        Total disponible
+                      </span>
                       <span className="font-semibold">{projects.length}</span>
                     </div>
                   </div>
@@ -362,7 +390,9 @@ export default function SwipeMatchingPage() {
                       </div>
                       <div>
                         <p className="font-medium">Glisser à droite</p>
-                        <p className="text-gray-600">Sauvegarder pour plus tard</p>
+                        <p className="text-gray-600">
+                          Sauvegarder pour plus tard
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">

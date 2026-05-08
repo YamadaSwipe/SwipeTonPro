@@ -42,7 +42,7 @@ interface ProjectData {
   budget_max: number;
   timeline: string;
   urgency: string;
-  work_types: string[];
+  work_type: string[];
   required_skills: string[];
 }
 

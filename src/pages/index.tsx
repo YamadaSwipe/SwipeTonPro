@@ -83,7 +83,12 @@ export default function Home() {
             .map((project: any) => ({
               id: project.id,
               title: project.title,
-              category: project.category || project.work_types?.[0] || '',
+              category:
+                project.category ||
+                (Array.isArray(project.work_type)
+                  ? project.work_type[0]
+                  : project.work_type) ||
+                '',
               city: project.city,
               estimated_budget_min: project.estimated_budget_min,
               estimated_budget_max: project.estimated_budget_max,
