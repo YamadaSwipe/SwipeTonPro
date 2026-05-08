@@ -690,7 +690,7 @@ function ParticulierDashboardContent() {
                         {/* Actions pour l'accord mutuel si le projet est matché */}
                         {project.status === 'published' && (
                           <div className="flex gap-2">
-                            {project.accord_status === 'generated' ? (
+                            {(project as any).accord_status === 'generated' ? (
                               <div className="flex gap-2 w-full">
                                 <Link
                                   href={`/particulier/accord-mutuel/${project.id}`}
