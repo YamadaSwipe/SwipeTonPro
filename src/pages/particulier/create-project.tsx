@@ -177,7 +177,7 @@ export default function CreateProjectPage() {
         .insert({
           title: formData.title,
           description: formData.description,
-          work_types: [formData.work_type],
+          work_type: [formData.work_type],
           address: formData.address,
           city: formData.city,
           postal_code: formData.postal_code,
