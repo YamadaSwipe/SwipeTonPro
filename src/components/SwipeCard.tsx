@@ -17,7 +17,7 @@ interface Project {
   description: string;
   urgency: string;
   created_at: string;
-  work_types: string[];
+  work_type: string[];
 }
 
 interface SwipeCardProps {
@@ -26,7 +26,11 @@ interface SwipeCardProps {
   isActive: boolean;
 }
 
-export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps) {
+export default function SwipeCard({
+  project,
+  onSwipe,
+  isActive,
+}: SwipeCardProps) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -39,20 +43,20 @@ export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    
+
     const deltaX = e.clientX - dragStart.x;
     const deltaY = e.clientY - dragStart.y;
-    
+
     setDragOffset({ x: deltaX, y: deltaY });
   };
 
   const handleMouseUp = () => {
     if (!isDragging) return;
-    
+
     const threshold = 100;
     const absX = Math.abs(dragOffset.x);
     const absY = Math.abs(dragOffset.y);
-    
+
     if (absY > threshold && absY > absX) {
       // Swipe vertical (up for interested)
       onSwipe('up');
@@ -60,7 +64,7 @@ export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps
       // Swipe horizontal
       onSwipe(dragOffset.x > 0 ? 'right' : 'left');
     }
-    
+
     setDragOffset({ x: 0, y: 0 });
     setIsDragging(false);
   };
@@ -80,10 +84,10 @@ export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps
 
   const getSwipeIndicator = () => {
     if (!isDragging) return null;
-    
+
     const absX = Math.abs(dragOffset.x);
     const absY = Math.abs(dragOffset.y);
-    
+
     if (absY > absX && absY > 100) {
       return dragOffset.y < 0 ? (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
@@ -94,7 +98,7 @@ export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps
         </div>
       ) : null;
     }
-    
+
     if (absX > 100) {
       return dragOffset.x > 0 ? (
         <div className="absolute top-4 right-4 z-20">
@@ -112,30 +116,34 @@ export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps
         </div>
       );
     }
-    
+
     return null;
   };
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
-      case 'urgent': return 'bg-red-100 text-red-700 border-red-200';
-      case 'normal': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-700 border-green-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'urgent':
+        return 'bg-red-100 text-red-700 border-red-200';
+      case 'normal':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'low':
+        return 'bg-green-100 text-green-700 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
   return (
     <div className="relative w-full h-full">
       {getSwipeIndicator()}
-      
+
       <motion.div
         ref={cardRef}
         className={`absolute inset-0 cursor-grab active:cursor-grabbing ${!isActive ? 'pointer-events-none' : ''}`}
         style={{
           transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) rotate(${getRotation()}deg)`,
           opacity: getOpacity(),
-          transition: isDragging ? 'none' : 'all 0.3s ease-out'
+          transition: isDragging ? 'none' : 'all 0.3s ease-out',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -158,7 +166,11 @@ export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps
                   </div>
                 </div>
                 <Badge className={getUrgencyColor(project.urgency)}>
-                  {project.urgency === 'urgent' ? 'Urgent' : project.urgency === 'normal' ? 'Normal' : 'Peu urgent'}
+                  {project.urgency === 'urgent'
+                    ? 'Urgent'
+                    : project.urgency === 'normal'
+                      ? 'Normal'
+                      : 'Peu urgent'}
                 </Badge>
               </div>
 
@@ -166,8 +178,8 @@ export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps
               <div className="flex items-center gap-2 text-sm font-semibold text-green-700 bg-green-50 px-3 py-2 rounded-lg">
                 <Euro className="w-4 h-4" />
                 <span>
-                  {project.estimated_budget_min?.toLocaleString("fr-FR")}€ -{" "}
-                  {project.estimated_budget_max?.toLocaleString("fr-FR")}€
+                  {project.estimated_budget_min?.toLocaleString('fr-FR')}€ -{' '}
+                  {project.estimated_budget_max?.toLocaleString('fr-FR')}€
                 </span>
               </div>
             </div>
@@ -199,7 +211,7 @@ export default function SwipeCard({ project, onSwipe, isActive }: SwipeCardProps
                 <span>
                   {new Date(project.created_at).toLocaleDateString('fr-FR', {
                     day: 'numeric',
-                    month: 'short'
+                    month: 'short',
                   })}
                 </span>
                 <span>•</span>

@@ -254,7 +254,7 @@ async function handleCreateProject(
         estimated_budget_min: Number(estimated_budget_min) || 0,
         estimated_budget_max: Number(estimated_budget_max) || 0,
         urgency,
-        work_types,
+        work_type,
         photos,
         user_id: client_id,
         status: 'published',

@@ -50,7 +50,7 @@ interface CreateProjectForm {
   category: string;
   location: string;
   city: string;
-  postal_code: string;
+  postal_code: string; // TypeScript fix: work_types changed to work_type for consistency
   work_type: string[];
   budget_min: string;
   budget_max: string;
@@ -138,7 +138,7 @@ export default function AdminManageUsers() {
     location: '',
     city: '',
     postal_code: '',
-    work_type: [],
+    work_type: [], // Fixed: work_types -> work_type
     budget_min: '',
     budget_max: '',
     urgency: 'medium',

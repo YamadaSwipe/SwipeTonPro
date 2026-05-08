@@ -231,7 +231,7 @@ async function createProfessionals(supabase: any, res: NextApiResponse) {
           address: pro.address,
           city: pro.city,
           postal_code: pro.postal_code,
-          work_types: pro.work_types,
+          work_type: pro.work_type,
           description: pro.description,
           certifications: pro.certifications,
           is_verified: true, // Forcé pour test
@@ -376,7 +376,7 @@ async function createProjects(supabase: any, res: NextApiResponse) {
           title: project.title,
           description: project.description,
           category: project.category,
-          work_types: project.work_types,
+          work_type: project.work_type,
           location: project.location,
           city: project.city,
           postal_code: project.postal_code,
@@ -431,12 +431,12 @@ async function simulateMatching(supabase: any, res: NextApiResponse) {
   // Récupérer les projets et professionnels
   const { data: projects } = await supabase
     .from('projects')
-    .select('id, title, work_types, city, postal_code')
+    .select('id, title, work_type, city, postal_code')
     .eq('status', 'published');
 
   const { data: professionals } = await supabase
     .from('professionals')
-    .select('id, company_name, work_types, city, postal_code, user_id')
+    .select('id, company_name, work_type, city, postal_code, user_id')
     .eq('is_active', true);
 
   if (!projects || !professionals) {
@@ -451,7 +451,7 @@ async function simulateMatching(supabase: any, res: NextApiResponse) {
     // Trouver les professionnels compatibles
     const compatiblePros = professionals.filter(
       (pro) =>
-        pro.work_types.some((wt) => project.work_types.includes(wt)) &&
+        pro.work_type?.some((wt) => project.work_type?.includes(wt)) &&
         (pro.city === project.city || pro.postal_code === project.postal_code)
     );
 
