@@ -747,7 +747,7 @@ export default function AdminCreateProject() {
                         Tout désélectionner
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        {formData.work_types.length} sélectionné(s)
+                        {formData.work_type.length} sélectionné(s)
                       </span>
                     </div>
                   </div>
@@ -796,7 +796,7 @@ export default function AdminCreateProject() {
                                 className="text-xs h-6 px-2"
                               >
                                 {workTypes.every((wt) =>
-                                  formData.work_types.includes(wt)
+                                  formData.work_type.includes(wt)
                                 )
                                   ? 'Désélectionner'
                                   : 'Sélectionner'}
@@ -807,7 +807,7 @@ export default function AdminCreateProject() {
                                 <Badge
                                   key={workType}
                                   className={`work-type-badge ${
-                                    formData.work_types.includes(workType)
+                                    formData.work_type.includes(workType)
                                       ? 'selected'
                                       : ''
                                   }`}
