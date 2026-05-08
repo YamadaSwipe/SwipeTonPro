@@ -284,6 +284,8 @@ export default function NewProjectPage() {
       urgency: 'normal',
       surface: '',
       property_type: '',
+      project_type: 'estimation',
+      stripe_escrow_enabled: false,
     });
   };
 
