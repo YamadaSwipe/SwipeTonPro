@@ -138,7 +138,7 @@ export default function AdminManageUsers() {
     location: '',
     city: '',
     postal_code: '',
-    work_type: [], // Fixed: work_types -> work_type
+    work_type: [], // FIXED: work_types -> work_type (VERCEL DEPLOY)
     budget_min: '',
     budget_max: '',
     urgency: 'medium',
