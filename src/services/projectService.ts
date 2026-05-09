@@ -104,10 +104,10 @@ export const projectService = {
         .from('projects')
         .select(
           `
-          id, title, description, category, work_type, 
+          id, title, description, category, work_types, 
           city, postal_code, status, created_at, updated_at,
           estimated_budget_min, estimated_budget_max,
-          desired_start_period, urgency, surface, property_type,
+          desired_start_date, urgency, property_surface, property_type,
           ai_analysis, ai_estimation, is_featured, is_urgent,
           client:profiles!projects_client_id_fkey(full_name)
         `
@@ -118,7 +118,7 @@ export const projectService = {
       console.log('🔍 Requête de base construite avec relation explicite');
 
       if (filters?.workType) {
-        query = query.contains('work_type', [filters.workType]);
+        query = query.contains('work_types', [filters.workType]);
         console.log('🔍 Filtre work_types appliqué:', filters.workType);
       }
       if (filters?.city) {
