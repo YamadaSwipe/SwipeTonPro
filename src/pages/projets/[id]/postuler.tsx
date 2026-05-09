@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { Project as ExtendedProject, toExtendedProject } from '@/types/project';
 import {
   MapPin,
   Euro,
@@ -33,7 +34,7 @@ type Project = Database['public']['Tables']['projects']['Row'] & {
 export default function ProjectPostulerPage() {
   const router = useRouter();
   const { id } = router.query;
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<ExtendedProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [proposal, setProposal] = useState({
     message: '',
@@ -69,7 +70,7 @@ export default function ProjectPostulerPage() {
         .single();
 
       if (error) throw error;
-      setProject(data);
+      setProject(toExtendedProject(data));
     } catch (err: any) {
       console.error('Error loading project:', err);
     } finally {
@@ -312,28 +313,23 @@ export default function ProjectPostulerPage() {
                     </ul>
                   </div>
 
-                  {(project as any)?.payment_security_option && (
+                  {project?.payment_security_option && (
                     <div className="bg-purple-50 border border-purple-200 p-4 rounded-md">
                       <h4 className="font-medium text-purple-900 mb-2 flex items-center">
                         <Lock className="w-4 h-4 mr-2" />
-                        Option de paiement séquestré choisie par le client
+                        Paiement sécurisé disponible
                       </h4>
-                      <p className="text-sm text-purple-800">
-                        Le client a choisi de sécuriser les fonds via notre
-                        opérateur partenaire. Cette option garantit la
-                        protection des paiements avec libération par étapes
-                        validées.
+                      <p className="text-sm text-purple-700">
+                        Ce projet propose une option de paiement sécurisé via
+                        séquestre pour protéger les deux parties.
                       </p>
                       <div className="mt-2 text-xs text-purple-700">
                         <strong>Option sélectionnée:</strong>{' '}
-                        {(project as any).payment_security_option ===
-                        'deposit_only'
+                        {project.payment_security_option === 'deposit_only'
                           ? 'Acompte uniquement'
-                          : (project as any).payment_security_option ===
-                              'full_amount'
+                          : project.payment_security_option === 'full_amount'
                             ? 'Montant total des travaux'
-                            : (project as any).payment_security_option ===
-                                'milestones'
+                            : project.payment_security_option === 'milestones'
                               ? 'Versement par paliers'
                               : 'Non spécifiée'}
                       </div>

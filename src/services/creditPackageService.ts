@@ -61,7 +61,7 @@ export async function getActiveCreditPackages(): Promise<CreditPackage[]> {
 
     if (error) throw error;
 
-    return (data || []).map(pkg => ({
+    return (data || []).map((pkg) => ({
       ...pkg,
       total_credits: pkg.credits_amount + (pkg.bonus_credits || 0),
     }));
@@ -83,7 +83,7 @@ export async function getAllCreditPackages(): Promise<CreditPackage[]> {
 
     if (error) throw error;
 
-    return (data || []).map(pkg => ({
+    return (data || []).map((pkg) => ({
       ...pkg,
       total_credits: pkg.credits_amount + (pkg.bonus_credits || 0),
     }));
@@ -119,7 +119,10 @@ export async function createCreditPackage(
 
     return {
       success: true,
-      package: { ...data, total_credits: data.credits_amount + data.bonus_credits },
+      package: {
+        ...data,
+        total_credits: data.credits_amount + data.bonus_credits,
+      },
     };
   } catch (error: any) {
     console.error('Error creating credit package:', error);
@@ -192,18 +195,20 @@ export async function getProfessionalCredits(
     // Calculer les totaux depuis les transactions
     const { data: transactions, error: transError } = await supabase
       .from('credit_transactions')
-      .select('type, amount')
+      .select('type, amount, created_at')
       .eq('professional_id', professionalId);
 
     if (transError) throw transError;
 
-    const totalPurchased = transactions
-      ?.filter(t => t.type === 'purchase' || t.type === 'bonus')
-      ?.reduce((sum, t) => sum + t.amount, 0) || 0;
+    const totalPurchased =
+      transactions
+        ?.filter((t) => t.type === 'purchase' || t.type === 'bonus')
+        ?.reduce((sum, t) => sum + t.amount, 0) || 0;
 
-    const totalUsed = transactions
-      ?.filter(t => t.type === 'usage')
-      ?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+    const totalUsed =
+      transactions
+        ?.filter((t) => t.type === 'usage')
+        ?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
 
     const lastTransaction = transactions?.[transactions.length - 1];
 
@@ -389,7 +394,8 @@ export function calculatePackagePrice(
 ): { originalPrice: number; finalPrice: number; savings: number } {
   const originalPrice = pkg.price_euros;
   const discount = discountPercent || 0;
-  const finalPrice = Math.round(originalPrice * (1 - discount / 100) * 100) / 100;
+  const finalPrice =
+    Math.round(originalPrice * (1 - discount / 100) * 100) / 100;
   const savings = Math.round((originalPrice - finalPrice) * 100) / 100;
 
   return { originalPrice, finalPrice, savings };
@@ -413,9 +419,14 @@ export async function getCreditStats(): Promise<{
 
     if (proError) throw proError;
 
-    const totalCreditsInCirculation = pros?.reduce((sum, p) => sum + (p.credits_balance || 0), 0) || 0;
-    const activeProfessionals = pros?.filter(p => (p.credits_balance || 0) > 0).length || 0;
-    const avgBalance = activeProfessionals > 0 ? totalCreditsInCirculation / activeProfessionals : 0;
+    const totalCreditsInCirculation =
+      pros?.reduce((sum, p) => sum + (p.credits_balance || 0), 0) || 0;
+    const activeProfessionals =
+      pros?.filter((p) => (p.credits_balance || 0) > 0).length || 0;
+    const avgBalance =
+      activeProfessionals > 0
+        ? totalCreditsInCirculation / activeProfessionals
+        : 0;
 
     // Stats d'achat
     const { data: transactions, error: transError } = await supabase
@@ -426,17 +437,22 @@ export async function getCreditStats(): Promise<{
     if (transError) throw transError;
 
     const totalPurchases = transactions?.length || 0;
-    
+
     // Revenu total (approximatif depuis les packages)
     const { data: packages } = await supabase
       .from('credit_packages')
       .select('price_euros, credits_amount');
 
-    const avgPricePerCredit = packages && packages.length > 0
-      ? packages.reduce((sum, p) => sum + p.price_euros / p.credits_amount, 0) / packages.length
-      : 1;
+    const avgPricePerCredit =
+      packages && packages.length > 0
+        ? packages.reduce(
+            (sum, p) => sum + p.price_euros / p.credits_amount,
+            0
+          ) / packages.length
+        : 1;
 
-    const totalRevenue = Math.round(totalPurchases * avgPricePerCredit * 100) / 100;
+    const totalRevenue =
+      Math.round(totalPurchases * avgPricePerCredit * 100) / 100;
 
     return {
       totalCreditsInCirculation,

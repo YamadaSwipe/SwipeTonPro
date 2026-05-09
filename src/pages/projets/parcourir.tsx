@@ -30,6 +30,7 @@ import type { Database } from '@/integrations/supabase/types';
 
 type Project = Database['public']['Tables']['projects']['Row'] & {
   required_certifications?: string[];
+  work_type?: string[] | string; // Alias pour compatibilité
 };
 
 export default function ProjectsBrowsePage() {

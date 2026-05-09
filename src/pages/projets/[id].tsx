@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { Project as ExtendedProject, toExtendedProject } from '@/types/project';
 import {
   MapPin,
   Euro,
@@ -30,7 +31,7 @@ type Project = Database['public']['Tables']['projects']['Row'] & {
 export default function ProjectDetailPage() {
   const router = useRouter();
   const { id } = router.query;
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<ExtendedProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
@@ -77,7 +78,7 @@ export default function ProjectDetailPage() {
           title,
           description,
           category,
-          work_type,
+          work_types,
           city,
           urgency,
           status,
@@ -95,7 +96,7 @@ export default function ProjectDetailPage() {
         .single();
 
       if (error) throw error;
-      setProject(data as any);
+      setProject(toExtendedProject(data));
       setEscrowNotified(data.escrow_notified || false);
     } catch (err: any) {
       console.error('Error loading project:', err);
@@ -414,7 +415,7 @@ export default function ProjectDetailPage() {
                       <p className="font-medium">
                         {Array.isArray(project.work_types)
                           ? project.work_types.join(', ')
-                          : project.work_types || 'Non spécifié'}
+                          : project.work_type || 'Non spécifié'}
                       </p>
                     </div>
                   </div>
@@ -422,7 +423,7 @@ export default function ProjectDetailPage() {
               </Card>
 
               {/* Escrow Payment Option */}
-              {(project as any).payment_security_option && (
+              {project.payment_security_option && (
                 <Card className="bg-purple-50 border-purple-200">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
@@ -433,14 +434,11 @@ export default function ProjectDetailPage() {
                         </h4>
                         <p className="text-sm text-purple-700 mb-3">
                           Option:{' '}
-                          {(project as any).payment_security_option ===
-                          'deposit_only'
+                          {project.payment_security_option === 'deposit_only'
                             ? 'Acompte uniquement'
-                            : (project as any).payment_security_option ===
-                                'full_amount'
+                            : project.payment_security_option === 'full_amount'
                               ? 'Montant total'
-                              : (project as any).payment_security_option ===
-                                  'milestones'
+                              : project.payment_security_option === 'milestones'
                                 ? 'Versement par paliers'
                                 : 'Non spécifiée'}
                         </p>

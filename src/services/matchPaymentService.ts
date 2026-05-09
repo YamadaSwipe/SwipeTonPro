@@ -409,10 +409,13 @@ export const matchPaymentService = {
     matchId: string;
   }) => {
     const price = await getMatchPriceForBudget(1000); // Budget par défaut
-    return createMatchPayment(params.matchId, price.price_cents);
+    return createMatchPaymentIntent(
+      params.matchId,
+      price.price_cents.toString()
+    );
   },
   getMatchPriceForBudget,
-  createMatchPayment,
+  createMatchPaymentIntent,
   confirmMatchPayment,
 };
 
