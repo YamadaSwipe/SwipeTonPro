@@ -27,7 +27,7 @@ interface Project {
   description: string;
   urgency: string;
   created_at: string;
-  work_type: string | string[];
+  work_type: string[];
 }
 
 export default function SwipeMatchingPage() {
