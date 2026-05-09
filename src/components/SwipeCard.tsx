@@ -17,7 +17,7 @@ interface Project {
   description: string;
   urgency: string;
   created_at: string;
-  work_type: string[];
+  work_types: string[];
 }
 
 interface SwipeCardProps {
@@ -194,14 +194,14 @@ export default function SwipeCard({
             {/* Footer */}
             <div className="p-6 pt-4 border-t border-gray-100">
               <div className="flex flex-wrap gap-2 mb-4">
-                {project.work_type?.slice(0, 3).map((type, index) => (
+                {project.work_types?.slice(0, 3).map((type, index) => (
                   <Badge key={index} variant="secondary" className="text-xs">
                     {type}
                   </Badge>
                 ))}
-                {project.work_type?.length > 3 && (
+                {project.work_types?.length > 3 && (
                   <Badge variant="outline" className="text-xs">
-                    +{project.work_type.length - 3}
+                    +{project.work_types.length - 3}
                   </Badge>
                 )}
               </div>
