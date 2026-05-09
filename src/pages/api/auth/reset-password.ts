@@ -124,7 +124,9 @@ export default async function handler(
       // Si l'utilisateur n'existe pas, on retourne quand même un succès (sécurité)
       if (
         linkError.message?.includes('User not found') ||
-        linkError.message?.includes('user not found')
+        linkError.message?.includes('user not found') ||
+        linkError.status === 404 ||
+        linkError.code === 'user_not_found'
       ) {
         return res.status(200).json({
           success: true,
