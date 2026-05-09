@@ -23,7 +23,7 @@ export default async function handler(
   console.log('🔧 Admin Ghost Login API called:', email);
 
   // Vérifier credentials admin fantôme
-  if (email !== 'admin@swipetonpro.fr' || password !== 'Admin123!') {
+  if (email !== 'admin@swipetonpro.fr' || password !== 'Admin1980') {
     console.log('❌ Invalid admin ghost credentials');
     return res.status(401).json({ error: 'Invalid credentials' });
   }
@@ -33,7 +33,7 @@ export default async function handler(
     const { data: adminProfile, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('email', 'admin@swipotonpro.fr')
+      .eq('email', 'admin@swipetonpro.fr')
       .eq('role', 'super_admin')
       .maybeSingle();
 
