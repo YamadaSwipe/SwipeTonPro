@@ -119,9 +119,9 @@ export default function ProjectsBrowsePage() {
         const searchInDescription = p.description
           ?.toLowerCase()
           .includes(query);
-        const searchInWorkTypes = Array.isArray(p.work_type)
-          ? p.work_type.some((wt) => wt?.toLowerCase().includes(query))
-          : p.work_type?.toLowerCase().includes(query) || false;
+        const searchInWorkTypes = Array.isArray(p.work_types)
+          ? p.work_types.some((wt) => wt?.toLowerCase().includes(query))
+          : p.work_types?.toLowerCase().includes(query) || false;
         return searchInTitle || searchInDescription || searchInWorkTypes;
       });
     }
@@ -129,10 +129,10 @@ export default function ProjectsBrowsePage() {
     // Work types filter
     if (filterWorkTypes.length > 0) {
       filtered = filtered.filter((p) =>
-        Array.isArray(p.work_type)
-          ? p.work_type.some((wt) => filterWorkTypes.includes(wt))
-          : p.work_type
-            ? filterWorkTypes.includes(p.work_type)
+        Array.isArray(p.work_types)
+          ? p.work_types.some((wt) => filterWorkTypes.includes(wt))
+          : p.work_types
+            ? filterWorkTypes.includes(p.work_types)
             : false
       );
     }
