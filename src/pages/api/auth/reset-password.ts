@@ -11,7 +11,15 @@ const BASE_URL =
 
 // Fonction pour envoyer l'email via Resend
 async function sendResetEmail(email: string, resetLink: string) {
+  // Vérifier si la clé API Resend est configurée
+  if (!process.env.RESEND_API_KEY) {
+    console.error('❌ RESEND_API_KEY non configurée');
+    return false;
+  }
+
   try {
+    console.log("📧 Tentative d'envoi email via Resend à:", email);
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -152,18 +160,16 @@ export default async function handler(
     const emailSent = await sendResetEmail(email, resetLink);
 
     if (!emailSent) {
-      // Si l'email échoue, retourner le lien en dev
-      if (process.env.NODE_ENV === 'development') {
-        return res.status(200).json({
-          success: true,
-          message: 'Lien de réinitialisation généré (email non envoyé en dev)',
-          resetLink: resetLink,
-          note: 'En développement, utilisez le lien ci-dessus. En production, vérifiez la configuration Resend.',
-        });
-      }
-
-      return res.status(500).json({
-        error: "Impossible d'envoyer l'email de réinitialisation",
+      // Si l'email échoue, retourner toujours un succès pour la sécurité
+      // mais avec un message approprié
+      return res.status(200).json({
+        success: true,
+        message:
+          'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
+        note:
+          process.env.NODE_ENV === 'development'
+            ? 'En développement: Resend peut ne pas être configuré.'
+            : 'Vérifiez votre boîte de réception et vos spams.',
       });
     }
 
