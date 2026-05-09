@@ -29,33 +29,21 @@ export default async function handler(
   }
 
   try {
-    // Récupérer le profil admin réel par email
-    const { data: adminProfile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', 'admin@swipetonpro.fr')
-      .eq('role', 'super_admin')
-      .maybeSingle();
-
-    if (error || !adminProfile) {
-      console.error('❌ Admin profile not found in DB:', error);
-      return res
-        .status(500)
-        .json({ error: 'Admin profile not found in database' });
-    }
+    // Créer un profil admin fantôme sans dépendre de la base de données
+    const adminProfile = {
+      id: '29a2361d-6568-4d5f-99c6-557b971778cc',
+      email: 'admin@swipetonpro.fr',
+      full_name: 'Super Admin',
+      role: 'super_admin',
+      created_at: new Date().toISOString(),
+    };
 
     console.log('✅ Admin ghost login successful:', adminProfile.email);
 
-    // Retourner les données admin
+    // Retourner les données admin fantôme
     return res.status(200).json({
       success: true,
-      user: {
-        id: adminProfile.id,
-        email: adminProfile.email,
-        full_name: adminProfile.full_name,
-        role: adminProfile.role,
-        created_at: adminProfile.created_at,
-      },
+      user: adminProfile,
     });
   } catch (error) {
     console.error('❌ Admin ghost login error:', error);
