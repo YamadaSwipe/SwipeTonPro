@@ -422,7 +422,7 @@ export default function ProjectDetailPage() {
               </Card>
 
               {/* Escrow Payment Option */}
-              {project.payment_security_option && (
+              {(project as any).payment_security_option && (
                 <Card className="bg-purple-50 border-purple-200">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
