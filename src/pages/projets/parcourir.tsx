@@ -121,7 +121,8 @@ export default function ProjectsBrowsePage() {
           .includes(query);
         const searchInWorkTypes = Array.isArray(p.work_types)
           ? p.work_types.some((wt) => wt?.toLowerCase().includes(query))
-          : p.work_types?.toLowerCase().includes(query) || false;
+          : p.work_types?.some((wt) => wt?.toLowerCase().includes(query)) ||
+            false;
         return searchInTitle || searchInDescription || searchInWorkTypes;
       });
     }
