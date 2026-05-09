@@ -433,11 +433,14 @@ export default function ProjectDetailPage() {
                         </h4>
                         <p className="text-sm text-purple-700 mb-3">
                           Option:{' '}
-                          {project.payment_security_option === 'deposit_only'
+                          {(project as any).payment_security_option ===
+                          'deposit_only'
                             ? 'Acompte uniquement'
-                            : project.payment_security_option === 'full_amount'
+                            : (project as any).payment_security_option ===
+                                'full_amount'
                               ? 'Montant total'
-                              : project.payment_security_option === 'milestones'
+                              : (project as any).payment_security_option ===
+                                  'milestones'
                                 ? 'Versement par paliers'
                                 : 'Non spécifiée'}
                         </p>
