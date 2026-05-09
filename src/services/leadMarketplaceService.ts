@@ -112,7 +112,7 @@ export const leadMarketplaceService = {
         .select(
           `
           *,
-          project:projects(id, title, category, city, budget_min, budget_max, description, work_type),
+          project:projects(id, title, category, city, budget_min, budget_max, description, work_types),
           client:profiles(id, email, phone, full_name)
         `
         )
@@ -149,7 +149,7 @@ export const leadMarketplaceService = {
           name: lead.client?.full_name || 'Client',
         },
         project_details: {
-          work_type: lead.project?.work_type || [],
+          work_type: lead.project?.work_types || [],
           surface: 0, // À implémenter
           rooms: 0, // À implémenter
           specific_requirements: '', // À implémenter

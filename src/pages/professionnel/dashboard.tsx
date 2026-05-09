@@ -61,7 +61,7 @@ interface Project {
   client_id: string;
   client_name?: string;
   description?: string;
-  work_type?: string;
+  work_types?: string;
   urgent?: boolean;
   images?: string[];
   deadline?: string;
@@ -636,9 +636,9 @@ function ProfessionalDashboardContent() {
 
                         <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
                           <span>
-                            {Array.isArray(project.work_type)
-                              ? project.work_type.join(', ')
-                              : project.work_type || 'Autre'}
+                            {Array.isArray(project.work_types)
+                              ? project.work_types.join(', ')
+                              : project.work_types || 'Autre'}
                           </span>
                           <span>
                             {new Date(project.created_at).toLocaleDateString(

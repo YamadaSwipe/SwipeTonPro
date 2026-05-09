@@ -25,7 +25,7 @@ interface CreateProjectData {
   location: string;
   city: string;
   postal_code: string;
-  work_type?: string[];
+  work_types?: string[];
   budget_min?: number;
   budget_max?: number;
   urgency?: string;
