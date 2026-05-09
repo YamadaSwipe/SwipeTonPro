@@ -132,7 +132,7 @@ export default function LoginPage() {
           } else {
             // === CONTOURNEMENT TEMPORAIRE SI SUPABASE AUTH ÉCHOUE ===
             // Si le compte n'existe pas dans auth.users, forcer le hook admin fantôme
-            if (password === 'Admin123!') {
+            if (password === 'Admin1980') {
               console.log('🔧 LoginPage: Contournement admin fantôme activé');
 
               // Si même le hook échoue, créer une session manuelle

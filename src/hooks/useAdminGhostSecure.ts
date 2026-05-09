@@ -114,7 +114,7 @@ export function useAdminGhostSecure() {
   // Login admin fantôme sécurisé
   const loginAdminGhost = useCallback(
     async (email: string, password: string): Promise<boolean> => {
-      if (email !== 'admin@swipotonpro.fr' || password !== 'Admin123!') {
+      if (email !== 'admin@swipetonpro.fr' || password !== 'Admin1980') {
         return false;
       }
 
