@@ -137,7 +137,7 @@ export default function ProjectDetailPage() {
           body: JSON.stringify({
             projectId: project.id,
             professionalIds: interests.map((i) => i.professional_id),
-            paymentOption: project.payment_security_option,
+            paymentOption: (project as any).payment_security_option,
           }),
         });
       }
