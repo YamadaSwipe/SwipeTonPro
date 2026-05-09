@@ -312,7 +312,7 @@ export default function ProjectPostulerPage() {
                     </ul>
                   </div>
 
-                  {project?.payment_security_option && (
+                  {(project as any)?.payment_security_option && (
                     <div className="bg-purple-50 border border-purple-200 p-4 rounded-md">
                       <h4 className="font-medium text-purple-900 mb-2 flex items-center">
                         <Lock className="w-4 h-4 mr-2" />
@@ -326,11 +326,14 @@ export default function ProjectPostulerPage() {
                       </p>
                       <div className="mt-2 text-xs text-purple-700">
                         <strong>Option sélectionnée:</strong>{' '}
-                        {project.payment_security_option === 'deposit_only'
+                        {(project as any).payment_security_option ===
+                        'deposit_only'
                           ? 'Acompte uniquement'
-                          : project.payment_security_option === 'full_amount'
+                          : (project as any).payment_security_option ===
+                              'full_amount'
                             ? 'Montant total des travaux'
-                            : project.payment_security_option === 'milestones'
+                            : (project as any).payment_security_option ===
+                                'milestones'
                               ? 'Versement par paliers'
                               : 'Non spécifiée'}
                       </div>
