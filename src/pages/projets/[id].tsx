@@ -412,9 +412,9 @@ export default function ProjectDetailPage() {
                     <div>
                       <p className="text-sm text-text-muted">Type de travaux</p>
                       <p className="font-medium">
-                        {Array.isArray(project.work_type)
-                          ? project.work_type.join(', ')
-                          : project.work_type || 'Non spécifié'}
+                        {Array.isArray(project.work_types)
+                          ? project.work_types.join(', ')
+                          : project.work_types || 'Non spécifié'}
                       </p>
                     </div>
                   </div>
