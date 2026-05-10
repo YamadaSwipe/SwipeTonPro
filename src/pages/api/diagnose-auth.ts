@@ -24,7 +24,7 @@ interface DiagnosticResults {
     signInTest?: any;
   };
   issues: any[];
-  environment?: any;
+  envDetails?: any;
   health?: any;
 }
 
@@ -233,7 +233,7 @@ export default async function handler(
 
     // 6. Vérifier les variables d'environnement
     console.log('🌍 Vérification environnement...');
-    results.environment = {
+    results.envDetails = {
       NODE_ENV: process.env.NODE_ENV,
       hasAdminPassword: !!process.env.ADMIN_SECURE_PASSWORD,
       adminPasswordLength: process.env.ADMIN_SECURE_PASSWORD?.length || 0,
