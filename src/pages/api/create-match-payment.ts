@@ -22,6 +22,18 @@ export default async function handler(
   if (!interestId || !projectId)
     return res.status(400).json({ error: 'Paramètres manquants' });
 
+  // Validation des IDs pour éviter l'injection
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      interestId
+    ) ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      projectId
+    )
+  ) {
+    return res.status(400).json({ error: 'IDs invalides' });
+  }
+
   try {
     // Vérifier l'intérêt
     const { data: interest } = await supabase

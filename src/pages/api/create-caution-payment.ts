@@ -22,6 +22,18 @@ export default async function handler(
   if (!quoteId || !conversationId)
     return res.status(400).json({ error: 'Paramètres manquants' });
 
+  // Validation des IDs pour éviter l'injection
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      quoteId
+    ) ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      conversationId
+    )
+  ) {
+    return res.status(400).json({ error: 'IDs invalides' });
+  }
+
   try {
     // Récupérer le devis
     const { data: quote, error: qErr } = await supabase
@@ -35,7 +47,13 @@ export default async function handler(
     if (quote.status !== 'pending')
       return res.status(400).json({ error: 'Devis déjà traité' });
 
-    const cautionAmount = Math.round(quote.amount * 0.3 * 100); // centimes
+    // Validation stricte du montant
+    const quoteAmount = parseFloat(quote.amount);
+    if (isNaN(quoteAmount) || quoteAmount <= 0 || quoteAmount > 100000) {
+      return res.status(400).json({ error: 'Montant invalide' });
+    }
+
+    const cautionAmount = Math.round(quoteAmount * 0.3 * 100); // centimes
     const projectTitle = quote.conversation?.project?.title || 'Projet BTP';
 
     // Créer Stripe Checkout Session

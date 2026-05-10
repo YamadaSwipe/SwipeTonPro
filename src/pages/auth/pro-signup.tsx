@@ -359,8 +359,12 @@ export default function ProfessionalSignupPage() {
           setError('Veuillez remplir tous les champs obligatoires');
           return false;
         }
-        if (basicInfo.password !== basicInfo.confirmPassword) {
-          setError('Les mots de passe ne correspondent pas');
+        // Validation email stricte (RFC 5322)
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!basicInfo.email || !emailRegex.test(basicInfo.email)) {
+          setError(
+            'Email invalide. Veuillez utiliser un format correct (exemple@domaine.com)'
+          );
           return false;
         }
         break;

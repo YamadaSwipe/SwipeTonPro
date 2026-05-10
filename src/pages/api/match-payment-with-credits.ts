@@ -29,6 +29,37 @@ export default async function handler(
       cancelUrl,
     } = req.body;
 
+    // Validation des paramètres
+    if (!paymentMethod || !['credits', 'card'].includes(paymentMethod)) {
+      return res.status(400).json({ error: 'Méthode de paiement invalide' });
+    }
+
+    // Validation des IDs pour éviter l'injection
+    if (
+      projectId &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        projectId
+      )
+    ) {
+      return res.status(400).json({ error: 'Project ID invalide' });
+    }
+    if (
+      professionalId &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        professionalId
+      )
+    ) {
+      return res.status(400).json({ error: 'Professional ID invalide' });
+    }
+    if (
+      matchId &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        matchId
+      )
+    ) {
+      return res.status(400).json({ error: 'Match ID invalide' });
+    }
+
     // Si matchId fourni mais pas projectId/professionalId, résoudre depuis match_payments
     if (matchId && (!projectId || !professionalId)) {
       const { data: matchPayment, error: matchErr } = await supabaseAdmin
