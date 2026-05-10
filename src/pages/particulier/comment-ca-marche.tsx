@@ -264,44 +264,44 @@ export default function ParticuliersCommentCaMarchePage() {
               {steps.map((step, index) => (
                 <div
                   key={index}
-                  className="flex flex-col md:flex-row gap-8 items-center mb-16 last:mb-0"
+                  className="flex flex-col md:flex-row gap-6 md:gap-8 items-center mb-12 md:mb-16 last:mb-0 text-center md:text-left"
                 >
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 mx-auto md:mx-0">
                     <div className="w-16 h-16 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 flex items-center justify-center text-white font-black text-xl shadow-lg">
                       {step.step}
                     </div>
                   </div>
 
-                  <div className="flex-1">
+                  <div className="flex-1 w-full">
                     <Card className="border-border/50 hover:border-emerald-600/50 transition-all hover:shadow-lg">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className="h-12 w-12 rounded-lg bg-emerald-600/10 flex items-center justify-center flex-shrink-0">
+                      <CardContent className="p-4 md:p-6">
+                        <div className="flex flex-col md:flex-row items-start gap-4">
+                          <div className="h-12 w-12 rounded-lg bg-emerald-600/10 flex items-center justify-center flex-shrink-0 mx-auto md:mx-0">
                             <step.icon className="h-6 w-6 text-emerald-600" />
                           </div>
-                          <div className="flex-1">
-                            <h3 className="text-xl font-heading font-bold mb-2">
+                          <div className="flex-1 text-center md:text-left">
+                            <h3 className="text-lg md:text-xl font-heading font-bold mb-2 text-center md:text-left">
                               {step.title}
                             </h3>
-                            <p className="text-muted-foreground mb-4 leading-relaxed">
+                            <p className="text-muted-foreground mb-4 leading-relaxed text-center md:text-left text-sm md:text-base">
                               {step.description}
                             </p>
-                            <div className="mb-4 flex items-center gap-4">
-                              <span className="inline-block px-3 py-1 bg-emerald-600/10 text-emerald-600 text-sm font-medium rounded-full">
+                            <div className="mb-4 flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4">
+                              <span className="inline-block px-3 py-1 bg-emerald-600/10 text-emerald-600 text-sm font-medium rounded-full text-center">
                                 {step.user}
                               </span>
-                              <span className="text-sm text-muted-foreground">
+                              <span className="text-sm text-muted-foreground text-center">
                                 Durée : {step.duration}
                               </span>
                             </div>
-                            <ul className="space-y-2">
+                            <ul className="space-y-2 text-center md:text-left">
                               {step.details.map((detail, idx) => (
                                 <li
                                   key={idx}
-                                  className="flex items-start gap-2 text-sm"
+                                  className="flex flex-col md:flex-row items-center md:items-start gap-2 text-sm"
                                 >
                                   <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                                  <span className="text-muted-foreground">
+                                  <span className="text-muted-foreground text-center md:text-left">
                                     {detail}
                                   </span>
                                 </li>
@@ -331,27 +331,27 @@ export default function ParticuliersCommentCaMarchePage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
               {benefits.map((benefit, index) => (
                 <Card
                   key={index}
                   className="border-border/50 hover:border-emerald-600/50 transition-all hover:shadow-lg"
                 >
-                  <CardContent className="p-8">
-                    <div className="flex items-start gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-emerald-600/10 flex items-center justify-center flex-shrink-0">
+                  <CardContent className="p-6 md:p-8">
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-4 text-center md:text-left">
+                      <div className="h-12 w-12 rounded-lg bg-emerald-600/10 flex items-center justify-center flex-shrink-0 mx-auto md:mx-0">
                         {React.createElement(benefit.icon as any, {
                           className: 'h-6 w-6 text-emerald-600',
                         })}
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-heading font-bold mb-2">
+                        <h3 className="text-lg md:text-xl font-heading font-bold mb-2 text-center md:text-left">
                           {benefit.title}
                         </h3>
-                        <p className="text-muted-foreground mb-4 leading-relaxed">
+                        <p className="text-muted-foreground mb-4 leading-relaxed text-center md:text-left text-sm md:text-base">
                           {benefit.description}
                         </p>
-                        <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-3">
+                        <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-3 text-center md:text-left">
                           <p className="text-sm font-medium text-emerald-600">
                             {benefit.stats}
                           </p>
@@ -369,30 +369,30 @@ export default function ParticuliersCommentCaMarchePage() {
         <section className="py-20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-heading font-black mb-4">
+              <h2 className="text-3xl md:text-4xl font-heading font-black mb-4 text-center">
                 Nos <span className="text-emerald-600">Garanties</span>
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-center">
                 Votre tranquillité d'esprit est notre priorité absolue
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
               {guarantees.map((guarantee, index) => (
                 <Card
                   key={index}
-                  className="text-center border-border/50 hover:border-emerald-600/50 transition-all hover:shadow-lg"
+                  className="text-center md:text-left border-border/50 hover:border-emerald-600/50 transition-all hover:shadow-lg"
                 >
-                  <CardContent className="p-8">
-                    <div className="h-16 w-16 rounded-lg bg-emerald-600/10 flex items-center justify-center mx-auto mb-6">
+                  <CardContent className="p-6 md:p-8">
+                    <div className="h-16 w-16 rounded-lg bg-emerald-600/10 flex items-center justify-center mx-auto md:mx-0 mb-6">
                       {React.createElement(guarantee.icon as any, {
                         className: 'h-8 w-8 text-emerald-600',
                       })}
                     </div>
-                    <h3 className="text-xl font-heading font-bold mb-4">
+                    <h3 className="text-lg md:text-xl font-heading font-bold mb-4 text-center md:text-left">
                       {guarantee.title}
                     </h3>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed text-center md:text-left text-sm md:text-base">
                       {guarantee.description}
                     </p>
                   </CardContent>
@@ -405,15 +405,15 @@ export default function ParticuliersCommentCaMarchePage() {
         {/* CTA Section */}
         <section className="py-20 bg-gradient-to-r from-emerald-600 to-emerald-400 text-white">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-heading font-black mb-6">
+            <h2 className="text-3xl md:text-4xl font-heading font-black mb-6 text-center">
               Prêt à Démarrer Votre{' '}
               <span className="text-yellow-300">Projet</span> ?
             </h2>
-            <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
+            <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90 text-center">
               Rejoignez des milliers de particuliers qui ont trouvé le
               professionnel parfait avec SwipeTonPro
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
               <Link href="/particulier/diagnostic">
                 <Button
                   size="lg"
