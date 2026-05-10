@@ -7,23 +7,22 @@ const supabaseAdmin = createClient(
 );
 
 const BASE_URL = (() => {
-  // Priorité aux variables d'environnement de production
-  const productionUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_SITE_URL
-      ? process.env.NEXT_PUBLIC_SITE_URL
-      : process.env.NODE_ENV === 'production'
-        ? 'https://www.swipetonpro.fr'
-        : 'http://localhost:3000';
+  // Priorité absolue au domaine de production
+  if (process.env.NODE_ENV === 'production') {
+    const productionUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_SITE_URL
+        ? process.env.NEXT_PUBLIC_SITE_URL
+        : 'https://www.swipetonpro.fr';
 
-  console.log('🌐 BASE_URL calculation:', {
-    VERCEL_URL: process.env.VERCEL_URL,
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-    NODE_ENV: process.env.NODE_ENV,
-    final: productionUrl,
-  });
+    console.log('🌐 PRODUCTION BASE_URL:', productionUrl);
+    return productionUrl;
+  }
 
-  return productionUrl;
+  // En développement, utiliser localhost
+  const devUrl = 'http://localhost:3000';
+  console.log('🔧 DEVELOPMENT BASE_URL:', devUrl);
+  return devUrl;
 })();
 
 // Fonction pour envoyer l'email via Resend
