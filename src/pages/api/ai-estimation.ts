@@ -15,26 +15,29 @@ export default async function handler(
 
   // Vérifier que la clé API est définie
   if (!process.env.OPENAI_API_KEY) {
-    return res.status(500).json({
-      error: 'OpenAI API key is not configured',
-      estimatedCost: null,
+    console.log('⚠️ OpenAI API key non configurée, utilisation du fallback');
+    return res.status(200).json({
+      success: false,
+      error: 'Service IA temporairement indisponible',
+      fallback: true,
+      message: 'Estimation calculée avec nos barèmes standards',
     });
   }
 
   try {
-    const { 
-      description, 
-      category, 
-      city, 
-      estimated_budget_min, 
+    const {
+      description,
+      category,
+      city,
+      estimated_budget_min,
       estimated_budget_max,
       surface,
-      type_bien 
+      type_bien,
     } = req.body;
 
     // Validation des données requises
     if (!description || !category || !city) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Données manquantes: description, category et city sont requis',
         estimatedCost: null,
       });
@@ -79,25 +82,26 @@ Répondez uniquement avec un JSON valide :
 `;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: 'gpt-3.5-turbo',
       messages: [
         {
-          role: "system",
-          content: "Vous êtes un expert en estimation de coûts de travaux BTP en France. Fournissez toujours des estimations réalistes basées sur les prix du marché français. Considérez les spécificités régionales et la complexité des travaux."
+          role: 'system',
+          content:
+            'Vous êtes un expert en estimation de coûts de travaux BTP en France. Fournissez toujours des estimations réalistes basées sur les prix du marché français. Considérez les spécificités régionales et la complexité des travaux.',
         },
         {
-          role: "user",
-          content: prompt
-        }
+          role: 'user',
+          content: prompt,
+        },
       ],
       max_tokens: 1500,
       temperature: 0.3,
     });
 
     const response = completion.choices[0]?.message?.content;
-    
+
     if (!response) {
-      throw new Error('Pas de réponse de l\'IA');
+      throw new Error("Pas de réponse de l'IA");
     }
 
     // Extraire le JSON de la réponse
@@ -125,17 +129,16 @@ Répondez uniquement avec un JSON valide :
       duree_jours: estimationData.duree_jours,
       risques: estimationData.risques,
       conseils: estimationData.conseils,
-      confidence_score: estimationData.confidence_score
+      confidence_score: estimationData.confidence_score,
     });
-
   } catch (error: any) {
     console.error('❌ Erreur estimation IA:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Erreur lors de l\'estimation IA',
+      error: "Erreur lors de l'estimation IA",
       details: error.message,
       estimatedCost: null,
-      estimation: null
+      estimation: null,
     });
   }
 }
