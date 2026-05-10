@@ -84,7 +84,7 @@ export function useAdminGhostSecure() {
 
       // Vérification que c'est bien l'admin (tout ID UUID valide accepté)
       if (
-        parsed.user?.email === 'admin@swipotonpro.fr' &&
+        parsed.user?.email === 'admin@swipetonpro.fr' &&
         parsed.user?.role === 'super_admin'
       ) {
         setIsAdminGhost(true);
