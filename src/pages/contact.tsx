@@ -27,12 +27,12 @@ export default function ContactPage() {
     name: '',
     email: '',
     subject: '',
-    message: '',
+    message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
-
+  
   const [contactSettings, setContactSettings] = useState<ContactSettings>({
     email: 'contact@swipetonpro.fr',
     phone: '+33 1 23 45 67 89',
@@ -42,8 +42,8 @@ export default function ContactPage() {
     businessHours: {
       monday_friday: '9h - 18h',
       saturday: '9h - 12h',
-      sunday: 'Fermé',
-    },
+      sunday: 'Fermé'
+    }
   });
 
   useEffect(() => {
@@ -54,12 +54,10 @@ export default function ContactPage() {
     }
   }, []);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: e.target.value
     });
   };
 
@@ -71,8 +69,8 @@ export default function ContactPage() {
     try {
       // TODO: Integrate with your preferred contact solution
       // For now, just simulate submission
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       setIsSubmitted(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (err) {
@@ -89,7 +87,7 @@ export default function ContactPage() {
           title="Contact - SwipeTonPro"
           description="Contactez l'équipe SwipeTonPro pour toute question ou demande d'information"
         />
-
+        
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-12 px-4">
           <div className="max-w-2xl mx-auto">
             <Card className="text-center p-8">
@@ -101,7 +99,9 @@ export default function ContactPage() {
                 Nous vous répondrons dans les plus brefs délais.
               </p>
               <Link href="/">
-                <Button>Retour à l'accueil</Button>
+                <Button>
+                  Retour à l'accueil
+                </Button>
               </Link>
             </Card>
           </div>
@@ -116,7 +116,7 @@ export default function ContactPage() {
         title="Contact - SwipeTonPro"
         description="Contactez l'équipe SwipeTonPro pour toute question ou demande d'information"
       />
-
+      
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-12 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -125,8 +125,7 @@ export default function ContactPage() {
               Contactez-nous
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Notre équipe est à votre disposition pour répondre à toutes vos
-              questions
+              Notre équipe est à votre disposition pour répondre à toutes vos questions
             </p>
           </div>
 
@@ -164,7 +163,7 @@ export default function ContactPage() {
                       />
                     </div>
                   </div>
-
+                  
                   <div>
                     <Label htmlFor="subject">Sujet</Label>
                     <Input
@@ -177,7 +176,7 @@ export default function ContactPage() {
                       placeholder="Question sur un projet"
                     />
                   </div>
-
+                  
                   <div>
                     <Label htmlFor="message">Message</Label>
                     <Textarea
@@ -197,9 +196,9 @@ export default function ContactPage() {
                     </Alert>
                   )}
 
-                  <Button
-                    type="submit"
-                    className="w-full"
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -235,53 +234,54 @@ export default function ContactPage() {
                     </div>
                   </div>
 
-                {contactSettings.showPhone && (
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                      <Phone className="w-6 h-6 text-orange-600" />
+                  {contactSettings.showPhone && (
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                        <Phone className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">Téléphone</h3>
+                        <p className="text-gray-600">{contactSettings.phone}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">Téléphone</h3>
-                      <p className="text-gray-600">{contactSettings.phone}</p>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {contactSettings.showAddress && (
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                      <MapPin className="w-6 h-6 text-orange-600" />
+                  {contactSettings.showAddress && (
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                        <MapPin className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">Adresse</h3>
+                        <p className="text-gray-600 whitespace-pre-line">
+                          {contactSettings.address}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">Adresse</h3>
-                      <p className="text-gray-600 whitespace-pre-line">
-                        {contactSettings.address}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Heures d'ouverture</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Lundi - Vendredi</span>
-                    <span className="font-semibold">{contactSettings.businessHours.monday_friday}</span>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Heures d'ouverture</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Lundi - Vendredi</span>
+                      <span className="font-semibold">{contactSettings.businessHours.monday_friday}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Samedi</span>
+                      <span className="font-semibold">{contactSettings.businessHours.saturday}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Dimanche</span>
+                      <span className="font-semibold">{contactSettings.businessHours.sunday}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Samedi</span>
-                    <span className="font-semibold">{contactSettings.businessHours.saturday}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Dimanche</span>
-                    <span className="font-semibold">{contactSettings.businessHours.sunday}</span>
-                  </div>
-                </div>
+                </CardContent>
               </Card>
 
               <Card>
@@ -289,22 +289,13 @@ export default function ContactPage() {
                   <CardTitle>Liens utiles</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Link
-                    href="/projets"
-                    className="block text-orange-600 hover:text-orange-700"
-                  >
+                  <Link href="/projets" className="block text-orange-600 hover:text-orange-700">
                     → Voir tous les projets
                   </Link>
-                  <Link
-                    href="/professionnel/inscription"
-                    className="block text-orange-600 hover:text-orange-700"
-                  >
+                  <Link href="/professionnel/inscription" className="block text-orange-600 hover:text-orange-700">
                     → Devenir professionnel
                   </Link>
-                  <Link
-                    href="/client/inscription"
-                    className="block text-orange-600 hover:text-orange-700"
-                  >
+                  <Link href="/client/inscription" className="block text-orange-600 hover:text-orange-700">
                     → Créer un compte client
                   </Link>
                 </CardContent>
