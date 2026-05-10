@@ -6,6 +6,28 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Interface pour les résultats du diagnostic
+interface DiagnosticResults {
+  timestamp: string;
+  environment: string;
+  supabase: {
+    url: string;
+    hasAnonKey: boolean;
+    hasServiceKey: boolean;
+  };
+  users: any;
+  admin: {
+    exists: boolean;
+    profile: any;
+    error: string | null;
+    authUser: any;
+    signInTest?: any;
+  };
+  issues: any[];
+  environment?: any;
+  health?: any;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -17,16 +39,21 @@ export default async function handler(
   try {
     console.log('🔍 Début diagnostic authentification...');
 
-    const results = {
+    const results: DiagnosticResults = {
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
+      environment: process.env.NODE_ENV || 'unknown',
       supabase: {
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       },
       users: {},
-      admin: {},
+      admin: {
+        exists: false,
+        profile: null,
+        error: null,
+        authUser: null,
+      },
       issues: [],
     };
 
@@ -76,21 +103,18 @@ export default async function handler(
       });
     }
 
-    results.admin = {
-      exists: !!adminProfile,
-      profile: adminProfile
-        ? {
-            id: adminProfile.id,
-            email: adminProfile.email,
-            role: adminProfile.role,
-            created_at: adminProfile.created_at,
-            last_sign_in_at: adminProfile.last_sign_in_at,
-            email_confirmed_at: adminProfile.email_confirmed_at,
-          }
-        : null,
-      error: adminError?.message || null,
-      authUser: null as any,
-    };
+    results.admin.exists = !!adminProfile;
+    results.admin.profile = adminProfile
+      ? {
+          id: adminProfile.id,
+          email: adminProfile.email,
+          role: adminProfile.role,
+          created_at: adminProfile.created_at,
+          last_sign_in_at: adminProfile.last_sign_in_at,
+          email_confirmed_at: adminProfile.email_confirmed_at,
+        }
+      : null;
+    results.admin.error = adminError?.message || null;
 
     // 3. Vérifier les utilisateurs auth.users (Supabase Auth)
     console.log('🔑 Vérification auth.users...');
