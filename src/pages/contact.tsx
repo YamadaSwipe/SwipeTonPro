@@ -27,12 +27,12 @@ export default function ContactPage() {
     name: '',
     email: '',
     subject: '',
-    message: ''
+    message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [contactSettings, setContactSettings] = useState<ContactSettings>({
     email: 'contact@swipetonpro.fr',
     phone: '+33 1 23 45 67 89',
@@ -42,8 +42,8 @@ export default function ContactPage() {
     businessHours: {
       monday_friday: '9h - 18h',
       saturday: '9h - 12h',
-      sunday: 'Fermé'
-    }
+      sunday: 'Fermé',
+    },
   });
 
   useEffect(() => {
@@ -54,10 +54,12 @@ export default function ContactPage() {
     }
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -67,12 +69,28 @@ export default function ContactPage() {
     setError('');
 
     try {
-      // TODO: Integrate with your preferred contact solution
-      // For now, just simulate submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Une erreur est survenue. Veuillez réessayer.');
+        return;
+      }
+
       setIsSubmitted(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
+
+      // Afficher une note si présente (utile pour le débogage)
+      if (data.note) {
+        console.log('Note:', data.note);
+      }
     } catch (err) {
       setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
@@ -87,7 +105,7 @@ export default function ContactPage() {
           title="Contact - SwipeTonPro"
           description="Contactez l'équipe SwipeTonPro pour toute question ou demande d'information"
         />
-        
+
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-12 px-4">
           <div className="max-w-2xl mx-auto">
             <Card className="text-center p-8">
@@ -99,9 +117,7 @@ export default function ContactPage() {
                 Nous vous répondrons dans les plus brefs délais.
               </p>
               <Link href="/">
-                <Button>
-                  Retour à l'accueil
-                </Button>
+                <Button>Retour à l'accueil</Button>
               </Link>
             </Card>
           </div>
@@ -116,7 +132,7 @@ export default function ContactPage() {
         title="Contact - SwipeTonPro"
         description="Contactez l'équipe SwipeTonPro pour toute question ou demande d'information"
       />
-      
+
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white py-12 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -125,7 +141,8 @@ export default function ContactPage() {
               Contactez-nous
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Notre équipe est à votre disposition pour répondre à toutes vos questions
+              Notre équipe est à votre disposition pour répondre à toutes vos
+              questions
             </p>
           </div>
 
@@ -163,7 +180,7 @@ export default function ContactPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="subject">Sujet</Label>
                     <Input
@@ -176,7 +193,7 @@ export default function ContactPage() {
                       placeholder="Question sur un projet"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="message">Message</Label>
                     <Textarea
@@ -196,9 +213,9 @@ export default function ContactPage() {
                     </Alert>
                   )}
 
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
+                  <Button
+                    type="submit"
+                    className="w-full"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -270,15 +287,21 @@ export default function ContactPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span>Lundi - Vendredi</span>
-                      <span className="font-semibold">{contactSettings.businessHours.monday_friday}</span>
+                      <span className="font-semibold">
+                        {contactSettings.businessHours.monday_friday}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Samedi</span>
-                      <span className="font-semibold">{contactSettings.businessHours.saturday}</span>
+                      <span className="font-semibold">
+                        {contactSettings.businessHours.saturday}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Dimanche</span>
-                      <span className="font-semibold">{contactSettings.businessHours.sunday}</span>
+                      <span className="font-semibold">
+                        {contactSettings.businessHours.sunday}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -289,13 +312,22 @@ export default function ContactPage() {
                   <CardTitle>Liens utiles</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Link href="/projets" className="block text-orange-600 hover:text-orange-700">
+                  <Link
+                    href="/projets"
+                    className="block text-orange-600 hover:text-orange-700"
+                  >
                     → Voir tous les projets
                   </Link>
-                  <Link href="/professionnel/inscription" className="block text-orange-600 hover:text-orange-700">
+                  <Link
+                    href="/professionnel/inscription"
+                    className="block text-orange-600 hover:text-orange-700"
+                  >
                     → Devenir professionnel
                   </Link>
-                  <Link href="/client/inscription" className="block text-orange-600 hover:text-orange-700">
+                  <Link
+                    href="/client/inscription"
+                    className="block text-orange-600 hover:text-orange-700"
+                  >
                     → Créer un compte client
                   </Link>
                 </CardContent>
