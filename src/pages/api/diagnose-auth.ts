@@ -89,6 +89,7 @@ export default async function handler(
           }
         : null,
       error: adminError?.message || null,
+      authUser: null as any,
     };
 
     // 3. Vérifier les utilisateurs auth.users (Supabase Auth)
