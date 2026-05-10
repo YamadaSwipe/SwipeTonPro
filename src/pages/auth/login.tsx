@@ -124,6 +124,39 @@ export default function LoginPage() {
             sessionStorage.clear();
           }
 
+          // Vérifier d'abord si un utilisateur normal existe avec cet email
+          // Si oui, refuser la connexion admin pour éviter la confusion
+          const { createClient } = await import('@supabase/supabase-js');
+          const supabaseCheck = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          );
+
+          try {
+            const { data: existingUser, error: userError } = await supabaseCheck
+              .from('profiles')
+              .select('id, email, role')
+              .eq('email', 'admin@swipetonpro.fr')
+              .single();
+
+            if (existingUser && existingUser.role !== 'super_admin') {
+              console.error(
+                '🚨 LoginPage: Conflit détecté - email admin utilisé par un compte normal'
+              );
+              setError(
+                "Cet email est déjà utilisé par un compte utilisateur. Contactez l'administrateur."
+              );
+              setLoading(false);
+              return;
+            }
+          } catch (checkError) {
+            console.warn(
+              '⚠️ LoginPage: Erreur vérification admin:',
+              checkError
+            );
+            // Continuer avec la connexion admin si la vérification échoue
+          }
+
           // Créer session admin manuelle
           const adminUser = {
             id: '29a2361d-6568-4d5f-99c6-557b971778cc',
@@ -259,7 +292,7 @@ export default function LoginPage() {
                   <div className="relative">
                     <Input
                       id="password"
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       placeholder="•••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}

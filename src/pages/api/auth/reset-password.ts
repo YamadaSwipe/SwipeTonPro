@@ -6,8 +6,25 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || 'https://www.swipetonpro.fr';
+const BASE_URL = (() => {
+  // Priorité aux variables d'environnement de production
+  const productionUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL
+      ? process.env.NEXT_PUBLIC_SITE_URL
+      : process.env.NODE_ENV === 'production'
+        ? 'https://www.swipetonpro.fr'
+        : 'http://localhost:3000';
+
+  console.log('🌐 BASE_URL calculation:', {
+    VERCEL_URL: process.env.VERCEL_URL,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NODE_ENV: process.env.NODE_ENV,
+    final: productionUrl,
+  });
+
+  return productionUrl;
+})();
 
 // Fonction pour envoyer l'email via Resend
 async function sendResetEmail(email: string, resetLink: string) {
@@ -117,12 +134,17 @@ export default async function handler(
     console.log('🔄 Début processus de réinitialisation pour:', email);
 
     // Générer le lien de récupération avec le service role
+    const redirectUrl = `${BASE_URL}/auth/reset-password`;
+    console.log('🔗 Reset password redirect URL:', redirectUrl);
+    console.log('🌍 Environment:', process.env.NODE_ENV);
+    console.log('📧 BASE_URL:', BASE_URL);
+
     const { data: linkData, error: linkError } =
       await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
         email: email,
         options: {
-          redirectTo: `${BASE_URL}/auth/reset-password`,
+          redirectTo: redirectUrl,
         },
       });
 
