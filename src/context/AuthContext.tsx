@@ -264,19 +264,75 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         console.log('🚀 AuthContext: Initializing authentication...');
 
-        // 1. Récupérer la session Supabase
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        // 1. Récupérer la session Supabase avec retry pour les locks
+        let session = null;
+        let sessionError = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        while (retryCount < maxRetries) {
+          try {
+            const result = await supabase.auth.getSession();
+            session = result.data.session;
+            sessionError = result.error;
+
+            if (!sessionError && !session) {
+              // Pas de session et pas d'erreur - c'est normal
+              break;
+            }
+
+            if (!sessionError && session) {
+              // Session trouvée - succès
+              break;
+            }
+
+            // Si l'erreur est un lock, attendre et réessayer
+            if (
+              sessionError?.message?.includes('lock') ||
+              sessionError?.message?.includes('stole')
+            ) {
+              console.warn(
+                `⚠️ AuthContext: Session lock detected, retry ${retryCount + 1}/${maxRetries}`
+              );
+              retryCount++;
+              await new Promise((resolve) =>
+                setTimeout(resolve, 300 * retryCount)
+              );
+              continue;
+            }
+
+            // Autre erreur, sortir de la boucle
+            break;
+          } catch (e) {
+            sessionError = e;
+            if (
+              e instanceof Error &&
+              (e.message?.includes('lock') || e.message?.includes('stole'))
+            ) {
+              console.warn(
+                `⚠️ AuthContext: Session lock exception, retry ${retryCount + 1}/${maxRetries}`
+              );
+              retryCount++;
+              await new Promise((resolve) =>
+                setTimeout(resolve, 300 * retryCount)
+              );
+              continue;
+            }
+            break;
+          }
+        }
 
         console.log('📊 Session result:', {
           session: !!session,
           error: !!sessionError,
+          retries: retryCount,
         });
 
-        if (sessionError) {
-          console.error('❌ AuthContext: Session error:', sessionError);
+        if (sessionError && !session) {
+          console.error(
+            '❌ AuthContext: Session error after retries:',
+            sessionError
+          );
           setLoading(false);
           setInitialized(true);
           return;
@@ -384,32 +440,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []); // <-- Dépendances vides pour n'exécuter qu'une seule fois
 
-  // 3. Écouter les changements de session (SANS rappeler initializeAuth)
+  // 3. Écouter les changements de session avec gestion des locks
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event);
+    let subscription: any = null;
 
-      // Guard pour éviter les conflits pendant l'initialisation
-      if (!isInitialized.current) return;
+    try {
+      const result = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth event:', event);
 
-      if (event === 'SIGNED_IN' && session?.user) {
-        console.log('✅ AuthContext: User signed in:', session.user.email);
-        setUser({
-          id: session.user.id,
-          email: session.user.email,
-          created_at: session.user.created_at,
-        });
-        await loadUserData(session.user.id); // <-- PAS initializeAuth ici
-      } else if (event === 'SIGNED_OUT') {
-        console.log('✅ AuthContext: User signed out');
-        await resetAuthState();
-      }
-    });
+        // Guard pour éviter les conflits pendant l'initialisation
+        if (!isInitialized.current) return;
+
+        try {
+          if (event === 'SIGNED_IN' && session?.user) {
+            console.log('✅ AuthContext: User signed in:', session.user.email);
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              created_at: session.user.created_at,
+            });
+            await loadUserData(session.user.id);
+          } else if (event === 'SIGNED_OUT') {
+            console.log('✅ AuthContext: User signed out');
+            await resetAuthState();
+          }
+        } catch (error) {
+          console.error(
+            '❌ AuthContext: Error in auth state change handler:',
+            error
+          );
+          // Ne pas bloquer l'application en cas d'erreur
+          if (event === 'SIGNED_OUT') {
+            await resetAuthState();
+          }
+        }
+      });
+
+      subscription = result.data.subscription;
+    } catch (error) {
+      console.error('❌ AuthContext: Error setting up auth listener:', error);
+    }
 
     return () => {
-      subscription?.unsubscribe();
+      try {
+        if (subscription?.unsubscribe) {
+          subscription.unsubscribe();
+        }
+      } catch (error) {
+        console.error(
+          '❌ AuthContext: Error unsubscribing auth listener:',
+          error
+        );
+      }
     };
   }, []);
 
@@ -496,21 +578,73 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   /**
-   * Déconnexion utilisateur
+   * Déconnexion utilisateur avec gestion des erreurs de lock
    */
   const logout = async (): Promise<void> => {
     try {
       console.log('🚪 AuthContext: Logging out user...');
 
-      const { error } = await supabase.auth.signOut();
+      // Essayer de déconnexion avec retry en cas de lock
+      let retryCount = 0;
+      const maxRetries = 3;
+      let error = null;
+
+      while (retryCount < maxRetries) {
+        try {
+          const { error: signOutError } = await supabase.auth.signOut();
+          error = signOutError;
+
+          if (!error) {
+            console.log('✅ AuthContext: Logout successful');
+            await resetAuthState();
+            router.push('/auth/login');
+            return;
+          }
+
+          // Si l'erreur est un lock, attendre et réessayer
+          if (
+            error.message?.includes('lock') ||
+            error.message?.includes('stole')
+          ) {
+            console.warn(
+              `⚠️ AuthContext: Lock detected, retry ${retryCount + 1}/${maxRetries}`
+            );
+            retryCount++;
+            await new Promise((resolve) =>
+              setTimeout(resolve, 500 * retryCount)
+            ); // Délai croissant
+            continue;
+          }
+
+          // Autre erreur, sortir de la boucle
+          break;
+        } catch (e) {
+          error = e;
+          if (
+            e instanceof Error &&
+            (e.message?.includes('lock') || e.message?.includes('stole'))
+          ) {
+            console.warn(
+              `⚠️ AuthContext: Lock exception, retry ${retryCount + 1}/${maxRetries}`
+            );
+            retryCount++;
+            await new Promise((resolve) =>
+              setTimeout(resolve, 500 * retryCount)
+            );
+            continue;
+          }
+          break;
+        }
+      }
 
       if (error) {
-        console.error('❌ AuthContext: Logout error:', error);
-      } else {
-        console.log('✅ AuthContext: Logout successful');
-        await resetAuthState();
-        router.push('/auth/login');
+        console.error('❌ AuthContext: Logout error after retries:', error);
       }
+
+      // Forcer la réinitialisation même en cas d'erreur
+      console.log('🔄 AuthContext: Forcing auth state reset due to errors');
+      await resetAuthState();
+      router.push('/auth/login');
     } catch (error) {
       console.error('❌ AuthContext: Logout exception:', error);
       await resetAuthState();
