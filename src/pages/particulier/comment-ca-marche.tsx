@@ -254,7 +254,7 @@ export default function ParticuliersCommentCaMarchePage() {
                 Votre Parcours en{' '}
                 <span className="text-emerald-600">6 Étapes Simples</span>
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-center">
+              <p className="text-lg text-muted-foreground mb-4 leading-relaxed text-center max-w-2xl mx-auto">
                 Un processus pensé pour votre tranquillité d'esprit et votre
                 sécurité
               </p>
@@ -326,7 +326,7 @@ export default function ParticuliersCommentCaMarchePage() {
                 Pourquoi Choisir{' '}
                 <span className="text-emerald-600">SwipeTonPro</span>
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-center">
+              <p className="text-lg text-muted-foreground mb-4 leading-relaxed text-center max-w-2xl mx-auto">
                 Des avantages concrets qui font toute la différence
               </p>
             </div>
@@ -372,7 +372,7 @@ export default function ParticuliersCommentCaMarchePage() {
               <h2 className="text-3xl md:text-4xl font-heading font-black mb-4 text-center">
                 Nos <span className="text-emerald-600">Garanties</span>
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-center">
+              <p className="text-lg text-muted-foreground mb-4 leading-relaxed text-center max-w-2xl mx-auto">
                 Votre tranquillité d'esprit est notre priorité absolue
               </p>
             </div>
@@ -409,7 +409,7 @@ export default function ParticuliersCommentCaMarchePage() {
               Prêt à Démarrer Votre{' '}
               <span className="text-yellow-300">Projet</span> ?
             </h2>
-            <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90 text-center">
+            <p className="text-xl mb-8 leading-relaxed max-w-2xl mx-auto opacity-90 text-center">
               Rejoignez des milliers de particuliers qui ont trouvé le
               professionnel parfait avec SwipeTonPro
             </p>
