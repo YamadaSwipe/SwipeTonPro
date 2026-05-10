@@ -991,13 +991,19 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <HardHat className="h-5 w-5 text-primary" />
                 <span className="font-heading font-bold text-sm">
-                  SwipeTonPro 2.0
+                  SwipeTonPro
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
                 © 2026 SwipeTonPro. Tous droits réservés.
               </p>
               <div className="flex items-center gap-4">
+                <Link
+                  href="/contact"
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Contact
+                </Link>
                 <Link
                   href="#"
                   className="text-xs text-muted-foreground hover:text-primary transition-colors"

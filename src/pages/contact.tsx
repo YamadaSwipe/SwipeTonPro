@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,12 +24,40 @@ interface ContactSettings {
 }
 
 export default function ContactPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
     message: '',
   });
+
+  // Gérer le sujet depuis l'URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const subject = urlParams.get('subject');
+
+      if (subject) {
+        let subjectText = '';
+        switch (subject) {
+          case 'support':
+            subjectText = 'Problème technique';
+            break;
+          case 'team':
+            subjectText = 'Contact équipe';
+            break;
+          default:
+            subjectText = subject;
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          subject: subjectText,
+        }));
+      }
+    }
+  }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');

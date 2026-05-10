@@ -214,11 +214,11 @@ export default function ParticuliersCommentCaMarchePage() {
         <section className="py-20 bg-gradient-to-br from-emerald-600/5 to-emerald-400/5">
           <div className="container mx-auto px-4 text-center">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-4xl md:text-6xl font-heading font-black mb-6">
+              <h1 className="text-4xl md:text-6xl font-heading font-black mb-6 text-center">
                 Comment Ça Marche pour les{' '}
                 <span className="text-emerald-600">Particuliers</span>
               </h1>
-              <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+              <p className="text-xl text-muted-foreground mb-8 leading-relaxed text-center max-w-3xl mx-auto">
                 6 étapes simples pour trouver le professionnel parfait et
                 réaliser vos projets en toute sécurité
               </p>
@@ -250,11 +250,11 @@ export default function ParticuliersCommentCaMarchePage() {
         <section className="py-20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-heading font-black mb-4">
+              <h2 className="text-3xl md:text-4xl font-heading font-black mb-4 text-center">
                 Votre Parcours en{' '}
                 <span className="text-emerald-600">6 Étapes Simples</span>
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-center">
                 Un processus pensé pour votre tranquillité d'esprit et votre
                 sécurité
               </p>
@@ -322,11 +322,11 @@ export default function ParticuliersCommentCaMarchePage() {
         <section className="py-20 bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-heading font-black mb-4">
+              <h2 className="text-3xl md:text-4xl font-heading font-black mb-4 text-center">
                 Pourquoi Choisir{' '}
                 <span className="text-emerald-600">SwipeTonPro</span>
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-center">
                 Des avantages concrets qui font toute la différence
               </p>
             </div>

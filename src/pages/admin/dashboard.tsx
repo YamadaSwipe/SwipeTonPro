@@ -28,6 +28,7 @@ import {
   Shield,
   CreditCard,
   Bell,
+  MessageSquare,
   LogOut,
   FolderOpen,
   FileText,
@@ -618,6 +619,12 @@ function AdminDashboardContent() {
                     href: '/admin/settings-page',
                     icon: Settings,
                     color: 'text-gray-400',
+                  },
+                  {
+                    label: 'Team',
+                    href: '/contact?subject=team',
+                    icon: MessageSquare,
+                    color: 'text-blue-400',
                   },
                   {
                     label: 'Logs',
