@@ -23,14 +23,6 @@ export default async function handler(
 
     console.log('🔍 Recherche utilisateur:', email);
 
-    // Vérifier dans la table auth.users
-    const { data: authUser, error: authError } = await supabase.auth.admin.getUserByEmail(
-      email as string
-    );
-
-    console.log('📧 Auth user:', authUser?.id || 'Non trouvé');
-    console.log('❌ Auth error:', authError?.message || 'Aucune erreur');
-
     // Vérifier dans la table profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -53,31 +45,24 @@ export default async function handler(
 
     return res.status(200).json({
       email: email,
-      authUser: authUser ? {
-        id: authUser.id,
-        email: authUser.email,
-        email_confirmed: authUser.email_confirmed,
-        created_at: authUser.created_at,
-        last_sign_in_at: authUser.last_sign_in_at
-      } : null,
-      profile: profile ? {
-        id: profile.id,
-        email: profile.email,
-        full_name: profile.full_name,
-        role: profile.role,
-        created_at: profile.created_at
-      } : null,
-      authError: authError?.message || null,
+      profile: profile
+        ? {
+            id: profile.id,
+            email: profile.email,
+            full_name: profile.full_name,
+            role: profile.role,
+            created_at: profile.created_at,
+          }
+        : null,
       profileError: profileError?.message || null,
       authLogs: authLogs || [],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error: any) {
     console.error('❌ Erreur debug utilisateur:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Erreur serveur',
-      message: error.message 
+      message: error.message,
     });
   }
 }
