@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
         }
 
         // Si nous avons validé le token (méthode forcée ou standard)
-        if (tokenValid || session) {
+        if (tokenValid) {
           console.log('✅ Token validé avec succès');
           setTokenValid(true);
           setIsValidating(false);
