@@ -11,18 +11,43 @@ export default async function handler(
   try {
     console.log('🔍 Diagnostic configuration Supabase...');
 
-    const config = {
-      environment: process.env.NODE_ENV,
+    interface ConfigType {
+      environment: string;
       supabase: {
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-        anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '***CONFIGURED***' : 'NOT_CONFIGURED',
-        serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '***CONFIGURED***' : 'NOT_CONFIGURED'
+        url: string;
+        anonKey: string;
+        serviceKey: string;
+      };
+      urls: {
+        vercel: string;
+        siteUrl: string;
+        localhost: string;
+        production: string;
+      };
+      resetPassword: {
+        baseUrl: string;
+      };
+      issues: string[];
+      actualBaseUrl?: string;
+      baseUrlCorrect?: boolean;
+    }
+
+    const config: ConfigType = {
+      environment: process.env.NODE_ENV || 'unknown',
+      supabase: {
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'NOT_CONFIGURED',
+        anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+          ? '***CONFIGURED***'
+          : 'NOT_CONFIGURED',
+        serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY
+          ? '***CONFIGURED***'
+          : 'NOT_CONFIGURED',
       },
       urls: {
-        vercel: process.env.VERCEL_URL,
-        siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+        vercel: process.env.VERCEL_URL || 'NOT_CONFIGURED',
+        siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'NOT_CONFIGURED',
         localhost: 'http://localhost:3000',
-        production: 'https://www.swipetonpro.fr'
+        production: 'https://www.swipetonpro.fr',
       },
       resetPassword: {
         baseUrl: (() => {
@@ -32,7 +57,7 @@ export default async function handler(
               : process.env.NEXT_PUBLIC_SITE_URL
                 ? process.env.NEXT_PUBLIC_SITE_URL
                 : 'https://www.swipetonpro.fr';
-            
+
             console.log('🌐 PRODUCTION - Reset URL will be:', productionUrl);
             return productionUrl;
           } else {
@@ -40,9 +65,9 @@ export default async function handler(
             console.log('🔧 DEVELOPMENT - Reset URL will be:', devUrl);
             return devUrl;
           }
-        })()
+        })(),
       },
-      issues: []
+      issues: [],
     };
 
     // Vérifier les problèmes potentiels
@@ -56,36 +81,41 @@ export default async function handler(
 
     if (process.env.NODE_ENV === 'production') {
       if (!process.env.VERCEL_URL && !process.env.NEXT_PUBLIC_SITE_URL) {
-        config.issues.push('⚠️ VERCEL_URL ou NEXT_PUBLIC_SITE_URL manquant en production');
+        config.issues.push(
+          '⚠️ VERCEL_URL ou NEXT_PUBLIC_SITE_URL manquant en production'
+        );
       }
     }
 
     if (!process.env.RESEND_API_KEY) {
-      config.issues.push('⚠️ RESEND_API_KEY manquant (emails reset ne fonctionneront pas)');
+      config.issues.push(
+        '⚠️ RESEND_API_KEY manquant (emails reset ne fonctionneront pas)'
+      );
     }
 
     // Calculer le BASE_URL qui sera utilisé
     const actualBaseUrl = config.resetPassword.baseUrl;
     config.actualBaseUrl = actualBaseUrl;
-    config.baseUrlCorrect = actualBaseUrl.includes('www.swipetonpro.fr') && process.env.NODE_ENV === 'production';
+    config.baseUrlCorrect =
+      actualBaseUrl.includes('www.swipetonpro.fr') &&
+      process.env.NODE_ENV === 'production';
 
     return res.status(200).json({
       success: true,
       config,
       summary: {
         totalIssues: config.issues.length,
-        criticalIssues: config.issues.filter(i => i.includes('❌')).length,
-        warningIssues: config.issues.filter(i => i.includes('⚠️')).length,
+        criticalIssues: config.issues.filter((i) => i.includes('❌')).length,
+        warningIssues: config.issues.filter((i) => i.includes('⚠️')).length,
         baseUrlCorrect: config.baseUrlCorrect,
-        environment: process.env.NODE_ENV
-      }
+        environment: process.env.NODE_ENV,
+      },
     });
-
   } catch (error: any) {
     console.error('❌ Erreur diagnostic config:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Erreur serveur',
-      message: error.message 
+      message: error.message,
     });
   }
 }
