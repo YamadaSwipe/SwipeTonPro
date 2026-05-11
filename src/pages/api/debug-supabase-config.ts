@@ -95,19 +95,23 @@ export default async function handler(
 
     // Calculer le BASE_URL qui sera utilisé
     const actualBaseUrl = config.resetPassword.baseUrl;
-    config.actualBaseUrl = actualBaseUrl;
-    config.baseUrlCorrect =
-      actualBaseUrl.includes('www.swipetonpro.fr') &&
-      process.env.NODE_ENV === 'production';
 
     return res.status(200).json({
       success: true,
-      config,
+      config: {
+        ...config,
+        actualBaseUrl,
+        baseUrlCorrect:
+          actualBaseUrl.includes('www.swipetonpro.fr') &&
+          process.env.NODE_ENV === 'production',
+      },
       summary: {
         totalIssues: config.issues.length,
         criticalIssues: config.issues.filter((i) => i.includes('❌')).length,
         warningIssues: config.issues.filter((i) => i.includes('⚠️')).length,
-        baseUrlCorrect: config.baseUrlCorrect,
+        baseUrlCorrect:
+          actualBaseUrl.includes('www.swipetonpro.fr') &&
+          process.env.NODE_ENV === 'production',
         environment: process.env.NODE_ENV,
       },
     });

@@ -43,21 +43,28 @@ export default function ResetPasswordPage() {
             token.substring(0, 20) + '...'
           );
 
-          // Pour les tokens forcés, nous devons utiliser la méthode verifyOtp
-          const { data, error } = await supabase.auth.verifyOtp({
-            token,
-            type: 'recovery',
-          });
+          // Pour les tokens forcés, nous devons utiliser une méthode alternative
+          // Car verifyOtp nécessite un email, nous utilisons une autre approche
+          try {
+            // Essayer d'utiliser le token directement
+            const { data, error } = await supabase.auth.getUser(token);
 
-          if (error) {
-            console.error('❌ Erreur vérification token forcé:', error);
+            if (error) {
+              console.error('❌ Erreur vérification token forcé:', error);
+              setErrorMessage(
+                'Ce lien de réinitialisation est invalide ou a expiré.'
+              );
+              setTokenValid(false);
+            } else {
+              console.log('✅ Token forcé validé avec succès');
+              setTokenValid(true);
+            }
+          } catch (e) {
+            console.error('❌ Erreur méthode alternative:', e);
             setErrorMessage(
               'Ce lien de réinitialisation est invalide ou a expiré.'
             );
             setTokenValid(false);
-          } else {
-            console.log('✅ Token forcé validé avec succès');
-            setTokenValid(true);
           }
         } else {
           // Méthode standard Supabase (hash dans URL)
