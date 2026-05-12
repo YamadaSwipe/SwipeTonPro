@@ -137,8 +137,7 @@ export default async function handler(
     }
 
     // Extraire le token Supabase valide du lien généré
-    const originalLink =
-      linkData?.properties?.action_link || linkData?.action_link;
+    const originalLink = linkData?.properties?.action_link;
     let resetToken = '';
 
     if (originalLink) {
