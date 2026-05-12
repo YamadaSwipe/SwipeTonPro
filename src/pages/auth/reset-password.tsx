@@ -57,6 +57,7 @@ export default function ResetPasswordPage() {
             const { data, error } = await supabase.auth.verifyOtp({
               token: token,
               type: 'recovery',
+              email: '', // Email non requis pour les tokens de récupération
             });
 
             if (error) {
