@@ -116,41 +116,57 @@ export default async function handler(
   }
 
   try {
-    console.log('🔄 Début processus de réinitialisation pour:', email);
+    console.log(' Début processus de réinitialisation pour:', email);
 
     // Utiliser notre système forcé pour garantir le bon domaine
     const PRODUCTION_URL = 'https://www.swipetonpro.fr';
 
-    // Générer un token de réinitialisation manuellement
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email: email,
-    });
+    // Générer un lien de récupération Supabase standard
+    const { data: linkData, error: linkError } =
+      await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+        options: {
+          redirectTo: `${PRODUCTION_URL}/auth/reset-password`,
+        },
+      });
 
-    if (userError && !userError.message?.includes('User not found')) {
-      throw userError;
+    if (linkError && !linkError.message?.includes('User not found')) {
+      console.error(' Erreur generateLink:', linkError);
+      throw linkError;
     }
 
-    // Créer un lien manuel forcé vers le bon domaine
-    const resetToken =
-      user?.action_link?.split('token=')[1]?.split('&')[0] ||
-      'manual-token-' + Date.now();
+    // Extraire le token Supabase valide du lien généré
+    const originalLink =
+      linkData?.properties?.action_link || linkData?.action_link;
+    let resetToken = '';
+
+    if (originalLink) {
+      // Extraire le token du lien Supabase
+      const tokenMatch = originalLink.match(/token=([^&]+)/);
+      if (tokenMatch && tokenMatch[1]) {
+        resetToken = tokenMatch[1];
+      } else {
+        // Alternative: extraire access_token du hash
+        const hashMatch = originalLink.match(/access_token=([^&]+)/);
+        if (hashMatch && hashMatch[1]) {
+          resetToken = hashMatch[1];
+        }
+      }
+    }
+
+    // Créer notre lien forcé avec le vrai token Supabase
     const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password`;
 
-    console.log('🔗 Reset password link (forced):', resetLink);
-    console.log('🌍 Environment:', process.env.NODE_ENV);
-    console.log('📧 BASE_URL:', BASE_URL);
-
-    if (userError && !userError.message?.includes('User not found')) {
-      console.error('❌ Erreur generateLink:', userError);
-      throw userError;
-    }
+    console.log(' Reset password link (forced with real token):', resetLink);
+    console.log(' Environment:', process.env.NODE_ENV);
+    console.log(' BASE_URL:', BASE_URL);
+    console.log(
+      ' Extracted token:',
+      resetToken ? resetToken.substring(0, 20) + '...' : 'NOT FOUND'
+    );
 
     // Envoyer l'email avec notre lien forcé
-
     console.log('✅ Lien de réinitialisation généré pour:', email);
 
     // Envoyer l'email via Resend
