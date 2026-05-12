@@ -33,18 +33,25 @@ export default function ResetPasswordPage() {
         console.log('🔍 Vérification du token de récupération...');
         console.log('🌐 URL actuelle:', window.location.href);
 
-        // Vérifier si nous avons un token dans l'URL (méthode forcée)
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
+        // Vérifier si nous avons un token dans le hash (méthode forcée)
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1)
+        );
+        const accessToken = hashParams.get('access_token');
+        const tokenType = hashParams.get('type');
 
-        if (token) {
+        // Vérifier aussi les paramètres de query (fallback)
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryToken = urlParams.get('token');
+
+        if ((accessToken && tokenType === 'recovery') || queryToken) {
+          const token = accessToken || queryToken;
           console.log(
-            '🔑 Token trouvé dans URL (méthode forcée):',
-            token.substring(0, 20) + '...'
+            '🔑 Token trouvé (méthode forcée):',
+            token?.substring(0, 20) + '...'
           );
 
           // Pour les tokens forcés, nous devons utiliser une méthode alternative
-          // Car verifyOtp nécessite un email, nous utilisons une autre approche
           try {
             // Essayer d'utiliser le token directement
             const { data, error } = await supabase.auth.getUser(token);
