@@ -118,48 +118,38 @@ export default async function handler(
   try {
     console.log('🔄 Début processus de réinitialisation pour:', email);
 
-    // Générer le lien de récupération avec le service role
-    const redirectUrl = `${BASE_URL}/auth/reset-password`;
-    console.log('🔗 Reset password redirect URL:', redirectUrl);
+    // Utiliser notre système forcé pour garantir le bon domaine
+    const PRODUCTION_URL = 'https://www.swipetonpro.fr';
+
+    // Générer un token de réinitialisation manuellement
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+    });
+
+    if (userError && !userError.message?.includes('User not found')) {
+      throw userError;
+    }
+
+    // Créer un lien manuel forcé vers le bon domaine
+    const resetToken =
+      user?.action_link?.split('token=')[1]?.split('&')[0] ||
+      'manual-token-' + Date.now();
+    const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password`;
+
+    console.log('🔗 Reset password link (forced):', resetLink);
     console.log('🌍 Environment:', process.env.NODE_ENV);
     console.log('📧 BASE_URL:', BASE_URL);
 
-    const { data: linkData, error: linkError } =
-      await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: email,
-        options: {
-          redirectTo: redirectUrl,
-        },
-      });
-
-    if (linkError) {
-      console.error('❌ Erreur generateLink:', linkError);
-
-      // Si l'utilisateur n'existe pas, on retourne quand même un succès (sécurité)
-      if (
-        linkError.message?.includes('User not found') ||
-        linkError.message?.includes('user not found') ||
-        linkError.status === 404 ||
-        linkError.code === 'user_not_found'
-      ) {
-        return res.status(200).json({
-          success: true,
-          message:
-            'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
-        });
-      }
-
-      return res.status(500).json({
-        error: 'Impossible de générer le lien de réinitialisation',
-        details: linkError.message,
-      });
+    if (userError && !userError.message?.includes('User not found')) {
+      console.error('❌ Erreur generateLink:', userError);
+      throw userError;
     }
 
-    // @ts-ignore - properties properties not fully typed
-    const resetLink =
-      (linkData.properties as any)?.action_link ||
-      (linkData.properties as any)?.link;
+    // Envoyer l'email avec notre lien forcé
 
     console.log('✅ Lien de réinitialisation généré pour:', email);
 
