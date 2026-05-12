@@ -51,23 +51,30 @@ export default function ResetPasswordPage() {
             token?.substring(0, 20) + '...'
           );
 
-          // Pour les tokens forcés, nous devons utiliser une méthode alternative
+          // Pour les tokens de récupération, utiliser verifyOtp avec le token
           try {
-            // Essayer d'utiliser le token directement
-            const { data, error } = await supabase.auth.getUser(token);
+            // Utiliser verifyOtp avec le token de récupération
+            const { data, error } = await supabase.auth.verifyOtp({
+              token: token,
+              type: 'recovery',
+            });
 
             if (error) {
-              console.error('❌ Erreur vérification token forcé:', error);
+              console.error(
+                '❌ Erreur vérification token récupération:',
+                error
+              );
               setErrorMessage(
                 'Ce lien de réinitialisation est invalide ou a expiré.'
               );
               setTokenValid(false);
             } else {
-              console.log('✅ Token forcé validé avec succès');
+              console.log('✅ Token de récupération validé avec succès');
+              console.log('📧 User:', data.user?.email);
               setTokenValid(true);
             }
           } catch (e) {
-            console.error('❌ Erreur méthode alternative:', e);
+            console.error('❌ Erreur méthode verifyOtp:', e);
             setErrorMessage(
               'Ce lien de réinitialisation est invalide ou a expiré.'
             );
