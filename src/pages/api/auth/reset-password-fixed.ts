@@ -16,10 +16,11 @@ async function sendResetEmailFixed(email: string, resetToken: string) {
   }
 
   try {
-    console.log("📧 Envoi email avec lien forcé vers production à:", email);
+    console.log('📧 Envoi email avec lien forcé vers production à:', email);
 
     // Créer le lien manuellement pour garantir le domaine de production
-    const resetLink = `${PRODUCTION_URL}/auth/reset-password?token=${resetToken}`;
+    // Utiliser le format Supabase standard avec hash pour compatibilité
+    const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password`;
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -97,7 +98,10 @@ async function sendResetEmailFixed(email: string, resetToken: string) {
       throw new Error(`Resend API error: ${error.message}`);
     }
 
-    console.log('✅ Email de réinitialisation envoyé avec lien forcé à:', email);
+    console.log(
+      '✅ Email de réinitialisation envoyé avec lien forcé à:',
+      email
+    );
     console.log('🔗 Lien utilisé:', resetLink);
     return true;
   } catch (error) {
@@ -156,16 +160,21 @@ export default async function handler(
     }
 
     // @ts-ignore - properties properties not fully typed
-    const resetToken = (linkData.properties as any)?.hashed_token || (linkData.properties as any)?.token;
+    const resetToken =
+      (linkData.properties as any)?.hashed_token ||
+      (linkData.properties as any)?.token;
 
     if (!resetToken) {
-      console.error('❌ Impossible d\'extraire le token de réinitialisation');
+      console.error("❌ Impossible d'extraire le token de réinitialisation");
       return res.status(500).json({
         error: 'Erreur lors de la génération du token',
       });
     }
 
-    console.log('✅ Token de réinitialisation généré:', resetToken.substring(0, 20) + '...');
+    console.log(
+      '✅ Token de réinitialisation généré:',
+      resetToken.substring(0, 20) + '...'
+    );
 
     // Envoyer l'email avec notre lien forcé
     const emailSent = await sendResetEmailFixed(email, resetToken);
@@ -187,9 +196,8 @@ export default async function handler(
       message:
         'Un email de réinitialisation a été envoyé à votre adresse email.',
       note: 'Vérifiez votre boîte de réception et vos spams.',
-      forcedDomain: PRODUCTION_URL
+      forcedDomain: PRODUCTION_URL,
     });
-
   } catch (error: any) {
     console.error('❌ Erreur reset-password-fixed API:', error);
     return res.status(500).json({
