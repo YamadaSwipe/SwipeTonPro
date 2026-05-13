@@ -141,6 +141,9 @@ export default function ResetPasswordPage() {
     try {
       console.log('🔄 Vérification de la session...');
 
+      // Attendre un peu pour éviter les conflits de lock
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Vérifier explicitement que nous avons une session valide
       const {
         data: { session },
@@ -159,22 +162,64 @@ export default function ResetPasswordPage() {
       console.log('✅ Session validée pour:', session.user.email);
       console.log('🔄 Mise à jour du mot de passe...');
 
-      // Mettre à jour le mot de passe
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
+      // Mettre à jour le mot de passe avec retry pour éviter les locks
+      let updateError = null;
+      let retryCount = 0;
+      const maxRetries = 3;
 
-      if (error) {
-        console.error('❌ Password update error:', error);
+      while (retryCount < maxRetries && !updateError) {
+        try {
+          const { error } = await supabase.auth.updateUser({
+            password: password,
+          });
 
-        // Message d'erreur personnalisé pour le mot de passe identique
-        if (error.message?.includes('different from the old password')) {
+          if (error) {
+            updateError = error;
+            if (
+              error.message?.includes('Lock') &&
+              retryCount < maxRetries - 1
+            ) {
+              console.log(
+                `🔄 Lock detected, retrying... (${retryCount + 1}/${maxRetries})`
+              );
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              retryCount++;
+              updateError = null; // Reset pour retry
+            }
+          } else {
+            console.log('✅ Password updated successfully');
+            break; // Succès, sortir de la boucle
+          }
+        } catch (err) {
+          console.error('❌ Update error:', err);
+          if (err.message?.includes('Lock') && retryCount < maxRetries - 1) {
+            console.log(
+              `🔄 Lock detected, retrying... (${retryCount + 1}/${maxRetries})`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            retryCount++;
+          } else {
+            updateError = err;
+            break;
+          }
+        }
+      }
+
+      if (updateError) {
+        console.error('❌ Password update error after retries:', updateError);
+
+        // Message d'erreur personnalisé
+        if (updateError.message?.includes('different from the old password')) {
           setErrorMessage(
             "Le nouveau mot de passe doit être différent de l'ancien"
           );
+        } else if (updateError.message?.includes('Lock')) {
+          setErrorMessage(
+            'Erreur de synchronisation. Veuillez réessayer dans quelques instants.'
+          );
         } else {
           setErrorMessage(
-            error.message || 'Impossible de mettre à jour le mot de passe'
+            updateError.message || 'Impossible de mettre à jour le mot de passe'
           );
         }
 
@@ -182,13 +227,19 @@ export default function ResetPasswordPage() {
         return;
       }
 
-      console.log('✅ Password updated successfully');
-
       setSuccessMessage('Votre mot de passe a été réinitialisé avec succès');
 
-      // Déconnecter l'utilisateur pour nettoyer la session et permettre une connexion propre
-      await supabase.auth.signOut();
-      console.log('👋 Session de récupération terminée');
+      // Attendre avant de déconnecter pour éviter les conflits
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Déconnecter l'utilisateur pour nettoyer la session
+      try {
+        await supabase.auth.signOut();
+        console.log('👋 Session de récupération terminée');
+      } catch (signOutError) {
+        console.warn('⚠️ SignOut error (ignorable):', signOutError);
+        // Continuer même si signOut échoue
+      }
 
       // Rediriger vers la page de connexion
       setTimeout(() => {
@@ -196,7 +247,9 @@ export default function ResetPasswordPage() {
       }, 2000);
     } catch (error) {
       console.error('❌ Unexpected error:', error);
-      setErrorMessage('Une erreur inattendue est survenue');
+      setErrorMessage(
+        'Une erreur inattendue est survenue. Veuillez réessayer.'
+      );
     } finally {
       setLoading(false);
     }
