@@ -20,7 +20,7 @@ async function sendResetEmailFixed(email: string, resetToken: string) {
 
     // Créer le lien manuellement pour garantir le domaine de production
     // Utiliser le format Supabase standard avec hash pour compatibilité
-    const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password`;
+    const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password&email=${encodeURIComponent(email)}`;
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',

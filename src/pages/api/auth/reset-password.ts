@@ -154,8 +154,8 @@ export default async function handler(
       }
     }
 
-    // Créer notre lien forcé avec le vrai token Supabase
-    const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password`;
+    // Créer notre lien forcé avec le vrai token Supabase et l'email
+    const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password&email=${encodeURIComponent(email)}`;
 
     console.log(' Reset password link (forced with real token):', resetLink);
     console.log(' Environment:', process.env.NODE_ENV);
