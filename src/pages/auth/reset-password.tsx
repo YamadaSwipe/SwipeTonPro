@@ -44,44 +44,70 @@ export default function ResetPasswordPage() {
         const urlParams = new URLSearchParams(window.location.search);
         const queryToken = urlParams.get('token');
 
-        // Utiliser toujours la méthode standard Supabase qui fonctionne automatiquement
-        console.log('� Utilisation méthode standard Supabase avec hash...');
+        // Vérifier d'abord si nous avons des tokens dans l'URL
+        console.log('🔍 URL complète:', window.location.href);
+        console.log('🔍 Hash:', window.location.hash);
+        console.log('🔍 Search:', window.location.search);
 
-        // Attendre que Supabase traite automatiquement le hash (#access_token=...&type=recovery)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Vérifier si une session temporaire a été établie par le token de récupération
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error('❌ Erreur session:', error);
-          setErrorMessage(
-            'Impossible de vérifier la session de réinitialisation'
+        if (accessToken && tokenType === 'recovery') {
+          console.log(
+            '🔑 Token de récupération trouvé:',
+            accessToken.substring(0, 20) + '...'
           );
-          setTokenValid(false);
-        } else if (!session) {
-          console.log('❌ Pas de session active, token invalide ou expiré');
+
+          // Attendre plus longtemps pour que Supabase traite le hash
+          console.log('⏳ Attente du traitement du hash par Supabase...');
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          // Vérifier plusieurs fois si la session est établie
+          let sessionFound = false;
+          for (let i = 0; i < 5; i++) {
+            const {
+              data: { session },
+              error,
+            } = await supabase.auth.getSession();
+
+            console.log(
+              `📊 Tentative ${i + 1}/5:`,
+              session ? 'Session trouvée' : 'Pas de session'
+            );
+
+            if (session) {
+              console.log('✅ Session trouvée:', session.user?.email);
+              setTokenValid(true);
+              setIsValidating(false);
+              sessionFound = true;
+
+              // Nettoyer le hash
+              if (window.location.hash) {
+                window.history.replaceState(
+                  null,
+                  '',
+                  window.location.pathname + window.location.search
+                );
+              }
+              break;
+            } else {
+              // Attendre avant de réessayer
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          }
+
+          if (!sessionFound) {
+            console.log('❌ Aucune session trouvée après 5 tentatives');
+            setErrorMessage(
+              'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
+            );
+            setTokenValid(false);
+          }
+        } else {
+          console.log('❌ Pas de token de récupération valide trouvé');
+          console.log('accessToken:', accessToken);
+          console.log('tokenType:', tokenType);
           setErrorMessage(
             'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
           );
           setTokenValid(false);
-        } else {
-          // Vérifier que c'est bien une session de type recovery
-          console.log('✅ Session trouvée:', session.user?.email);
-          setTokenValid(true);
-          setIsValidating(false);
-
-          // Nettoyer le hash de l'URL pour ne pas exposer les tokens
-          if (window.location.hash) {
-            window.history.replaceState(
-              null,
-              '',
-              window.location.pathname + window.location.search
-            );
-          }
         }
 
         // Finaliser la validation
