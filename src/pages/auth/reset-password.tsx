@@ -44,80 +44,31 @@ export default function ResetPasswordPage() {
         const urlParams = new URLSearchParams(window.location.search);
         const queryToken = urlParams.get('token');
 
-        if ((accessToken && tokenType === 'recovery') || queryToken) {
-          const token = accessToken || queryToken;
-          console.log(
-            '🔑 Token trouvé (méthode forcée):',
-            token?.substring(0, 20) + '...'
+        // Utiliser toujours la méthode standard Supabase qui fonctionne automatiquement
+        console.log('� Utilisation méthode standard Supabase avec hash...');
+
+        // Attendre que Supabase traite automatiquement le hash (#access_token=...&type=recovery)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Vérifier si une session temporaire a été établie par le token de récupération
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('❌ Erreur session:', error);
+          setErrorMessage(
+            'Impossible de vérifier la session de réinitialisation'
           );
-
-          // Pour les tokens de récupération, utiliser verifyOtp avec le token
-          try {
-            // Utiliser verifyOtp avec le token de récupération
-            const { data, error } = await supabase.auth.verifyOtp({
-              token: token,
-              type: 'recovery',
-              email: '', // Email non requis pour les tokens de récupération
-            });
-
-            if (error) {
-              console.error(
-                '❌ Erreur vérification token récupération:',
-                error
-              );
-              setErrorMessage(
-                'Ce lien de réinitialisation est invalide ou a expiré.'
-              );
-              setTokenValid(false);
-            } else {
-              console.log('✅ Token de récupération validé avec succès');
-              console.log('📧 User:', data.user?.email);
-              setTokenValid(true);
-            }
-          } catch (e) {
-            console.error('❌ Erreur méthode verifyOtp:', e);
-            setErrorMessage(
-              'Ce lien de réinitialisation est invalide ou a expiré.'
-            );
-            setTokenValid(false);
-          }
+          setTokenValid(false);
+        } else if (!session) {
+          console.log('❌ Pas de session active, token invalide ou expiré');
+          setErrorMessage(
+            'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
+          );
+          setTokenValid(false);
         } else {
-          // Méthode standard Supabase (hash dans URL)
-          console.log('🔄 Utilisation méthode standard Supabase...');
-
-          // Attendre que Supabase traite automatiquement le hash (#access_token=...&type=recovery)
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // Vérifier si une session temporaire a été établie par le token de récupération
-          const {
-            data: { session },
-            error,
-          } = await supabase.auth.getSession();
-
-          if (error) {
-            console.error('❌ Erreur session:', error);
-            toast({
-              title: '❌ Erreur',
-              description:
-                'Impossible de vérifier la session de réinitialisation',
-              variant: 'destructive',
-            });
-            router.push('/auth/forgot-password');
-            return;
-          }
-
-          if (!session) {
-            console.log('❌ Pas de session active, token invalide ou expiré');
-            toast({
-              title: '❌ Lien invalide',
-              description:
-                'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.',
-              variant: 'destructive',
-            });
-            router.push('/auth/forgot-password');
-            return;
-          }
-
           // Vérifier que c'est bien une session de type recovery
           console.log('✅ Session trouvée:', session.user?.email);
           setTokenValid(true);
@@ -133,12 +84,8 @@ export default function ResetPasswordPage() {
           }
         }
 
-        // Si nous avons validé le token (méthode forcée ou standard)
-        if (tokenValid) {
-          console.log('✅ Token validé avec succès');
-          setTokenValid(true);
-          setIsValidating(false);
-        }
+        // Finaliser la validation
+        setIsValidating(false);
       } catch (error) {
         console.error('❌ Erreur vérification:', error);
         toast({
