@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "npx next build",
+    "build": "node --max-old-space-size=4096 node_modules/.bin/next build",
     "start": "npx next start",
     "lint": "next lint",
     "dev:optimized": "node --max-old-space-size=8192 --expose-gc next dev -p 3000",

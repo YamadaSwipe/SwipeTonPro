@@ -59,8 +59,25 @@ export default function ResetPasswordPage() {
           try {
             console.log('🔄 Validation directe du token...');
 
-            // Utiliser verifyOtp avec le token de récupération
+            // Récupérer l'email depuis le token ou la session si possible
+            let email = undefined;
+            // Essayer de récupérer l'email depuis la session si elle existe déjà
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.user?.email) {
+              email = sessionData.session.user.email;
+            } else {
+              // Sinon, essayer de l'extraire de l'URL (query ou hash)
+              const urlParams = new URLSearchParams(window.location.search);
+              email = urlParams.get('email');
+            }
+            if (!email) {
+              setErrorMessage("Impossible de récupérer l'adresse e-mail pour la vérification. Veuillez réessayer depuis le lien reçu par email.");
+              setIsValidating(false);
+              return;
+            }
+            // Utiliser verifyOtp avec le token de récupération et l'email
             const { data, error } = await supabase.auth.verifyOtp({
+              email,
               token: accessToken,
               type: 'recovery',
             });
