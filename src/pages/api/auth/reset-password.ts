@@ -107,19 +107,14 @@ export default async function handler(
   try {
     console.log('🔄 Demande reset password pour:', email);
 
-    // Utiliser admin.generateLink pour créer un token de récupération valide
-    // C'est plus fiable que resetPasswordForEmail qui dépend de la config email de Supabase
-    const { data, error: generateError } =
-      await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email,
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
-        },
+    // Utiliser resetPasswordForEmail qui envoie l'email avec le bon format
+    const { error: resetError } =
+      await supabaseAdmin.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
       });
 
-    if (generateError) {
-      console.error('❌ Erreur admin.generateLink:', generateError);
+    if (resetError) {
+      console.error('❌ Erreur resetPasswordForEmail:', resetError);
       // Pas d'erreur en réponse (raison de sécurité)
       return res.status(200).json({
         success: true,
@@ -128,46 +123,12 @@ export default async function handler(
       });
     }
 
-    const actionLink = data?.properties?.action_link;
-    if (!actionLink) {
-      console.error('❌ Pas de lien généré');
-      return res.status(200).json({
-        success: true,
-        message:
-          'Si cet email existe, un lien de réinitialisation a été envoyé.',
-      });
-    }
+    console.log('✅ Email de réinitialisation envoyé par Supabase');
 
-    console.log('✅ Lien généré par Supabase, longueur:', actionLink.length);
-
-    // Extraire le token du lien Supabase
-    const tokenMatch = actionLink.match(/token=([^&]+)/);
-    const token = tokenMatch ? tokenMatch[1] : '';
-
-    // Créer un lien forcé vers notre page de réinitialisation
-    const PRODUCTION_URL = 'https://www.swipetonpro.fr';
-    const forcedLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${token}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password`;
-
-    console.log('🔗 Lien forcé:', forcedLink);
-
-    // Envoyer via Resend avec notre template personnalisé
-    const emailSent = await sendResetEmailViaResend(email, forcedLink);
-
-    if (!emailSent) {
-      console.warn('⚠️ Email non envoyé mais lien généré');
-      return res.status(500).json({
-        error: "Erreur lors de l'envoi de l'email",
-      });
-    }
-
+    // Supabase envoie l'email automatiquement, pas besoin d'envoyer via Resend
     return res.status(200).json({
       success: true,
       message: 'Un lien de réinitialisation a été envoyé à votre email.',
     });
-  } catch (error: any) {
-    console.error('❌ Erreur reset-password:', error);
-    return res.status(500).json({
-      error: 'Erreur serveur',
-    });
-  }
+  } catch (error: any) {}
 }
