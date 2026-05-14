@@ -107,14 +107,18 @@ export default async function handler(
   try {
     console.log('🔄 Demande reset password pour:', email);
 
-    // Utiliser resetPasswordForEmail qui envoie l'email avec le bon format
-    const { error: resetError } =
-      await supabaseAdmin.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+    // Utiliser admin.generateLink pour créer un token de récupération valide
+    const { data, error: generateError } =
+      await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+        },
       });
 
-    if (resetError) {
-      console.error('❌ Erreur resetPasswordForEmail:', resetError);
+    if (generateError) {
+      console.error('❌ Erreur admin.generateLink:', generateError);
       // Pas d'erreur en réponse (raison de sécurité)
       return res.status(200).json({
         success: true,
@@ -123,12 +127,36 @@ export default async function handler(
       });
     }
 
-    console.log('✅ Email de réinitialisation envoyé par Supabase');
+    const actionLink = data?.properties?.action_link;
+    if (!actionLink) {
+      console.error('❌ Pas de lien généré');
+      return res.status(200).json({
+        success: true,
+        message:
+          'Si cet email existe, un lien de réinitialisation a été envoyé.',
+      });
+    }
 
-    // Supabase envoie l'email automatiquement, pas besoin d'envoyer via Resend
+    console.log('✅ Lien généré par Supabase:', actionLink);
+
+    // Envoyer via Resend avec notre template personnalisé
+    const emailSent = await sendResetEmailViaResend(email, actionLink);
+
+    if (!emailSent) {
+      console.warn('⚠️ Email non envoyé mais lien généré');
+      return res.status(500).json({
+        error: "Erreur lors de l'envoi de l'email",
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Un lien de réinitialisation a été envoyé à votre email.',
     });
-  } catch (error: any) {}
+  } catch (error: any) {
+    console.error('❌ Erreur reset-password:', error);
+    return res.status(500).json({
+      error: 'Erreur serveur',
+    });
+  }
 }
