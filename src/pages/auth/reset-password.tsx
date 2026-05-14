@@ -244,22 +244,6 @@ export default function ResetPasswordPage() {
       console.log('✅ Session validée pour:', session.user.email);
       console.log('🔄 Mise à jour du mot de passe...');
 
-      // Utiliser verifyOtp avec le token de récupération
-      const { data, error } = await supabase.auth.verifyOtp({
-        token: accessToken,
-        type: 'recovery',
-        email: '', // Email non requis pour recovery mais requis par TypeScript
-      });
-
-      if (error) {
-        console.error('❌ Erreur verifyOtp:', error);
-        setErrorMessage(
-          'Erreur lors de la vérification du code de récupération. Veuillez réessayer.'
-        );
-        setLoading(false);
-        return;
-      }
-
       // Mettre à jour le mot de passe avec retry pour éviter les locks
       let updateError = null;
       let retryCount = 0;

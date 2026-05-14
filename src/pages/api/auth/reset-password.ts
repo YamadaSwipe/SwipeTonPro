@@ -138,10 +138,20 @@ export default async function handler(
       });
     }
 
-    console.log('✅ Lien généré, longueur:', actionLink.length);
+    console.log('✅ Lien généré par Supabase, longueur:', actionLink.length);
+
+    // Extraire le token du lien Supabase
+    const tokenMatch = actionLink.match(/token=([^&]+)/);
+    const token = tokenMatch ? tokenMatch[1] : '';
+
+    // Créer un lien forcé vers notre page de réinitialisation
+    const PRODUCTION_URL = 'https://www.swipetonpro.fr';
+    const forcedLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${token}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password`;
+
+    console.log('🔗 Lien forcé:', forcedLink);
 
     // Envoyer via Resend avec notre template personnalisé
-    const emailSent = await sendResetEmailViaResend(email, actionLink);
+    const emailSent = await sendResetEmailViaResend(email, forcedLink);
 
     if (!emailSent) {
       console.warn('⚠️ Email non envoyé mais lien généré');
