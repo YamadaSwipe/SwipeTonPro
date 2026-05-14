@@ -55,95 +55,74 @@ export default function ResetPasswordPage() {
             accessToken.substring(0, 20) + '...'
           );
 
-          // Forcer la validation du token directement avec verifyOtp
-          try {
-            console.log('🔄 Validation directe du token...');
+          // Pour les liens de récupération Supabase, la session est créée automatiquement
+          // Il suffit de vérifier que la session existe après un court délai
+          console.log('🔄 Vérification de la session créée automatiquement...');
 
-            // Récupérer l'email depuis le token ou la session si possible
-            let email = undefined;
-            // Essayer de récupérer l'email depuis la session si elle existe déjà
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session?.user?.email) {
-              email = sessionData.session.user.email;
-              console.log('📧 Email depuis session:', email);
-            } else {
-              // Sinon, essayer de l'extraire du hash du lien
-              email = hashParams.get('email');
-              if (!email) {
-                const urlParams = new URLSearchParams(window.location.search);
-                email = urlParams.get('email');
-              }
-              console.log('📧 Email depuis URL/hash:', email);
-            }
-            if (!email) {
-              console.error('❌ Email manquant dans le lien:', window.location.href);
-              console.error('❌ Paramètres hash:', Array.from(hashParams.entries()));
-              setErrorMessage("Impossible de récupérer l'adresse e-mail pour la vérification. Veuillez réessayer depuis le lien reçu par email.");
+          // Attendre un peu que Supabase traite le token automatiquement
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          // Vérifier si une session valide a été créée
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+          if (sessionError) {
+            console.error('❌ Erreur session:', sessionError);
+            setErrorMessage(
+              'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
+            );
+            setIsValidating(false);
+            return;
+          }
+
+          if (sessionData?.session?.user) {
+            console.log('✅ Session créée automatiquement:', sessionData.session.user.email);
+            setTokenValid(true);
+            setIsValidating(false);
+            return;
+          }
+
+          // Si pas de session, essayer avec exchangeCodeForSession (pour les nouveaux liens)
+          console.log('🔄 Tentative avec exchangeCodeForSession...');
+          try {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(accessToken);
+
+            if (error) {
+              console.error('❌ Erreur exchangeCodeForSession:', error);
+              setErrorMessage(
+                'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
+              );
               setIsValidating(false);
               return;
             }
-            console.log('📧 Email récupéré:', email);
-            // Utiliser verifyOtp avec le token de récupération et l'email
-            const { data, error } = await supabase.auth.verifyOtp({
-              email,
-              token: accessToken,
-              type: 'recovery',
-            });
 
-            if (error) {
-              console.error('❌ Erreur verifyOtp:', error);
-
-              // Si verifyOtp échoue, essayer avec la méthode standard
-              console.log('🔄 Tentative avec méthode standard...');
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-
-              // Vérifier plusieurs fois si la session est établie
-              let sessionFound = false;
-              for (let i = 0; i < 3; i++) {
-                const {
-                  data: { session },
-                  error: sessionError,
-                } = await supabase.auth.getSession();
-
-                console.log(
-                  `📊 Tentative ${i + 1}/3:`,
-                  session ? 'Session trouvée' : 'Pas de session'
-                );
-
-                if (session) {
-                  console.log(
-                    '✅ Session trouvée via méthode standard:',
-                    session.user?.email
-                  );
-                  setTokenValid(true);
-                  setIsValidating(false);
-                  sessionFound = true;
-                  break;
-                } else {
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
-                }
-              }
-
-              if (!sessionFound) {
-                console.log('❌ Aucune session trouvée');
-                setErrorMessage(
-                  'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
-                );
-                setTokenValid(false);
-              }
-            } else {
-              console.log('✅ Token validé avec verifyOtp:', data.user?.email);
+            if (data?.session?.user) {
+              console.log('✅ Session créée via exchangeCodeForSession:', data.session.user.email);
               setTokenValid(true);
               setIsValidating(false);
+              return;
             }
-          } catch (otpError) {
-            console.error('❌ Erreur verifyOtp:', otpError);
+          } catch (exchangeError) {
+            console.error('❌ Erreur exchangeCodeForSession:', exchangeError);
+          }
 
-            // En dernier recours, considérer le token comme valide et forcer l'affichage
-            console.log('⚠️ Forçage de la validation (dernier recours)');
+          // Dernière tentative : attendre plus longtemps et revérifier
+          console.log('🔄 Dernière tentative - attendre et revérifier...');
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          const { data: finalSessionData } = await supabase.auth.getSession();
+          if (finalSessionData?.session?.user) {
+            console.log('✅ Session trouvée après délai:', finalSessionData.session.user.email);
             setTokenValid(true);
             setIsValidating(false);
+            return;
           }
+
+          console.log('❌ Aucune session valide trouvée');
+          setErrorMessage(
+            'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
+          );
+          setTokenValid(false);
+          setIsValidating(false);
 
           // Nettoyer le hash dans tous les cas
           if (window.location.hash) {
