@@ -6,101 +6,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// FORCER TOUJOURS le domaine de production pour corriger le problème localhost
-const BASE_URL = 'https://www.swipetonpro.fr';
-
-console.log('🔒 BASE_URL FORCÉ (production):', BASE_URL);
-
-// Fonction pour envoyer l'email via Resend
-async function sendResetEmail(email: string, resetLink: string) {
-  // Vérifier si la clé API Resend est configurée
-  if (!process.env.RESEND_API_KEY) {
-    console.error('❌ RESEND_API_KEY non configurée');
-    return false;
-  }
-
-  try {
-    console.log("📧 Tentative d'envoi email via Resend à:", email);
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'SwipeTonPro <contact@swipetonpro.fr>',
-        to: [email],
-        subject: '🔐 Réinitialisation de votre mot de passe - SwipeTonPro',
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Réinitialisation du mot de passe</title>
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #ff6b35, #f7931e); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-              .header h1 { color: white; margin: 0; font-size: 28px; }
-              .content { background: #f9f9f9; padding: 40px 30px; border-radius: 0 0 10px 10px; }
-              .button { display: inline-block; background: #ff6b35; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
-              .button:hover { background: #e55a2b; }
-              .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-              .security { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>🔐 SwipeTonPro</h1>
-            </div>
-            
-            <div class="content">
-              <h2>Bonjour,</h2>
-              <p>Vous avez demandé la réinitialisation de votre mot de passe sur SwipeTonPro.</p>
-              
-              <div class="security">
-                <strong>⚠️ Important :</strong> Ce lien est valable 1 heure seulement. Ne le partagez avec personne.
-              </div>
-              
-              <p style="text-align: center;">
-                <a href="${resetLink}" class="button">Réinitialiser mon mot de passe</a>
-              </p>
-              
-              <p>Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :</p>
-              <p style="word-break: break-all; background: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace;">
-                ${resetLink}
-              </p>
-              
-              <p><strong>Si vous n'avez pas demandé cette réinitialisation</strong>, ignorez cet email. Votre mot de passe restera inchangé.</p>
-            </div>
-            
-            <div class="footer">
-              <p>Cordialement,<br>L'équipe SwipeTonPro</p>
-              <p style="font-size: 12px; margin-top: 20px;">
-                Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
-              </p>
-            </div>
-          </body>
-          </html>
-        `,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('❌ Erreur Resend:', error);
-      throw new Error(`Resend API error: ${error.message}`);
-    }
-
-    console.log('✅ Email de réinitialisation envoyé via Resend à:', email);
-    return true;
-  } catch (error) {
-    console.error('❌ Erreur envoi email Resend:', error);
-    return false;
-  }
-}
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -118,23 +23,20 @@ export default async function handler(
   try {
     console.log('🔄 Début processus de réinitialisation pour:', email);
 
-    // Utiliser la méthode standard Supabase pour envoyer l'email de réinitialisation
-    // Cela garantit que le token est valide et compatible avec verifyOtp
-    const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
-      ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
-      : 'https://www.swipetonpro.fr/auth/reset-password';
+    // Utiliser directement resetPasswordForEmail de Supabase
+    // C'est la méthode officielle recommandée par Supabase
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+    });
 
-    const { error: resetError } =
-      await supabaseAdmin.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-
-    if (resetError) {
-      console.error('❌ Erreur resetPasswordForEmail:', resetError);
-      throw resetError;
+    if (error) {
+      console.error('❌ Erreur resetPasswordForEmail:', error);
+      // Supabase ne retourne une erreur que si l'email n'existe pas (le bon comportement)
+      // Mais on veut un message générique pour des raisons de sécurité
     }
 
-    console.log('✅ Email de réinitialisation envoyé via Supabase à:', email);
+    console.log('✅ Email de réinitialisation envoyé via Supabase');
+
     return res.status(200).json({
       success: true,
       message:

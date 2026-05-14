@@ -18,8 +18,6 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [resetLink, setResetLink] = useState<string | null>(null);
-  const [devNote, setDevNote] = useState<string | null>(null);
   const { toast } = useToast();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -36,7 +34,7 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
 
-    const { error, resetLink, note } = await authService.resetPassword(email);
+    const { error } = await authService.resetPassword(email);
 
     if (error) {
       toast({
@@ -46,14 +44,6 @@ export default function ForgotPasswordPage() {
       });
       setLoading(false);
       return;
-    }
-
-    // Capturer le lien en mode dev
-    if (resetLink) {
-      setResetLink(resetLink);
-    }
-    if (note) {
-      setDevNote(note);
     }
 
     setEmailSent(true);
@@ -149,24 +139,6 @@ export default function ForgotPasswordPage() {
                     Vérifiez également votre dossier spam si vous ne le trouvez
                     pas.
                   </p>
-
-                  {/* Afficher le lien en mode développement */}
-                  {resetLink && (
-                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-800 font-medium mb-2">
-                        🔧 Mode développement - Lien direct :
-                      </p>
-                      <a
-                        href={resetLink}
-                        className="text-sm text-blue-600 underline break-all"
-                      >
-                        {resetLink}
-                      </a>
-                      {devNote && (
-                        <p className="text-xs text-blue-600 mt-2">{devNote}</p>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 <Button

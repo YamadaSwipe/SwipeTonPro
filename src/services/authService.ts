@@ -184,14 +184,12 @@ export const authService = {
     }
   },
 
-  // Reset password - Utilise l'API interne pour bypass le SMTP manquant
-  async resetPassword(
-    email: string
-  ): Promise<{ error: AuthError | null; resetLink?: string; note?: string }> {
+  // Reset password - Utilise l'API interne qui envoie automatiquement l'email
+  async resetPassword(email: string): Promise<{ error: AuthError | null }> {
     try {
       console.log('🔗 Appel API interne pour reset password:', email);
 
-      // Appel à notre route API qui utilise le service role (bypass SMTP)
+      // Appel à notre route API qui utilise Supabase pour envoyer l'email automatiquement
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -210,8 +208,6 @@ export const authService = {
 
       return {
         error: null,
-        resetLink: data.resetLink,
-        note: data.note,
       };
     } catch (error) {
       console.error('❌ Erreur resetPassword:', error);
