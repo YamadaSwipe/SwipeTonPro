@@ -116,80 +116,23 @@ export default async function handler(
   }
 
   try {
-    console.log(' Début processus de réinitialisation pour:', email);
+    console.log('🔄 Début processus de réinitialisation pour:', email);
 
-    // Utiliser notre système forcé pour garantir le bon domaine
-    const PRODUCTION_URL = 'https://www.swipetonpro.fr';
+    // Utiliser la méthode standard Supabase pour envoyer l'email de réinitialisation
+    // Cela garantit que le token est valide et compatible avec verifyOtp
+    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+      redirectTo: `https://www.swipetonpro.fr/auth/reset-password`,
+    });
 
-    // Générer un lien de récupération Supabase standard
-    const { data: linkData, error: linkError } =
-      await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: email,
-        options: {
-          redirectTo: `${PRODUCTION_URL}/auth/reset-password`,
-        },
-      });
-
-    if (linkError && !linkError.message?.includes('User not found')) {
-      console.error(' Erreur generateLink:', linkError);
-      throw linkError;
+    if (resetError) {
+      console.error('❌ Erreur resetPasswordForEmail:', resetError);
+      throw resetError;
     }
 
-    // Extraire le token Supabase valide du lien généré
-    const originalLink = linkData?.properties?.action_link;
-    let resetToken = '';
-
-    if (originalLink) {
-      // Extraire le token du lien Supabase
-      const tokenMatch = originalLink.match(/token=([^&]+)/);
-      if (tokenMatch && tokenMatch[1]) {
-        resetToken = tokenMatch[1];
-      } else {
-        // Alternative: extraire access_token du hash
-        const hashMatch = originalLink.match(/access_token=([^&]+)/);
-        if (hashMatch && hashMatch[1]) {
-          resetToken = hashMatch[1];
-        }
-      }
-    }
-
-    // Créer notre lien forcé avec le vrai token Supabase et l'email
-    const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password&email=${encodeURIComponent(email)}`;
-
-    console.log(' Reset password link (forced with real token):', resetLink);
-    console.log(' Environment:', process.env.NODE_ENV);
-    console.log(' BASE_URL:', BASE_URL);
-    console.log(
-      ' Extracted token:',
-      resetToken ? resetToken.substring(0, 20) + '...' : 'NOT FOUND'
-    );
-
-    // Envoyer l'email avec notre lien forcé
-    console.log('✅ Lien de réinitialisation généré pour:', email);
-
-    // Envoyer l'email via Resend
-    const emailSent = await sendResetEmail(email, resetLink);
-
-    if (!emailSent) {
-      // Si l'email échoue, retourner toujours un succès pour la sécurité
-      // mais avec un message approprié
-      return res.status(200).json({
-        success: true,
-        message:
-          'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
-        note:
-          process.env.NODE_ENV === 'development'
-            ? 'En développement: Resend peut ne pas être configuré.'
-            : 'Vérifiez votre boîte de réception et vos spams.',
-      });
-    }
-
+    console.log('✅ Email de réinitialisation envoyé via Supabase à:', email);
     return res.status(200).json({
       success: true,
-      message:
-        'Un email de réinitialisation a été envoyé à votre adresse email.',
-      note: 'Vérifiez votre boîte de réception et vos spams.',
+      message: 'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
     });
   } catch (error: any) {
     console.error('❌ Erreur reset-password API:', error);

@@ -127,76 +127,21 @@ export default async function handler(
   try {
     console.log('🔄 Début processus de réinitialisation FORCÉ pour:', email);
 
-    // Utiliser generateLink avec notre URL de production forcée
-    const { data: linkData, error: linkError } =
-      await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: email,
-        options: {
-          redirectTo: `${PRODUCTION_URL}/auth/reset-password`,
-        },
-      });
+    // Utiliser la méthode standard Supabase pour envoyer l'email de réinitialisation
+    // Cela garantit que le token est valide et compatible avec verifyOtp
+    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+      redirectTo: `${PRODUCTION_URL}/auth/reset-password`,
+    });
 
-    if (linkError) {
-      console.error('❌ Erreur generateLink:', linkError);
-
-      if (
-        linkError.message?.includes('User not found') ||
-        linkError.message?.includes('user not found') ||
-        linkError.status === 404 ||
-        linkError.code === 'user_not_found'
-      ) {
-        return res.status(200).json({
-          success: true,
-          message:
-            'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
-        });
-      }
-
-      return res.status(500).json({
-        error: 'Impossible de générer le lien de réinitialisation',
-        details: linkError.message,
-      });
+    if (resetError) {
+      console.error('❌ Erreur resetPasswordForEmail:', resetError);
+      throw resetError;
     }
 
-    // @ts-ignore - properties properties not fully typed
-    const resetToken =
-      (linkData.properties as any)?.hashed_token ||
-      (linkData.properties as any)?.token;
-
-    if (!resetToken) {
-      console.error("❌ Impossible d'extraire le token de réinitialisation");
-      return res.status(500).json({
-        error: 'Erreur lors de la génération du token',
-      });
-    }
-
-    console.log(
-      '✅ Token de réinitialisation généré:',
-      resetToken.substring(0, 20) + '...'
-    );
-
-    // Envoyer l'email avec notre lien forcé
-    const emailSent = await sendResetEmailFixed(email, resetToken);
-
-    if (!emailSent) {
-      return res.status(200).json({
-        success: true,
-        message:
-          'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
-        note:
-          process.env.NODE_ENV === 'development'
-            ? 'En développement: Resend peut ne pas être configuré.'
-            : 'Vérifiez votre boîte de réception et vos spams.',
-      });
-    }
-
+    console.log('✅ Email de réinitialisation envoyé via Supabase à:', email);
     return res.status(200).json({
       success: true,
-      message:
-        'Un email de réinitialisation a été envoyé à votre adresse email.',
-      note: 'Vérifiez votre boîte de réception et vos spams.',
-      forcedDomain: PRODUCTION_URL,
+      message: 'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
     });
   } catch (error: any) {
     console.error('❌ Erreur reset-password-fixed API:', error);
