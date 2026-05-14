@@ -13,20 +13,7 @@ export default async function handler(req, res) {
   try {
     console.log('🔍 Test de configuration Supabase Auth...');
 
-    // Test 1: Vérifier les settings Auth
-    const { data: authSettings, error: authError } =
-      await supabaseAdmin.auth.admin.getConfig();
-
-    if (authError) {
-      console.error('❌ Erreur récupération config:', authError);
-      return res
-        .status(500)
-        .json({ error: 'Erreur config', details: authError });
-    }
-
-    console.log('✅ Config Auth récupérée');
-
-    // Test 2: Générer un lien de test
+    // Test principal : générer un lien de récupération Supabase
     const testEmail = 'test@example.com';
     const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
       ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
@@ -61,10 +48,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      config: {
-        siteUrl: authSettings?.site_url,
-        redirectUrls: authSettings?.redirect_urls || [],
-      },
       test: {
         redirectUrl: redirectUrl,
         linkGenerated: !!link,
