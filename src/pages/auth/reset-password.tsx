@@ -244,51 +244,13 @@ export default function ResetPasswordPage() {
       console.log('✅ Session validée pour:', session.user.email);
       console.log('🔄 Mise à jour du mot de passe...');
 
-      // Mettre à jour le mot de passe avec retry pour éviter les locks
-      let updateError = null;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (retryCount < maxRetries) {
-        try {
-          const { error } = await supabase.auth.updateUser({
-            password: password,
-          });
-
-          if (error) {
-            updateError = error;
-            if (
-              error.message?.includes('Lock') &&
-              retryCount < maxRetries - 1
-            ) {
-              console.log(
-                `🔄 Lock detected, retrying... (${retryCount + 1}/${maxRetries})`
-              );
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              retryCount++;
-              updateError = null; // Reset pour retry
-            }
-          } else {
-            console.log('✅ Password updated successfully');
-            break; // Succès, sortir de la boucle
-          }
-        } catch (err) {
-          console.error('❌ Update error:', err);
-          if (err.message?.includes('Lock') && retryCount < maxRetries - 1) {
-            console.log(
-              `🔄 Lock detected, retrying... (${retryCount + 1}/${maxRetries})`
-            );
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            retryCount++;
-          } else {
-            updateError = err;
-            break;
-          }
-        }
-      }
+      // Mettre à jour le mot de passe (sans retry complexe pour éviter les boucles)
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password,
+      });
 
       if (updateError) {
-        console.error('❌ Password update error after retries:', updateError);
+        console.error('❌ Password update error:', updateError);
 
         // Message d'erreur personnalisé
         if (updateError.message?.includes('different from the old password')) {
@@ -309,6 +271,7 @@ export default function ResetPasswordPage() {
         return;
       }
 
+      console.log('✅ Password updated successfully');
       setSuccessMessage('Votre mot de passe a été réinitialisé avec succès');
 
       // Attendre avant de déconnecter pour éviter les conflits
