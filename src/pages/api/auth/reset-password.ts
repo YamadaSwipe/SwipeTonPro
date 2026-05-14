@@ -109,20 +109,22 @@ export default async function handler(
 
     // Utiliser admin.generateLink pour créer un token de récupération valide
     // C'est plus fiable que resetPasswordForEmail qui dépend de la config email de Supabase
-    const { data, error: generateError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
-      },
-    });
+    const { data, error: generateError } =
+      await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+        },
+      });
 
     if (generateError) {
       console.error('❌ Erreur admin.generateLink:', generateError);
       // Pas d'erreur en réponse (raison de sécurité)
       return res.status(200).json({
         success: true,
-        message: 'Si cet email existe, un lien de réinitialisation a été envoyé.',
+        message:
+          'Si cet email existe, un lien de réinitialisation a été envoyé.',
       });
     }
 
@@ -131,7 +133,8 @@ export default async function handler(
       console.error('❌ Pas de lien généré');
       return res.status(200).json({
         success: true,
-        message: 'Si cet email existe, un lien de réinitialisation a été envoyé.',
+        message:
+          'Si cet email existe, un lien de réinitialisation a été envoyé.',
       });
     }
 
@@ -143,7 +146,7 @@ export default async function handler(
     if (!emailSent) {
       console.warn('⚠️ Email non envoyé mais lien généré');
       return res.status(500).json({
-        error: 'Erreur lors de l\'envoi de l\'email',
+        error: "Erreur lors de l'envoi de l'email",
       });
     }
 
