@@ -65,16 +65,24 @@ export default function ResetPasswordPage() {
             const { data: sessionData } = await supabase.auth.getSession();
             if (sessionData?.session?.user?.email) {
               email = sessionData.session.user.email;
+              console.log('📧 Email depuis session:', email);
             } else {
-              // Sinon, essayer de l'extraire de l'URL (query ou hash)
-              const urlParams = new URLSearchParams(window.location.search);
-              email = urlParams.get('email');
+              // Sinon, essayer de l'extraire du hash du lien
+              email = hashParams.get('email');
+              if (!email) {
+                const urlParams = new URLSearchParams(window.location.search);
+                email = urlParams.get('email');
+              }
+              console.log('📧 Email depuis URL/hash:', email);
             }
             if (!email) {
+              console.error('❌ Email manquant dans le lien:', window.location.href);
+              console.error('❌ Paramètres hash:', Array.from(hashParams.entries()));
               setErrorMessage("Impossible de récupérer l'adresse e-mail pour la vérification. Veuillez réessayer depuis le lien reçu par email.");
               setIsValidating(false);
               return;
             }
+            console.log('📧 Email récupéré:', email);
             // Utiliser verifyOtp avec le token de récupération et l'email
             const { data, error } = await supabase.auth.verifyOtp({
               email,
