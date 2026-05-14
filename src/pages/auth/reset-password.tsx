@@ -54,6 +54,9 @@ export default function ResetPasswordPage() {
             '🔑 Token de récupération trouvé:',
             accessToken.substring(0, 20) + '...'
           );
+          console.log('🔗 URL complète:', window.location.href);
+          console.log('🔗 Hash complet:', window.location.hash);
+          console.log('🔗 Paramètres hash:', Array.from(hashParams.entries()));
 
           // Pour les liens de récupération Supabase, la session est créée automatiquement
           // Il suffit de vérifier que la session existe après un court délai
@@ -63,7 +66,8 @@ export default function ResetPasswordPage() {
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
           // Vérifier si une session valide a été créée
-          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          const { data: sessionData, error: sessionError } =
+            await supabase.auth.getSession();
 
           if (sessionError) {
             console.error('❌ Erreur session:', sessionError);
@@ -75,7 +79,10 @@ export default function ResetPasswordPage() {
           }
 
           if (sessionData?.session?.user) {
-            console.log('✅ Session créée automatiquement:', sessionData.session.user.email);
+            console.log(
+              '✅ Session créée automatiquement:',
+              sessionData.session.user.email
+            );
             setTokenValid(true);
             setIsValidating(false);
             return;
@@ -84,10 +91,12 @@ export default function ResetPasswordPage() {
           // Si pas de session, essayer avec exchangeCodeForSession (pour les nouveaux liens)
           console.log('🔄 Tentative avec exchangeCodeForSession...');
           try {
-            const { data, error } = await supabase.auth.exchangeCodeForSession(accessToken);
+            const { data, error } =
+              await supabase.auth.exchangeCodeForSession(accessToken);
 
             if (error) {
               console.error('❌ Erreur exchangeCodeForSession:', error);
+              console.error('❌ Détails erreur:', error.message);
               setErrorMessage(
                 'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
               );
@@ -96,7 +105,10 @@ export default function ResetPasswordPage() {
             }
 
             if (data?.session?.user) {
-              console.log('✅ Session créée via exchangeCodeForSession:', data.session.user.email);
+              console.log(
+                '✅ Session créée via exchangeCodeForSession:',
+                data.session.user.email
+              );
               setTokenValid(true);
               setIsValidating(false);
               return;
@@ -111,13 +123,17 @@ export default function ResetPasswordPage() {
 
           const { data: finalSessionData } = await supabase.auth.getSession();
           if (finalSessionData?.session?.user) {
-            console.log('✅ Session trouvée après délai:', finalSessionData.session.user.email);
+            console.log(
+              '✅ Session trouvée après délai:',
+              finalSessionData.session.user.email
+            );
             setTokenValid(true);
             setIsValidating(false);
             return;
           }
 
           console.log('❌ Aucune session valide trouvée');
+          console.log('❌ Session finale:', finalSessionData);
           setErrorMessage(
             'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
           );

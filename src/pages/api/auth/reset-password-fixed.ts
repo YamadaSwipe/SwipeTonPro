@@ -129,9 +129,14 @@ export default async function handler(
 
     // Utiliser la méthode standard Supabase pour envoyer l'email de réinitialisation
     // Cela garantit que le token est valide et compatible avec verifyOtp
-    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: `${PRODUCTION_URL}/auth/reset-password`,
-    });
+    const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
+      ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
+      : `${PRODUCTION_URL}/auth/reset-password`;
+
+    const { error: resetError } =
+      await supabaseAdmin.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
 
     if (resetError) {
       console.error('❌ Erreur resetPasswordForEmail:', resetError);
@@ -141,7 +146,8 @@ export default async function handler(
     console.log('✅ Email de réinitialisation envoyé via Supabase à:', email);
     return res.status(200).json({
       success: true,
-      message: 'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
+      message:
+        'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
     });
   } catch (error: any) {
     console.error('❌ Erreur reset-password-fixed API:', error);
