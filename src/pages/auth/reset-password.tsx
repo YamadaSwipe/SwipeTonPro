@@ -55,24 +55,29 @@ export default function ResetPasswordPage() {
             accessToken.substring(0, 20) + '...'
           );
 
-          // Pour les tokens de récupération Supabase, utiliser verifyOtp
-          try {
-            const { data, error } = await supabase.auth.verifyOtp({
-              token: accessToken,
-              type: 'recovery',
-            });
+          // Pour les tokens de récupération Supabase, laisser le client traiter automatiquement
+          // Attendre un peu que Supabase traite le token dans le hash
+          await new Promise((resolve) => setTimeout(resolve, 1500));
 
-            if (error) {
-              console.error('❌ Erreur verifyOtp:', error);
-              setErrorMessage(
-                'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
-              );
-              setTokenValid(false);
-              setIsValidating(false);
-              return;
-            }
+          // Vérifier si une session a été créée automatiquement
+          const { data: sessionData, error: sessionError } =
+            await supabase.auth.getSession();
 
-            console.log('✅ Token validé via verifyOtp:', data.user?.email);
+          if (sessionError) {
+            console.error('❌ Erreur session:', sessionError);
+            setErrorMessage(
+              'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
+            );
+            setTokenValid(false);
+            setIsValidating(false);
+            return;
+          }
+
+          if (sessionData?.session?.user) {
+            console.log(
+              '✅ Session créée automatiquement:',
+              sessionData.session.user.email
+            );
             setTokenValid(true);
             setIsValidating(false);
 
@@ -85,15 +90,15 @@ export default function ResetPasswordPage() {
               );
             }
             return;
-          } catch (otpError) {
-            console.error('❌ Erreur verifyOtp:', otpError);
-            setErrorMessage(
-              'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
-            );
-            setTokenValid(false);
-            setIsValidating(false);
-            return;
           }
+
+          console.log('❌ Aucune session créée automatiquement');
+          setErrorMessage(
+            'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
+          );
+          setTokenValid(false);
+          setIsValidating(false);
+          return;
         } else if (queryToken) {
           console.log(
             '🔑 Token query trouvé:',
