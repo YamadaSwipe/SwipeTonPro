@@ -55,13 +55,15 @@ export default function ResetPasswordPage() {
             accessToken.substring(0, 20) + '...'
           );
 
-          // Validation simple et directe avec exchangeCodeForSession
+          // Pour les tokens de récupération Supabase, utiliser verifyOtp
           try {
-            const { data, error } =
-              await supabase.auth.exchangeCodeForSession(accessToken);
+            const { data, error } = await supabase.auth.verifyOtp({
+              token: accessToken,
+              type: 'recovery',
+            });
 
-            if (error || !data?.session?.user) {
-              console.error('❌ Erreur exchangeCodeForSession:', error);
+            if (error) {
+              console.error('❌ Erreur verifyOtp:', error);
               setErrorMessage(
                 'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
               );
@@ -70,10 +72,7 @@ export default function ResetPasswordPage() {
               return;
             }
 
-            console.log(
-              '✅ Session créée via exchangeCodeForSession:',
-              data.session.user.email
-            );
+            console.log('✅ Token validé via verifyOtp:', data.user?.email);
             setTokenValid(true);
             setIsValidating(false);
 
@@ -86,8 +85,8 @@ export default function ResetPasswordPage() {
               );
             }
             return;
-          } catch (exchangeError) {
-            console.error('❌ Erreur exchangeCodeForSession:', exchangeError);
+          } catch (otpError) {
+            console.error('❌ Erreur verifyOtp:', otpError);
             setErrorMessage(
               'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
             );
