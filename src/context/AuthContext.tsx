@@ -567,10 +567,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           created_at: data.user.created_at,
         });
 
-        // Charger les données utilisateur de manière asynchrone sans bloquer
-        loadUserData(data.user.id).catch((err) => {
-          console.error('❌ AuthContext: Error loading user data:', err);
-        });
+        // Charger les données utilisateur SYNCHRONEMENT pour éviter les boucles
+        await loadUserData(data.user.id);
 
         return { success: true };
       }

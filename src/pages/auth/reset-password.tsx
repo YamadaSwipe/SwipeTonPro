@@ -54,99 +54,46 @@ export default function ResetPasswordPage() {
             '🔑 Token de récupération trouvé:',
             accessToken.substring(0, 20) + '...'
           );
-          console.log('🔗 URL complète:', window.location.href);
-          console.log('🔗 Hash complet:', window.location.hash);
-          console.log('🔗 Paramètres hash:', Array.from(hashParams.entries()));
 
-          // Pour les liens de récupération Supabase, la session est créée automatiquement
-          // Il suffit de vérifier que la session existe après un court délai
-          console.log('🔄 Vérification de la session créée automatiquement...');
-
-          // Attendre un peu que Supabase traite le token automatiquement
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          // Vérifier si une session valide a été créée
-          const { data: sessionData, error: sessionError } =
-            await supabase.auth.getSession();
-
-          if (sessionError) {
-            console.error('❌ Erreur session:', sessionError);
-            setErrorMessage(
-              'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
-            );
-            setIsValidating(false);
-            return;
-          }
-
-          if (sessionData?.session?.user) {
-            console.log(
-              '✅ Session créée automatiquement:',
-              sessionData.session.user.email
-            );
-            setTokenValid(true);
-            setIsValidating(false);
-            return;
-          }
-
-          // Si pas de session, essayer avec exchangeCodeForSession (pour les nouveaux liens)
-          console.log('🔄 Tentative avec exchangeCodeForSession...');
+          // Validation simple et directe avec exchangeCodeForSession
           try {
             const { data, error } =
               await supabase.auth.exchangeCodeForSession(accessToken);
 
-            if (error) {
+            if (error || !data?.session?.user) {
               console.error('❌ Erreur exchangeCodeForSession:', error);
-              console.error('❌ Détails erreur:', error.message);
               setErrorMessage(
                 'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
               );
+              setTokenValid(false);
               setIsValidating(false);
               return;
             }
 
-            if (data?.session?.user) {
-              console.log(
-                '✅ Session créée via exchangeCodeForSession:',
-                data.session.user.email
-              );
-              setTokenValid(true);
-              setIsValidating(false);
-              return;
-            }
-          } catch (exchangeError) {
-            console.error('❌ Erreur exchangeCodeForSession:', exchangeError);
-          }
-
-          // Dernière tentative : attendre plus longtemps et revérifier
-          console.log('🔄 Dernière tentative - attendre et revérifier...');
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          const { data: finalSessionData } = await supabase.auth.getSession();
-          if (finalSessionData?.session?.user) {
             console.log(
-              '✅ Session trouvée après délai:',
-              finalSessionData.session.user.email
+              '✅ Session créée via exchangeCodeForSession:',
+              data.session.user.email
             );
             setTokenValid(true);
             setIsValidating(false);
+
+            // Nettoyer le hash immédiatement après validation réussie
+            if (window.location.hash) {
+              window.history.replaceState(
+                null,
+                '',
+                window.location.pathname + window.location.search
+              );
+            }
             return;
-          }
-
-          console.log('❌ Aucune session valide trouvée');
-          console.log('❌ Session finale:', finalSessionData);
-          setErrorMessage(
-            'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
-          );
-          setTokenValid(false);
-          setIsValidating(false);
-
-          // Nettoyer le hash dans tous les cas
-          if (window.location.hash) {
-            window.history.replaceState(
-              null,
-              '',
-              window.location.pathname + window.location.search
+          } catch (exchangeError) {
+            console.error('❌ Erreur exchangeCodeForSession:', exchangeError);
+            setErrorMessage(
+              'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
             );
+            setTokenValid(false);
+            setIsValidating(false);
+            return;
           }
         } else if (queryToken) {
           console.log(
@@ -288,7 +235,7 @@ export default function ResetPasswordPage() {
 
       // Rediriger vers la page de connexion
       setTimeout(() => {
-        router.push('/particulier');
+        router.push('/auth/login');
       }, 2000);
     } catch (error) {
       console.error('❌ Unexpected error:', error);
