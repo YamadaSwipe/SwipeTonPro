@@ -566,7 +566,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: data.user.email,
           created_at: data.user.created_at,
         });
-        await loadUserData(data.user.id);
+
+        // Charger les données utilisateur de manière asynchrone sans bloquer
+        loadUserData(data.user.id).catch((err) => {
+          console.error('❌ AuthContext: Error loading user data:', err);
+        });
+
         return { success: true };
       }
 
