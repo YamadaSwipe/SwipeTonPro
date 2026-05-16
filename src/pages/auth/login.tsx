@@ -12,7 +12,7 @@
  * - Logique simplifiée
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
@@ -52,13 +52,28 @@ export default function LoginPage() {
   }
 
   const router = useRouter();
-  const { login, role } = useAuth();
+  const { login, role, user } = useAuth();
   const { loginAdminGhost } = useAdminGhostSecure();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
+  // Redirection automatique après connexion réussie
+  useEffect(() => {
+    if (loginSuccess && user && role) {
+      console.log('🚀 LoginPage: Redirecting based on role:', role);
+      if (role === 'professional') {
+        router.push('/professionnel/dashboard');
+      } else if (role === 'admin' || role === 'super_admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/particulier/dashboard');
+      }
+    }
+  }, [loginSuccess, user, role, router]);
 
   // Simplifier la gestion des erreurs
   const getErrorMessage = useCallback((err: any) => {
@@ -198,17 +213,8 @@ export default function LoginPage() {
         }
 
         if (loginResult.success) {
-          // Attendre un peu que le rôle soit chargé
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // Redirection explicite selon le rôle
-          if (role === 'professional') {
-            router.push('/professionnel/dashboard');
-          } else if (role === 'admin' || role === 'super_admin') {
-            router.push('/admin/dashboard');
-          } else {
-            router.push('/particulier/dashboard');
-          }
+          // Marquer la connexion comme réussie pour déclencher la redirection automatique
+          setLoginSuccess(true);
         }
       } catch (err: any) {
         if (process.env.NODE_ENV === 'development') {
@@ -219,7 +225,7 @@ export default function LoginPage() {
         setLoading(false);
       }
     },
-    [email, password, login, router, getErrorMessage]
+    [email, password, login, getErrorMessage]
   );
 
   return (
