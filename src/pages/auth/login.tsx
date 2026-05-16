@@ -52,7 +52,7 @@ export default function LoginPage() {
   }
 
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, role } = useAuth();
   const { loginAdminGhost } = useAdminGhostSecure();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
