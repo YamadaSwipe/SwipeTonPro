@@ -27,111 +27,65 @@ export default function ResetPasswordPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Vérifier si nous avons un token de récupération valide
+    // Vérifier si nous avons une session de récupération valide
     const checkResetSession = async () => {
       try {
-        console.log('🔍 Vérification du token de récupération...');
-        console.log('🌐 URL actuelle:', window.location.href);
+        console.log('🔍 Vérification de la session de récupération...');
 
-        // Vérifier si nous avons un token dans le hash (méthode forcée)
-        const hashParams = new URLSearchParams(
-          window.location.hash.substring(1)
-        );
-        const accessToken = hashParams.get('access_token');
-        const tokenType = hashParams.get('type');
+        // Attendre un peu que Supabase traite le token dans l'URL
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        // Vérifier aussi les paramètres de query (fallback)
-        const urlParams = new URLSearchParams(window.location.search);
-        const queryToken = urlParams.get('token');
+        // Vérifier si une session existe
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
 
-        // Vérifier d'abord si nous avons des tokens dans l'URL
-        console.log('🔍 URL complète:', window.location.href);
-        console.log('🔍 Hash:', window.location.hash);
-        console.log('🔍 Search:', window.location.search);
-
-        if (accessToken && tokenType === 'recovery') {
-          console.log(
-            '🔑 Token de récupération trouvé:',
-            accessToken.substring(0, 20) + '...'
-          );
-
-          // Pour les tokens de récupération Supabase, laisser le client traiter automatiquement
-          // Attendre un peu que Supabase traite le token dans le hash
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-
-          // Vérifier si une session a été créée automatiquement
-          const { data: sessionData, error: sessionError } =
-            await supabase.auth.getSession();
-
-          if (sessionError) {
-            console.error('❌ Erreur session:', sessionError);
-            setErrorMessage(
-              'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
-            );
-            setTokenValid(false);
-            setIsValidating(false);
-            return;
-          }
-
-          if (sessionData?.session?.user) {
-            console.log(
-              '✅ Session créée automatiquement:',
-              sessionData.session.user.email
-            );
-            setTokenValid(true);
-            setIsValidating(false);
-
-            // Nettoyer le hash immédiatement après validation réussie
-            if (window.location.hash) {
-              window.history.replaceState(
-                null,
-                '',
-                window.location.pathname + window.location.search
-              );
-            }
-            return;
-          }
-
-          console.log('❌ Aucune session créée automatiquement');
+        if (sessionError) {
+          console.error('❌ Erreur session:', sessionError);
           setErrorMessage(
-            'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
+            'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
           );
-          setTokenValid(false);
           setIsValidating(false);
           return;
-        } else if (queryToken) {
+        }
+
+        if (sessionData?.session?.user) {
           console.log(
-            '🔑 Token query trouvé:',
-            queryToken.substring(0, 20) + '...'
+            '✅ Session de récupération trouvée:',
+            sessionData.session.user.email
           );
           setTokenValid(true);
           setIsValidating(false);
-        } else {
-          console.log('❌ Pas de token de récupération valide trouvé');
-          console.log('accessToken:', accessToken);
-          console.log('tokenType:', tokenType);
-          console.log('queryToken:', queryToken);
-          setErrorMessage(
-            'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
-          );
-          setTokenValid(false);
+          return;
         }
 
-        // Finaliser la validation
+        // Si pas de session, vérifier si l'utilisateur est connecté normalement
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          console.log('✅ Utilisateur connecté:', user.email);
+          setTokenValid(true);
+          setIsValidating(false);
+          return;
+        }
+
+        console.log('❌ Aucune session valide trouvée');
+        setErrorMessage(
+          'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
+        );
+        setTokenValid(false);
         setIsValidating(false);
       } catch (error) {
         console.error('❌ Erreur vérification:', error);
-        toast({
-          title: '❌ Erreur',
-          description: 'Impossible de valider le lien de réinitialisation',
-          variant: 'destructive',
-        });
-        router.push('/auth/forgot-password');
+        setErrorMessage(
+          'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
+        );
+        setIsValidating(false);
       }
     };
 
     checkResetSession();
-  }, [router, toast]);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
