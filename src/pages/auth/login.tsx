@@ -191,13 +191,25 @@ export default function LoginPage() {
         // === AUTHENTIFICATION NORMALE SUPABASE ===
         // Uniquement pour les comptes non-admin
         console.log('🔐 LoginPage: Login utilisateur normal via Supabase');
-        await login(email, password);
+        const loginResult = await login(email, password);
 
         if (process.env.NODE_ENV === 'development') {
-          console.log('✅ LoginPage: Login successful, redirecting...');
+          console.log('✅ LoginPage: Login result:', loginResult);
         }
 
-        // Redirection gérée automatiquement par AuthContext selon le rôle
+        if (loginResult.success) {
+          // Attendre un peu que le rôle soit chargé
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Redirection explicite selon le rôle
+          if (role === 'professional') {
+            router.push('/professionnel/dashboard');
+          } else if (role === 'admin' || role === 'super_admin') {
+            router.push('/admin/dashboard');
+          } else {
+            router.push('/particulier/dashboard');
+          }
+        }
       } catch (err: any) {
         if (process.env.NODE_ENV === 'development') {
           console.error('❌ LoginPage: Login failed:', err);
