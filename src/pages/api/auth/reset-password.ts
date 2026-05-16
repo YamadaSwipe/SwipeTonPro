@@ -6,6 +6,90 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+async function sendResetEmailViaResend(
+  email: string,
+  resetLink: string
+): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('❌ RESEND_API_KEY non configurée');
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'SwipeTonPro <contact@swipetonpro.fr>',
+        to: [email],
+        subject: '🔐 Réinitialisation de votre mot de passe - SwipeTonPro',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Réinitialisation du mot de passe</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; }
+              .header { background: linear-gradient(135deg, #ff6b35, #f7931e); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .header h1 { color: white; margin: 0; }
+              .content { background: #f9f9f9; padding: 40px 30px; border-radius: 0 0 10px 10px; }
+              .button { display: inline-block; background: #ff6b35; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+              .button:hover { background: #e55a2b; }
+              .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+              .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🔐 SwipeTonPro - Réinitialisation de mot de passe</h1>
+              </div>
+              <div class="content">
+                <h2>Bonjour,</h2>
+                <p>Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous :</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${resetLink}" class="button">Réinitialiser mon mot de passe</a>
+                </div>
+                
+                <div class="warning">
+                  <strong>⚠️ Important :</strong> Ce lien expire dans 1 heure. Ne le partagez avec personne.
+                </div>
+                
+                <p>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>
+                <p style="word-break: break-all; background: white; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace; font-size: 12px;">${resetLink}</p>
+                
+                <p><strong>Vous n'avez pas demandé cela ?</strong> Ignorez cet email.</p>
+              </div>
+              <div class="footer">
+                <p>© SwipeTonPro - Équipe Support</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ Erreur Resend:', error);
+      return false;
+    }
+
+    console.log('✅ Email envoyé via Resend à:', email);
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur envoi email:', error);
+    return false;
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -23,14 +107,18 @@ export default async function handler(
   try {
     console.log('🔄 Demande reset password pour:', email);
 
-    // Utiliser la méthode native Supabase resetPasswordForEmail
-    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
-    });
+    // Utiliser admin.generateLink pour générer le lien natif Supabase
+    const { data, error: generateError } =
+      await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+        },
+      });
 
-    if (error) {
-      console.error('❌ Erreur resetPasswordForEmail:', error);
-      // Pas d'erreur en réponse (raison de sécurité)
+    if (generateError) {
+      console.error('❌ Erreur admin.generateLink:', generateError);
       return res.status(200).json({
         success: true,
         message:
@@ -38,7 +126,27 @@ export default async function handler(
       });
     }
 
-    console.log('✅ Email de réinitialisation envoyé par Supabase à:', email);
+    const actionLink = data?.properties?.action_link;
+    if (!actionLink) {
+      console.error('❌ Pas de lien généré');
+      return res.status(200).json({
+        success: true,
+        message:
+          'Si cet email existe, un lien de réinitialisation a été envoyé.',
+      });
+    }
+
+    console.log('✅ Lien généré par Supabase:', actionLink);
+
+    // Envoyer le lien natif Supabase via Resend (sans modification)
+    const emailSent = await sendResetEmailViaResend(email, actionLink);
+
+    if (!emailSent) {
+      console.warn('⚠️ Email non envoyé mais lien généré');
+      return res.status(500).json({
+        error: "Erreur lors de l'envoi de l'email",
+      });
+    }
 
     return res.status(200).json({
       success: true,
