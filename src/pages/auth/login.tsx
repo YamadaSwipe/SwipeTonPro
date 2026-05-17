@@ -211,6 +211,9 @@ export default function LoginPage() {
         if (loginResult.success) {
           // Marquer la connexion comme réussie pour déclencher la redirection automatique
           setLoginSuccess(true);
+        } else {
+          // Afficher l'erreur si la connexion a échoué
+          setError(loginResult.error || 'Erreur de connexion');
         }
       } catch (err: any) {
         if (process.env.NODE_ENV === 'development') {
