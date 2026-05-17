@@ -138,9 +138,27 @@ export default async function handler(
 
     console.log('✅ Lien généré par Supabase:', actionLink);
 
-    // Utiliser le lien natif Supabase tel quel
-    // Supabase redirigera vers notre domaine si l'URL de redirection est configurée
-    const emailSent = await sendResetEmailViaResend(email, actionLink);
+    // Extraire le token du lien Supabase
+    const tokenMatch = actionLink.match(/token=([^&]+)/);
+    const token = tokenMatch ? tokenMatch[1] : '';
+
+    if (!token) {
+      console.error("❌ Impossible d'extraire le token du lien");
+      return res.status(500).json({
+        error: 'Erreur lors de la génération du lien',
+      });
+    }
+
+    console.log('✅ Token extrait:', token.substring(0, 20) + '...');
+
+    // Créer un lien forcé vers notre page de réinitialisation
+    const PRODUCTION_URL = 'https://www.swipetonpro.fr';
+    const forcedLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${token}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password`;
+
+    console.log('🔗 Lien forcé créé:', forcedLink);
+
+    // Envoyer le lien forcé via Resend
+    const emailSent = await sendResetEmailViaResend(email, forcedLink);
 
     if (!emailSent) {
       console.warn('⚠️ Email non envoyé mais lien généré');
