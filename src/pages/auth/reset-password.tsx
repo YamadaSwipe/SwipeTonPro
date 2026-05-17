@@ -32,6 +32,35 @@ export default function ResetPasswordPage() {
       try {
         console.log('🔍 Vérification de la session de récupération...');
 
+        // Extraire le token du hash de l'URL
+        const hash = window.location.hash;
+        const tokenMatch = hash.match(/access_token=([^&]+)/);
+        const token = tokenMatch ? tokenMatch[1] : '';
+
+        if (token) {
+          console.log(
+            '🔑 Token trouvé dans le hash:',
+            token.substring(0, 20) + '...'
+          );
+
+          // Essayer d'échanger le token contre une session
+          const { data: exchangeData, error: exchangeError } =
+            await supabase.auth.exchangeCodeForSession(token);
+
+          if (exchangeError) {
+            console.error('❌ Erreur échange token:', exchangeError);
+            // Continuer avec la vérification de session normale
+          } else if (exchangeData?.session?.user) {
+            console.log(
+              '✅ Session créée via échange de token:',
+              exchangeData.session.user.email
+            );
+            setTokenValid(true);
+            setIsValidating(false);
+            return;
+          }
+        }
+
         // Attendre un peu que Supabase traite le token dans l'URL
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
