@@ -63,13 +63,17 @@ export default function LoginPage() {
 
   // Redirection automatique après connexion réussie
   useEffect(() => {
-    if (loginSuccess && user && role) {
+    if (loginSuccess && user) {
       console.log('🚀 LoginPage: Redirecting based on role:', role);
+      // Redirection immédiate même si le rôle n'est pas encore chargé
+      // Le rôle sera vérifié dans le dashboard
       if (role === 'professional') {
         router.push('/professionnel/dashboard');
       } else if (role === 'admin' || role === 'super_admin') {
         router.push('/admin/dashboard');
       } else {
+        // Par défaut, rediriger vers le dashboard particulier
+        // Le rôle sera déterminé dans le dashboard
         router.push('/particulier/dashboard');
       }
     }
