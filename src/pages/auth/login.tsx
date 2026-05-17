@@ -77,7 +77,7 @@ export default function LoginPage() {
         router.push('/particulier/dashboard');
       }
     }
-  }, [loginSuccess, user, role, router]);
+  }, [loginSuccess, user, router]);
 
   // Simplifier la gestion des erreurs
   const getErrorMessage = useCallback((err: any) => {
