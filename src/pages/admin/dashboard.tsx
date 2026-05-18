@@ -242,47 +242,44 @@ function AdminDashboardContent() {
     []
   );
 
-  const loadData = useCallback(
-    async (silent = false) => {
-      if (!silent) setDataLoading(true);
-      else setRefreshing(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setDataLoading(true);
+    else setRefreshing(true);
 
-      try {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('🔄 AdminDashboard: Loading dashboard data');
-        }
-
-        // Utiliser le service centralisé
-        const [statsData, projectsData] = await Promise.all([
-          adminDataService.getStats(),
-          adminDataService.getRecentProjects(),
-        ]);
-
-        setStats({
-          ...statsData,
-          revenueMonth: 0,
-        });
-
-        setRecentProjects(projectsData);
-        setLastUpdated(new Date());
-
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ AdminDashboard: Data loaded successfully', {
-            statsCount: Object.keys(statsData).length,
-            projectsCount: projectsData.length,
-          });
-        }
-      } catch (err) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ AdminDashboard: Error loading data:', err);
-        }
-      } finally {
-        setDataLoading(false);
-        setRefreshing(false);
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🔄 AdminDashboard: Loading dashboard data');
       }
-    },
-    [adminDataService]
-  );
+
+      // Utiliser le service centralisé
+      const [statsData, projectsData] = await Promise.all([
+        adminDataService.getStats(),
+        adminDataService.getRecentProjects(),
+      ]);
+
+      setStats({
+        ...statsData,
+        revenueMonth: 0,
+      });
+
+      setRecentProjects(projectsData);
+      setLastUpdated(new Date());
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ AdminDashboard: Data loaded successfully', {
+          statsCount: Object.keys(statsData).length,
+          projectsCount: projectsData.length,
+        });
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ AdminDashboard: Error loading data:', err);
+      }
+    } finally {
+      setDataLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadData();
