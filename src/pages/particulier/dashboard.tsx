@@ -239,7 +239,7 @@ function ParticulierDashboardContent() {
     };
 
     loadUserData();
-  }, [initialized, user, profile, clientDataService]);
+  }, [initialized, user, profile]);
 
   // Optimiser les handlers avec useCallback
   const handleLogout = useCallback(async () => {
