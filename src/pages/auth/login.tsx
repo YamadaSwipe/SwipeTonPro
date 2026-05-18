@@ -210,9 +210,13 @@ export default function LoginPage() {
 
         if (loginResult.success) {
           // Marquer la connexion comme réussie pour déclencher la redirection automatique
+          console.log(
+            '✅ LoginPage: Login success, setting loginSuccess to true'
+          );
           setLoginSuccess(true);
         } else {
           // Afficher l'erreur si la connexion a échoué
+          console.error('❌ LoginPage: Login failed:', loginResult.error);
           setError(loginResult.error || 'Erreur de connexion');
         }
       } catch (err: any) {
