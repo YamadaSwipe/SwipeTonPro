@@ -286,7 +286,7 @@ function AdminDashboardContent() {
     // Rafraîchir toutes les 60 secondes
     const interval = setInterval(() => loadData(true), 60000);
     return () => clearInterval(interval);
-  }, [loadData]);
+  }, []);
 
   const urgentCount = useMemo(
     () => stats.pendingProjects + stats.pendingPros,
