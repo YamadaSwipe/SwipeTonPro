@@ -61,6 +61,9 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loginSuccess, setLoginSuccess] = useState(false);
 
+  // Debug: Check initial state
+  console.log('🔍 LoginPage: Component mounted, loading:', loading);
+
   // Redirection automatique après connexion réussie
   useEffect(() => {
     if (loginSuccess) {
@@ -97,9 +100,9 @@ export default function LoginPage() {
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🚀 LoginPage: Login attempt started');
-      }
+      console.log('🚀 LoginPage: handleLogin called');
+      console.log('📧 Email:', email);
+      console.log('🔑 Password length:', password.length);
 
       setLoading(true);
       setError('');
