@@ -348,7 +348,7 @@ function AdminDashboardContent() {
       console.warn('🔄 AdminDashboard: Manual refresh triggered');
     }
     await loadData(true);
-  }, [loadData]);
+  }, []);
 
   const handleLogout = useCallback(async () => {
     if (process.env.NODE_ENV === 'development') {
