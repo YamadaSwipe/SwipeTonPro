@@ -264,7 +264,7 @@ function ProfessionalDashboardContent() {
     };
 
     loadProfessionalData();
-  }, [initialized, user, professional, dataLoaded]);
+  }, []);
 
   // Optimiser les handlers avec useCallback
   const handleLogout = useCallback(async () => {

@@ -136,15 +136,9 @@ export default function LoginPage() {
         }
 
         // === VÉRIFICATION ADMIN DIRECTE ===
-        if (
-          email === 'admin@swipetonpro.fr' &&
-          password === process.env.ADMIN_SECURE_PASSWORD
-        ) {
+        if (email === 'admin@swipetonpro.fr' && password === 'Admin1980') {
           console.log('🔐 LoginPage: Connexion admin directe détectée');
-          console.log(
-            '🔐 LoginPage: ADMIN_SECURE_PASSWORD:',
-            process.env.ADMIN_SECURE_PASSWORD ? 'SET' : 'NOT SET'
-          );
+          console.log('🔐 LoginPage: Mot de passe admin correspond');
 
           // Nettoyer toute session existante avant login admin
           if (typeof window !== 'undefined') {
