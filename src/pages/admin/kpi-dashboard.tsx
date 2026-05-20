@@ -5,19 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Briefcase, 
-  CheckCircle2, 
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Briefcase,
+  CheckCircle2,
   XCircle,
   RefreshCw,
   ArrowLeft,
   AlertTriangle,
   Calendar,
-  Filter
+  Filter,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -82,11 +82,13 @@ export default function KPIDashboardPage() {
 
   useEffect(() => {
     checkAdminAndLoad();
-  }, [selectedRange]);
+  }, []);
 
   const checkAdminAndLoad = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         router.push('/auth/login');
         return;
@@ -114,11 +116,13 @@ export default function KPIDashboardPage() {
   const loadKPIData = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       const response = await fetch(`/api/kpi/dashboard?days=${selectedRange}`, {
         headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
       });
 
@@ -144,7 +148,9 @@ export default function KPIDashboardPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-900">Accès réservé</h1>
-          <p className="text-slate-600 mt-2">Cette page est réservée aux administrateurs</p>
+          <p className="text-slate-600 mt-2">
+            Cette page est réservée aux administrateurs
+          </p>
         </div>
       </div>
     );
@@ -163,7 +169,9 @@ export default function KPIDashboardPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-900">Erreur</h1>
-          <p className="text-slate-600 mt-2">Impossible de charger les données KPI</p>
+          <p className="text-slate-600 mt-2">
+            Impossible de charger les données KPI
+          </p>
           <Button onClick={loadKPIData} className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Réessayer
@@ -187,7 +195,10 @@ export default function KPIDashboardPage() {
             </Link>
             <h1 className="text-3xl font-bold">Tableau de bord KPI</h1>
             <p className="text-slate-600">
-              Dernière mise à jour: {format(new Date(kpiData.lastUpdated), 'dd/MM/yyyy HH:mm', { locale: fr })}
+              Dernière mise à jour:{' '}
+              {format(new Date(kpiData.lastUpdated), 'dd/MM/yyyy HH:mm', {
+                locale: fr,
+              })}
             </p>
           </div>
 
@@ -222,7 +233,9 @@ export default function KPIDashboardPage() {
             subtitle={`${kpiData.projects.projectsWithAIEstimation} / ${kpiData.projects.totalProjects}`}
             icon={CheckCircle2}
             color="bg-blue-500"
-            trend={kpiData.projects.realisticEstimationRate > 50 ? 'up' : 'down'}
+            trend={
+              kpiData.projects.realisticEstimationRate > 50 ? 'up' : 'down'
+            }
           />
           <KPICard
             title="Artisans postulent"
@@ -299,7 +312,14 @@ export default function KPIDashboardPage() {
   );
 }
 
-function KPICard({ title, value, subtitle, icon: Icon, color, trend }: {
+function KPICard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  color,
+  trend,
+}: {
   title: string;
   value: string;
   subtitle: string;
@@ -330,8 +350,12 @@ function KPICard({ title, value, subtitle, icon: Icon, color, trend }: {
   );
 }
 
-function FunnelVisualization({ funnel }: { funnel: KPIData['conversionFunnel'] }) {
-  const maxCount = Math.max(...funnel.map(f => f.count), 1);
+function FunnelVisualization({
+  funnel,
+}: {
+  funnel: KPIData['conversionFunnel'];
+}) {
+  const maxCount = Math.max(...funnel.map((f) => f.count), 1);
 
   return (
     <Card>
@@ -349,7 +373,9 @@ function FunnelVisualization({ funnel }: { funnel: KPIData['conversionFunnel'] }
                 <span className="font-medium">{stage.stage}</span>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-slate-600">{stage.count}</span>
-                  <Badge variant={stage.percentage > 50 ? 'default' : 'secondary'}>
+                  <Badge
+                    variant={stage.percentage > 50 ? 'default' : 'secondary'}
+                  >
                     {stage.percentage}%
                   </Badge>
                 </div>
@@ -357,12 +383,17 @@ function FunnelVisualization({ funnel }: { funnel: KPIData['conversionFunnel'] }
               <div className="h-8 bg-slate-100 rounded-lg overflow-hidden">
                 <div
                   className={`h-full transition-all duration-500 ${
-                    index === 0 ? 'bg-blue-500' :
-                    index === 1 ? 'bg-blue-400' :
-                    index === 2 ? 'bg-blue-300' :
-                    index === 3 ? 'bg-green-400' :
-                    index === 4 ? 'bg-green-500' :
-                    'bg-emerald-500'
+                    index === 0
+                      ? 'bg-blue-500'
+                      : index === 1
+                        ? 'bg-blue-400'
+                        : index === 2
+                          ? 'bg-blue-300'
+                          : index === 3
+                            ? 'bg-green-400'
+                            : index === 4
+                              ? 'bg-green-500'
+                              : 'bg-emerald-500'
                   }`}
                   style={{ width: `${(stage.count / maxCount) * 100}%` }}
                 />
@@ -389,16 +420,21 @@ function ProjectDetails({ data }: { data: KPIData['projects'] }) {
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {Object.entries(data.byStatus).map(([status, count]) => (
-            <div key={status} className="bg-slate-50 p-4 rounded-lg text-center">
+            <div
+              key={status}
+              className="bg-slate-50 p-4 rounded-lg text-center"
+            >
               <p className="text-2xl font-bold">{count}</p>
-              <p className="text-xs text-slate-500 capitalize">{status.replace('_', ' ')}</p>
+              <p className="text-xs text-slate-500 capitalize">
+                {status.replace('_', ' ')}
+              </p>
             </div>
           ))}
         </div>
         <div className="mt-6">
           <p className="text-sm text-slate-600">
-            <strong>{data.realisticEstimationRate}%</strong> des projets ont une estimation IA réaliste
-            (écart budget &lt; 50%)
+            <strong>{data.realisticEstimationRate}%</strong> des projets ont une
+            estimation IA réaliste (écart budget &lt; 50%)
           </p>
         </div>
       </CardContent>
@@ -449,15 +485,21 @@ function MatchDetails({ data }: { data: KPIData['matches'] }) {
             <p className="text-xs text-slate-500">Total matchs</p>
           </div>
           <div className="bg-slate-50 p-4 rounded-lg text-center">
-            <p className="text-2xl font-bold text-orange-600">{data.quoteSentRate}%</p>
+            <p className="text-2xl font-bold text-orange-600">
+              {data.quoteSentRate}%
+            </p>
             <p className="text-xs text-slate-500">Devis envoyés</p>
           </div>
           <div className="bg-slate-50 p-4 rounded-lg text-center">
-            <p className="text-2xl font-bold text-green-600">{data.contractSignedRate}%</p>
+            <p className="text-2xl font-bold text-green-600">
+              {data.contractSignedRate}%
+            </p>
             <p className="text-xs text-slate-500">Contrats signés</p>
           </div>
           <div className="bg-slate-50 p-4 rounded-lg text-center">
-            <p className="text-2xl font-bold text-red-600">{data.rejectionRate}%</p>
+            <p className="text-2xl font-bold text-red-600">
+              {data.rejectionRate}%
+            </p>
             <p className="text-xs text-slate-500">Taux de refus</p>
           </div>
         </div>
@@ -507,7 +549,9 @@ function AlertsSection({ kpiData }: { kpiData: KPIData }) {
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <p className="text-green-800">Tous les indicateurs sont dans les seuils normaux</p>
+            <p className="text-green-800">
+              Tous les indicateurs sont dans les seuils normaux
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -521,12 +565,19 @@ function AlertsSection({ kpiData }: { kpiData: KPIData }) {
         Alertes et Recommandations
       </h3>
       {alerts.map((alert, index) => (
-        <Card key={index} className={`${alert.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
+        <Card
+          key={index}
+          className={`${alert.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}
+        >
           <CardContent className="p-4">
-            <p className={`font-medium ${alert.type === 'error' ? 'text-red-800' : 'text-orange-800'}`}>
+            <p
+              className={`font-medium ${alert.type === 'error' ? 'text-red-800' : 'text-orange-800'}`}
+            >
               {alert.message}
             </p>
-            <p className={`text-sm mt-1 ${alert.type === 'error' ? 'text-red-600' : 'text-orange-600'}`}>
+            <p
+              className={`text-sm mt-1 ${alert.type === 'error' ? 'text-red-600' : 'text-orange-600'}`}
+            >
               {alert.recommendation}
             </p>
           </CardContent>
