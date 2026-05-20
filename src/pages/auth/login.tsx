@@ -68,11 +68,16 @@ export default function LoginPage() {
   useEffect(() => {
     if (loginSuccess) {
       console.log('🚀 LoginPage: Redirecting to default dashboard');
-      // Redirection simple vers le dashboard par défaut
-      // Le rôle sera vérifié et géré dans le dashboard
-      router.push('/particulier/dashboard');
+      // Redirection vers le dashboard approprié selon le rôle
+      if (email === 'admin@swipetonpro.fr') {
+        console.log('🚀 LoginPage: Redirecting to admin dashboard');
+        router.push('/admin/dashboard');
+      } else {
+        console.log('🚀 LoginPage: Redirecting to particulier dashboard');
+        router.push('/particulier/dashboard');
+      }
     }
-  }, [loginSuccess, router]);
+  }, [loginSuccess, router, email]);
 
   // Simplifier la gestion des erreurs
   const getErrorMessage = useCallback((err: any) => {
