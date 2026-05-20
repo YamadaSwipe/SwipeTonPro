@@ -356,7 +356,7 @@ function AdminDashboardContent() {
     }
     await logout();
     router.push('/auth/login');
-  }, [logout, router]);
+  }, []);
 
   return (
     <>
