@@ -138,7 +138,7 @@ export default function AdminProjectsPage() {
 
   useEffect(() => {
     loadProjects();
-  }, [loadProjects]);
+  }, []);
 
   // ── Filtrage ────────────────────────────────────────────────────────────
 
