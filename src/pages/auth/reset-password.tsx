@@ -27,38 +27,60 @@ export default function ResetPasswordPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Vérifier si nous avons une session de récupération valide
     const checkResetSession = async () => {
       try {
         console.log('🔍 Vérification de la session de récupération...');
 
-        // Extraire le token du hash de l'URL
+        const auth = supabase.auth as any;
         const hash = window.location.hash;
-        const tokenMatch = hash.match(/access_token=([^&]+)/);
-        const token = tokenMatch ? tokenMatch[1] : '';
+        const search = window.location.search;
+        const query = new URLSearchParams(search);
+        const queryToken = query.get('token') || query.get('access_token');
+        const hashParams = new URLSearchParams(hash.replace('#', '?'));
+        const hashToken = hashParams.get('access_token') || hashParams.get('token');
+        const token = queryToken || hashToken || '';
 
-        if (token) {
-          console.log('🔑 Token trouvé dans le hash:', token.substring(0, 20) + '...');
-          
-          // Essayer d'échanger le token contre une session
-          const { data: exchangeData, error: exchangeError } =
-            await supabase.auth.exchangeCodeForSession(token);
+        console.log(
+          '🔑 Token trouvé:',
+          token ? `${token.substring(0, 20)}...` : 'aucun'
+        );
 
-          if (exchangeError) {
-            console.error('❌ Erreur échange token:', exchangeError);
-            // Continuer avec la vérification de session normale
-          } else if (exchangeData?.session?.user) {
-            console.log('✅ Session créée via échange de token:', exchangeData.session.user.email);
+        if (typeof auth.getSessionFromUrl === 'function') {
+          const { data: urlData, error: urlError } =
+            await auth.getSessionFromUrl({ storeSession: true });
+
+          if (urlError) {
+            console.warn('⚠️ getSessionFromUrl error:', urlError);
+          } else if (urlData?.session?.user) {
+            console.log(
+              '✅ Session créée via getSessionFromUrl:',
+              urlData.session.user.email
+            );
             setTokenValid(true);
             setIsValidating(false);
             return;
           }
         }
 
-        // Attendre un peu que Supabase traite le token dans l'URL
+        if (token) {
+          const { data: exchangeData, error: exchangeError } =
+            await supabase.auth.exchangeCodeForSession(token);
+
+          if (exchangeError) {
+            console.error('❌ Erreur échange token:', exchangeError);
+          } else if (exchangeData?.session?.user) {
+            console.log(
+              '✅ Session créée via échange de token:',
+              exchangeData.session.user.email
+            );
+            setTokenValid(true);
+            setIsValidating(false);
+            return;
+          }
+        }
+
         await new Promise((resolve) => setTimeout(resolve, 3000));
 
-        // Vérifier si une session existe
         const { data: sessionData, error: sessionError } =
           await supabase.auth.getSession();
 
@@ -81,10 +103,10 @@ export default function ResetPasswordPage() {
           return;
         }
 
-        // Si pas de session, vérifier si l'utilisateur est connecté normalement
         const {
           data: { user },
         } = await supabase.auth.getUser();
+
         if (user) {
           console.log('✅ Utilisateur connecté:', user.email);
           setTokenValid(true);

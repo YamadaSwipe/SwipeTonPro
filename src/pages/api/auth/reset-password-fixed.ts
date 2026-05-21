@@ -8,19 +8,71 @@ const supabaseAdmin = createClient(
 
 const PRODUCTION_URL = 'https://www.swipetonpro.fr';
 
-// Fonction pour envoyer l'email via Resend avec lien forcé
-async function sendResetEmailFixed(email: string, resetToken: string) {
+function getHostBaseUrl(req: NextApiRequest): string {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const protocol = typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : 'http';
+  const host = req.headers.host;
+
+  if (host) {
+    return `${protocol}://${host.replace(/\/+$|\s+/g, '')}`;
+  }
+
+  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? PRODUCTION_URL;
+}
+
+function getRedirectUrl(req: NextApiRequest): string {
+  return `${getHostBaseUrl(req)}/auth/reset-password`;
+}
+
+function isUserNotFoundError(error: any): boolean {
+  const message = error?.message?.toString() || '';
+  return (
+    message.includes('User with this email not found') ||
+    message.includes('user not found') ||
+    message.includes('not found') ||
+    error?.status === 404
+  );
+}
+
+async function generateRecoveryLink(
+  email: string,
+  redirectUrl: string
+): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: {
+      redirectTo: redirectUrl,
+    },
+  });
+
+  if (error) {
+    console.error('❌ Erreur generation recovery link:', error);
+    if (isUserNotFoundError(error)) {
+      return null;
+    }
+    throw error;
+  }
+
+  const link = data?.properties?.action_link;
+  if (!link || typeof link !== 'string') {
+    throw new Error('Impossible de générer le lien de récupération.');
+  }
+
+  return link;
+}
+
+async function sendResetEmailViaResend(
+  email: string,
+  resetLink: string
+): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) {
     console.error('❌ RESEND_API_KEY non configurée');
     return false;
   }
 
   try {
-    console.log('📧 Envoi email avec lien forcé vers production à:', email);
-
-    // Créer le lien manuellement pour garantir le domaine de production
-    // Utiliser le format Supabase standard avec hash pour compatibilité
-    const resetLink = `${PRODUCTION_URL}/auth/reset-password#access_token=${resetToken}&type=recovery&redirect_to=${PRODUCTION_URL}/auth/reset-password&email=${encodeURIComponent(email)}`;
+    console.log('📧 Envoi Resend de l’email de réinitialisation à:', email);
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -47,44 +99,24 @@ async function sendResetEmailFixed(email: string, resetToken: string) {
               .button { display: inline-block; background: #ff6b35; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
               .button:hover { background: #e55a2b; }
               .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-              .security { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
-              .domain-highlight { background: #e8f5e8; border: 1px solid #28a745; padding: 10px; border-radius: 5px; font-family: monospace; margin: 10px 0; }
             </style>
           </head>
           <body>
             <div class="header">
               <h1>🔐 SwipeTonPro</h1>
             </div>
-            
             <div class="content">
               <h2>Bonjour,</h2>
-              <p>Vous avez demandé la réinitialisation de votre mot de passe sur SwipeTonPro.</p>
-              
-              <div class="security">
-                <strong>⚠️ Important :</strong> Ce lien est valable 1 heure seulement. Ne le partagez avec personne.
-              </div>
-              
-              <div class="domain-highlight">
-                <strong>🌐 Domaine de production :</strong> ${PRODUCTION_URL}
-              </div>
-              
-              <p style="text-align: center;">
+              <p>Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous :</p>
+              <div style="text-align: center; margin: 30px 0;">
                 <a href="${resetLink}" class="button">Réinitialiser mon mot de passe</a>
-              </p>
-              
-              <p>Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :</p>
-              <p style="word-break: break-all; background: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace;">
-                ${resetLink}
-              </p>
-              
-              <p><strong>Si vous n'avez pas demandé cette réinitialisation</strong>, ignorez cet email. Votre mot de passe restera inchangé.</p>
+              </div>
+              <p>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>
+              <p style="word-break: break-all; background: white; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace; font-size: 12px;">${resetLink}</p>
+              <p><strong>Vous n'avez pas demandé cette réinitialisation ?</strong> Ignorez cet email.</p>
             </div>
-            
             <div class="footer">
-              <p>Cordialement,<br>L'équipe SwipeTonPro</p>
-              <p style="font-size: 12px; margin-top: 20px;">
-                Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
-              </p>
+              <p>© SwipeTonPro - Équipe Support</p>
             </div>
           </body>
           </html>
@@ -98,11 +130,7 @@ async function sendResetEmailFixed(email: string, resetToken: string) {
       throw new Error(`Resend API error: ${error.message}`);
     }
 
-    console.log(
-      '✅ Email de réinitialisation envoyé avec lien forcé à:',
-      email
-    );
-    console.log('🔗 Lien utilisé:', resetLink);
+    console.log('✅ Email envoyé via Resend à:', email);
     return true;
   } catch (error) {
     console.error('❌ Erreur envoi email Resend:', error);
@@ -127,11 +155,34 @@ export default async function handler(
   try {
     console.log('🔄 Début processus de réinitialisation FORCÉ pour:', email);
 
-    // Utiliser la méthode standard Supabase pour envoyer l'email de réinitialisation
-    // Cela garantit que le token est valide et compatible avec verifyOtp
-    const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
-      ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`
-      : `${PRODUCTION_URL}/auth/reset-password`;
+    const redirectUrl = getRedirectUrl(req);
+    console.log('🔗 redirectTo calculé:', redirectUrl);
+
+    if (process.env.RESEND_API_KEY) {
+      const resetLink = await generateRecoveryLink(email, redirectUrl);
+      if (!resetLink) {
+        return res.status(200).json({
+          success: true,
+          message:
+            'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
+        });
+      }
+
+      const sent = await sendResetEmailViaResend(email, resetLink);
+
+      if (!sent) {
+        console.error('❌ Le mail Resend n a pas pu être envoyé');
+        return res.status(500).json({
+          error: 'Erreur envoi email de réinitialisation',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
+      });
+    }
 
     const { error: resetError } =
       await supabaseAdmin.auth.resetPasswordForEmail(email, {
@@ -140,7 +191,9 @@ export default async function handler(
 
     if (resetError) {
       console.error('❌ Erreur resetPasswordForEmail:', resetError);
-      throw resetError;
+      return res.status(500).json({
+        error: 'Erreur de réinitialisation',
+      });
     }
 
     console.log('✅ Email de réinitialisation envoyé via Supabase à:', email);
@@ -153,7 +206,7 @@ export default async function handler(
     console.error('❌ Erreur reset-password-fixed API:', error);
     return res.status(500).json({
       error: 'Erreur serveur',
-      details: error.message,
+      details: error?.message ?? 'Erreur inconnue',
     });
   }
 }

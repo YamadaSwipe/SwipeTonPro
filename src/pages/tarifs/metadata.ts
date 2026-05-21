@@ -1,10 +1,10 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Tarifs - EDSwipe',
-  description: 'Découvrez les tarifs EDSwipe pour les particuliers et les artisans. Accès gratuit pour les particuliers, commissions adaptées pour les professionnels.',
+  title: 'Tarifs - SwipeTonPro',
+  description: 'Découvrez les tarifs SwipeTonPro pour les particuliers et les artisans. Accès gratuit pour les particuliers, commissions adaptées pour les professionnels.',
   keywords: [
-    'tarifs edswipe',
+    'tarifs SwipeTonPro',
     'prix services',
     'coût plateforme',
     'gratuit particulier',
@@ -16,9 +16,9 @@ export const metadata: Metadata = {
     'sans engagement',
   ],
   openGraph: {
-    title: 'Tarifs - EDSwipe',
-    description: 'Tarifs transparents et compétitifs pour les services EDSwipe. Gratuit pour les particuliers.',
-    url: 'https://edswipe.fr/tarifs',
+    title: 'Tarifs - SwipeTonPro',
+    description: 'Tarifs transparents et compétitifs pour les services SwipeTonPro. Gratuit pour les particuliers.',
+    url: 'https://SwipeTonPro.fr/tarifs',
     images: ['/og-tarifs.jpg'],
   },
 }

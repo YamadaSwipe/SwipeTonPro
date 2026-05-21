@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { AdminGuard } from '@/components/auth/RoleGuard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +36,33 @@ interface CommissionDashboard {
   summary: any;
 }
 
-export default function CommissionDashboard() {
+export default function CommissionDashboardPage() {
+  return (
+    <AdminGuard>
+      <CommissionDashboardContent />
+    </AdminGuard>
+  );
+}
+
+function CommissionDashboardContent() {
+  // Protection SSR
+  if (typeof window === 'undefined') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <CommissionDashboardInner />
+  );
+}
+
+function CommissionDashboardInner() {
   const [dashboard, setDashboard] = useState<CommissionDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('current');

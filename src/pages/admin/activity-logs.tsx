@@ -64,8 +64,8 @@ export default function AdminActivityLogsPage() {
       .from("admin_actions")
       .select(`
         *,
-        admin_profile:profiles!admin_id(full_name, email),
-        target_user_profile:profiles!target_user_id(full_name, email)
+        admin_id,
+        target_user_id
       `)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -86,6 +86,7 @@ export default function AdminActivityLogsPage() {
       filtered = filtered.filter(action =>
         action.admin_profile?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         action.admin_profile?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        action.admin_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         action.action_type.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -253,7 +254,7 @@ export default function AdminActivityLogsPage() {
                               {new Date(action.created_at).toLocaleString("fr-FR")}
                             </TableCell>
                             <TableCell className="font-medium">
-                              {action.admin_profile?.full_name || action.admin_profile?.email || "Inconnu"}
+                              {action.admin_profile?.full_name || action.admin_profile?.email || action.admin_id || "Inconnu"}
                             </TableCell>
                             <TableCell>
                               <Badge className={color}>
@@ -262,7 +263,7 @@ export default function AdminActivityLogsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              {action.target_user_profile?.full_name || action.target_user_profile?.email || "-"}
+                              {action.target_user_profile?.full_name || action.target_user_profile?.email || action.target_user_id || "-"}
                             </TableCell>
                             <TableCell className="max-w-xs truncate">
                               <code className="text-xs bg-muted px-2 py-1 rounded">

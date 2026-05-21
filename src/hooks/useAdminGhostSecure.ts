@@ -29,6 +29,7 @@ export function useAdminGhostSecure() {
   const [isAdminGhost, setIsAdminGhost] = useState(false);
   const [adminUser, setAdminUser] = useState<AdminGhostUser | null>(null);
   const [isolationVerified, setIsolationVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Vérification stricte de la session admin fantôme (COOKIES)
   useEffect(() => {
@@ -50,6 +51,7 @@ export function useAdminGhostSecure() {
       setIsAdminGhost(false);
       setAdminUser(null);
       setIsolationVerified(false);
+      setIsLoading(false);
       return;
     }
 
@@ -69,6 +71,7 @@ export function useAdminGhostSecure() {
         setIsAdminGhost(false);
         setAdminUser(null);
         setIsolationVerified(false);
+        setIsLoading(false);
         return;
       }
 
@@ -79,6 +82,7 @@ export function useAdminGhostSecure() {
         setIsAdminGhost(false);
         setAdminUser(null);
         setIsolationVerified(false);
+        setIsLoading(false);
         return;
       }
 
@@ -90,6 +94,7 @@ export function useAdminGhostSecure() {
         setIsAdminGhost(true);
         setAdminUser(parsed.user);
         setIsolationVerified(true);
+        setIsLoading(false);
         console.log('✅ Session admin fantôme sécurisée vérifiée');
 
         // Nettoyer toute trace d'autres comptes
@@ -101,6 +106,7 @@ export function useAdminGhostSecure() {
         setIsAdminGhost(false);
         setAdminUser(null);
         setIsolationVerified(false);
+        setIsLoading(false);
       }
     } catch (e) {
       console.error('❌ Erreur critique session admin:', e);
@@ -108,21 +114,23 @@ export function useAdminGhostSecure() {
       setIsAdminGhost(false);
       setAdminUser(null);
       setIsolationVerified(false);
+      setIsLoading(false);
     }
   }, []);
 
   // Login admin fantôme sécurisé
   const loginAdminGhost = useCallback(
     async (email: string, password: string): Promise<boolean> => {
-      if (
-        email !== 'admin@swipetonpro.fr' ||
-        password !== process.env.ADMIN_SECURE_PASSWORD
-      ) {
+      if (email !== 'admin@swipetonpro.fr') {
+        console.warn('⚠️ loginAdminGhost: email non admin détecté', email);
         return false;
       }
 
       try {
         console.log('🔐 Tentative login admin fantôme sécurisé...');
+        console.log(
+          '🔐 loginAdminGhost: Envoi du mot de passe au backend pour validation'
+        );
 
         // Nettoyer toute session existante avant login
         localStorage.removeItem('sb-access-token');
@@ -139,25 +147,39 @@ export function useAdminGhostSecure() {
           body: JSON.stringify({ email, password, secure: true }),
         });
 
-        if (!response.ok) {
-          console.error('❌ Erreur API admin fantôme:', response.status);
+        const responseText = await response.text();
+        let data: any = null;
+
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error(
+            '❌ loginAdminGhost: impossible de parser la réponse API:',
+            parseError,
+            responseText
+          );
           return false;
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+          console.error('❌ Erreur API admin fantôme:', response.status, data);
+          return false;
+        }
 
         if (!data.success || !data.user) {
-          console.error('❌ Login admin fantôme échoué:', data.error);
+          console.error('❌ loginAdminGhost: réponse API invalide', data);
           return false;
         }
 
-        // Vérification de sécurité stricte
+        // Vérification de sécurité stricte, mais sans fixer l'ID
         if (
-          data.user.id !== '00000000-0000-0000-0000-000000000001' ||
-          data.user.email !== 'admin@swipotonpro.fr' ||
+          data.user.email !== 'admin@swipetonpro.fr' ||
           data.user.role !== 'super_admin'
         ) {
-          console.error('🚨 VIOLATION SÉCURITÉ: Données admin invalides');
+          console.error(
+            '🚨 VIOLATION SÉCURITÉ: Données admin invalides',
+            data.user
+          );
           return false;
         }
 
@@ -254,6 +276,7 @@ export function useAdminGhostSecure() {
     isAdminGhost,
     adminUser,
     isolationVerified,
+    isLoading,
     loginAdminGhost,
     logoutAdminGhost,
   };
@@ -266,11 +289,12 @@ export function isAdminOnlyRoute(path: string): boolean {
 
 // Guard de sécurité pour les composants
 export function useSecurityGuard() {
-  const { isAdminGhost, isolationVerified } = useAdminGhostSecure();
+  const { isAdminGhost, isolationVerified, isLoading } = useAdminGhostSecure();
   const router = useRouter();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (isLoading) return;
 
     const currentPath = window.location.pathname;
 
@@ -289,7 +313,7 @@ export function useSecurityGuard() {
       console.warn('⚠️ Admin fantôme sur route non-admin:', currentPath);
       // On autorise mais on log
     }
-  }, [isAdminGhost, isolationVerified, router]);
+  }, [isAdminGhost, isolationVerified, isLoading, router]);
 
   return { isAdminGhost, isolationVerified };
 }

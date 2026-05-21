@@ -189,8 +189,7 @@ export const authService = {
     try {
       console.log('🔗 Appel API interne pour reset password:', email);
 
-      // Appel à notre route API qui utilise Supabase pour envoyer l'email automatiquement
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch('/api/auth/reset-password-fixed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

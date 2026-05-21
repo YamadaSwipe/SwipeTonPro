@@ -50,7 +50,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             <Shield className="h-8 w-8 text-construction-orange" />
             <div>
               <h1 className="text-xl font-black">ADMIN</h1>
-              <p className="text-xs text-slate-400">EDSwipe</p>
+              <p className="text-xs text-slate-400">SwipeTonPro</p>
             </div>
           </div>
         </div>

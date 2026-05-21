@@ -288,6 +288,22 @@ function AdminDashboardContent() {
     return () => clearInterval(interval);
   }, []);
 
+  // Handlers optimisés avec logs de débogage
+  const handleRefresh = useCallback(async () => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('🔄 AdminDashboard: Manual refresh triggered');
+    }
+    await loadData(true);
+  }, [loadData]);
+
+  const handleLogout = useCallback(async () => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('🚪 AdminDashboard: Logout triggered');
+    }
+    await logout();
+    router.push('/auth/login');
+  }, [logout, router]);
+
   const urgentCount = useMemo(
     () => stats.pendingProjects + stats.pendingPros,
     [stats.pendingProjects, stats.pendingPros]
@@ -342,21 +358,7 @@ function AdminDashboardContent() {
     );
   }
 
-  // Handlers optimisés avec logs de débogage
-  const handleRefresh = useCallback(async () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔄 AdminDashboard: Manual refresh triggered');
-    }
-    await loadData(true);
-  }, []);
-
-  const handleLogout = useCallback(async () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🚪 AdminDashboard: Logout triggered');
-    }
-    await logout();
-    router.push('/auth/login');
-  }, []);
+  
 
   return (
     <>

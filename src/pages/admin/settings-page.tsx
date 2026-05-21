@@ -192,19 +192,33 @@ export default function AdminSettingsPage() {
   const loadSettings = async () => {
     setLoading(true);
     try {
-      const { data: savedSettings } = await (supabase as any)
-        .from('admin_settings')
-        .select('*');
+      const featureKeys = settings.map(setting => setting.id);
+      const { data: savedSettings, error } = await (supabase as any)
+        .from('app_settings')
+        .select('setting_key, setting_value')
+        .in('setting_key', featureKeys);
+
+      if (error) {
+        // Si la table n'existe pas, utiliser les paramètres par défaut
+        if (error?.code === 'PGRST116' || error?.status === 404 || error?.code === 'PGRST205') {
+          setLoading(false);
+          return;
+        }
+
+        console.error('Erreur chargement settings:', error);
+        setLoading(false);
+        return;
+      }
 
       if (savedSettings && savedSettings.length > 0) {
-        // Mettre à jour les settings avec les valeurs sauvegardées
         const updatedSettings = settings.map(setting => {
-          const saved = savedSettings.find(s => s.feature_id === setting.id);
+          const saved = savedSettings.find((s: any) => s.setting_key === setting.id);
           if (saved) {
+            const savedValue = saved.setting_value || {};
             return {
               ...setting,
-              enabled: saved.enabled,
-              config: saved.config || setting.config,
+              enabled: savedValue.enabled ?? setting.enabled,
+              config: savedValue.config ?? setting.config,
             };
           }
           return setting;
@@ -219,24 +233,32 @@ export default function AdminSettingsPage() {
   };
 
   const toggleFeature = async (featureId: string, enabled: boolean) => {
-    // Mettre à jour l'état local
+    const currentSetting = settings.find(s => s.id === featureId);
+
     setSettings(prev => prev.map(setting => 
       setting.id === featureId ? { ...setting, enabled } : setting
     ));
 
-    // Sauvegarder en base
     try {
-      await (supabase as any)
-        .from('admin_settings')
+      const { error } = await (supabase as any)
+        .from('app_settings')
         .upsert({
-          feature_id: featureId,
-          enabled,
-          config: settings.find(s => s.id === featureId)?.config,
+          setting_key: featureId,
+          setting_value: {
+            enabled,
+            config: currentSetting?.config ?? {},
+          },
+          description: currentSetting?.description,
+          category: 'features',
+          is_editable: true,
           updated_at: new Date().toISOString(),
         });
+
+      if (error && error.code !== 'PGRST116' && error.status !== 404 && error.code !== 'PGRST205') {
+        throw error;
+      }
     } catch (error) {
       console.error('Erreur mise à jour feature:', error);
-      // Revenir à l'état précédent en cas d'erreur
       setSettings(prev => prev.map(setting => 
         setting.id === featureId ? { ...setting, enabled: !enabled } : setting
       ));
@@ -249,14 +271,24 @@ export default function AdminSettingsPage() {
     ));
 
     try {
-      await (supabase as any)
-        .from('admin_settings')
+      const currentSetting = settings.find(s => s.id === featureId);
+      const { error } = await (supabase as any)
+        .from('app_settings')
         .upsert({
-          feature_id: featureId,
-          enabled: settings.find(s => s.id === featureId)?.enabled,
-          config,
+          setting_key: featureId,
+          setting_value: {
+            enabled: currentSetting?.enabled ?? false,
+            config,
+          },
+          description: currentSetting?.description,
+          category: 'features',
+          is_editable: true,
           updated_at: new Date().toISOString(),
         });
+
+      if (error && error.code !== 'PGRST116' && error.status !== 404 && error.code !== 'PGRST205') {
+        throw error;
+      }
     } catch (error) {
       console.error('Erreur mise à jour config:', error);
     }
@@ -266,17 +298,25 @@ export default function AdminSettingsPage() {
     setSaving(true);
     try {
       const upsertData = settings.map(setting => ({
-        feature_id: setting.id,
-        enabled: setting.enabled,
-        config: setting.config,
+        setting_key: setting.id,
+        setting_value: {
+          enabled: setting.enabled,
+          config: setting.config,
+        },
+        description: setting.description,
+        category: 'features',
+        is_editable: true,
         updated_at: new Date().toISOString(),
       }));
 
-      await (supabase as any)
-        .from('admin_settings')
+      const { error } = await (supabase as any)
+        .from('app_settings')
         .upsert(upsertData);
 
-      // Afficher un message de succès
+      if (error && error.code !== 'PGRST116' && error.status !== 404 && error.code !== 'PGRST205') {
+        throw error;
+      }
+
       alert('Paramètres sauvegardés avec succès !');
     } catch (error) {
       console.error('Erreur sauvegarde settings:', error);

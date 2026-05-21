@@ -123,6 +123,13 @@ export default function LoginPage() {
 
       try {
         // === NETTOYAGE PRÉVENTIF ===
+        // DEBUG: affichage visuel pour confirmer l'appel client-side
+        try {
+          window.alert('Debug: handleLogin appelé');
+        } catch (e) {
+          /* noop */
+        }
+
         // Éviter toute contamination entre comptes
         if (typeof window !== 'undefined') {
           // Si admin fantôme détecté, nettoyer avant login normal
@@ -133,6 +140,8 @@ export default function LoginPage() {
             console.warn(
               '🧹 Nettoyage session admin fantôme avant login normal'
             );
+            document.cookie =
+              'adminGhostSession_secure_v3=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             localStorage.removeItem('adminGhostSession_secure_v3');
             localStorage.removeItem('sb-access-token');
             localStorage.removeItem('sb-refresh-token');
@@ -145,72 +154,41 @@ export default function LoginPage() {
           console.log('🔐 LoginPage: Connexion admin directe détectée');
           console.log('🔐 LoginPage: Mot de passe admin correspond');
 
-          // Nettoyer toute session existante avant login admin
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('sb-access-token');
-            localStorage.removeItem('sb-refresh-token');
-            localStorage.removeItem('adminGhostSession_secure_v3');
-            sessionStorage.clear();
+          // DEBUG: confirmer chemin admin
+          try {
+            window.alert('Debug: chemin admin détecté');
+          } catch (e) {
+            /* noop */
           }
 
-          // Vérifier d'abord si un utilisateur normal existe avec cet email
-          // Si oui, refuser la connexion admin pour éviter la confusion
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabaseCheck = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-          );
-
+          // Utiliser le hook sécurisé d'admin fantôme
           try {
-            const { data: existingUser, error: userError } = await supabaseCheck
-              .from('profiles')
-              .select('id, email, role')
-              .eq('email', 'admin@swipetonpro.fr')
-              .single();
-
-            if (existingUser && existingUser.role !== 'super_admin') {
-              console.error(
-                '🚨 LoginPage: Conflit détecté - email admin utilisé par un compte normal'
-              );
-              setError(
-                "Cet email est déjà utilisé par un compte utilisateur. Contactez l'administrateur."
-              );
+            const adminSuccess = await loginAdminGhost(email, password);
+            if (!adminSuccess) {
+              console.error('❌ LoginPage: loginAdminGhost a échoué');
+              setError('Impossible de se connecter en tant qu’administrateur.');
               setLoading(false);
               return;
             }
-          } catch (checkError) {
-            console.warn(
-              '⚠️ LoginPage: Erreur vérification admin:',
-              checkError
+          } catch (adminError) {
+            console.error('❌ LoginPage: Erreur loginAdminGhost:', adminError);
+            setError('Erreur de connexion administrateur.');
+            setLoading(false);
+            return;
+          }
+
+          console.log('✅ LoginPage: Admin ghost login success');
+          console.log(
+            '🔀 LoginPage: Redirecting to /admin/dashboard via router.replace'
+          );
+          try {
+            await router.replace('/admin/dashboard');
+          } catch (err) {
+            console.error('❌ LoginPage: router.replace failed', err);
+            setError(
+              'Impossible de rediriger vers le tableau de bord administrateur.'
             );
-            // Continuer avec la connexion admin si la vérification échoue
           }
-
-          // Créer session admin manuelle
-          const adminUser = {
-            id: '29a2361d-6568-4d5f-99c6-557b971778cc',
-            email: 'admin@swipetonpro.fr',
-            full_name: 'Super Admin',
-            role: 'super_admin',
-            created_at: new Date().toISOString(),
-          };
-
-          // Créer session
-          const session = {
-            user: adminUser,
-            timestamp: Date.now(),
-            isolation_key: 'EDSWIPE_ADMIN_ISOLATION_2024',
-          };
-
-          // Stocker la session en COOKIE
-          if (typeof window !== 'undefined') {
-            const sessionJSON = JSON.stringify(session);
-            const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-            document.cookie = `adminGhostSession_secure_v3=${encodeURIComponent(sessionJSON)}; expires=${expires.toUTCString()}; path=/;`;
-          }
-
-          console.log('✅ LoginPage: Session admin créée avec succès');
-          router.push('/admin/dashboard');
           return;
         }
 
@@ -243,7 +221,7 @@ export default function LoginPage() {
         setLoading(false);
       }
     },
-    [email, password, login, getErrorMessage]
+    [email, password, login, loginAdminGhost, getErrorMessage]
   );
 
   return (

@@ -47,6 +47,10 @@ interface Professional {
   rating_average?: number;
 }
 
+const ADMIN_GHOST_KEY = 'adminGhostSession_secure_v3';
+const ADMIN_ISOLATION_KEY = 'EDSWIPE_ADMIN_ISOLATION_2024';
+const ADMIN_SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
+
 interface AuthContextType {
   // États
   user: User | null;
@@ -233,6 +237,80 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const getCookie = (name: string) => {
+    if (typeof window === 'undefined') return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      const cookieValue = parts.pop()?.split(';').shift();
+      return cookieValue ? decodeURIComponent(cookieValue) : null;
+    }
+    return null;
+  };
+
+  const syncAdminGhostSession = async () => {
+    if (typeof window === 'undefined') return;
+    if (!initialized || loading || user) return;
+
+    const adminSessionStr = getCookie(ADMIN_GHOST_KEY);
+    if (!adminSessionStr) return;
+
+    try {
+      const adminSession = JSON.parse(adminSessionStr);
+      if (
+        adminSession.isolation_key !== ADMIN_ISOLATION_KEY ||
+        adminSession.user?.email !== 'admin@swipetonpro.fr' ||
+        adminSession.user?.role !== 'super_admin' ||
+        typeof adminSession.timestamp !== 'number' ||
+        Date.now() - adminSession.timestamp > ADMIN_SESSION_TIMEOUT
+      ) {
+        return;
+      }
+
+      const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', 'admin@swipetonpro.fr')
+        .eq('role', 'super_admin')
+        .maybeSingle();
+
+      if (adminProfile) {
+        setUser({
+          id: adminProfile.id,
+          email: adminProfile.email,
+          created_at: adminProfile.created_at || new Date().toISOString(),
+        });
+        setProfile(adminProfile);
+        setRole('super_admin');
+      } else {
+        const adminUser = adminSession.user;
+        setUser({
+          id: adminUser.id,
+          email: adminUser.email,
+          created_at: adminUser.created_at,
+        });
+        setProfile({
+          id: adminUser.id,
+          user_id: adminUser.id,
+          full_name: adminUser.full_name,
+          email: adminUser.email,
+          role: adminUser.role,
+        });
+        setRole('super_admin');
+      }
+
+      console.log('✅ AuthContext: Admin ghost session synced from cookie');
+    } catch (error) {
+      console.error('❌ AuthContext: Error parsing admin ghost session:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!initialized || loading || user) return;
+    syncAdminGhostSession();
+  }, [initialized, loading, user, router.asPath]);
+
   /**
    * Initialisation au chargement du composant
    */
@@ -379,7 +457,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   const { data: adminProfile } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('email', 'admin@swipotonpro.fr')
+                    .eq('email', 'admin@swipetonpro.fr')
                     .eq('role', 'super_admin')
                     .maybeSingle();
 
@@ -395,6 +473,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     console.log(
                       '✅ AuthContext: Admin profile loaded from ghost session'
                     );
+                  } else {
+                    console.warn(
+                      '⚠️ AuthContext: No admin profile row found, using ghost session user'
+                    );
+                    const adminUser = adminSession.user;
+                    setUser({
+                      id: adminUser.id,
+                      email: adminUser.email,
+                      created_at: adminUser.created_at,
+                    });
+                    setProfile({
+                      id: adminUser.id,
+                      user_id: adminUser.id,
+                      full_name: adminUser.full_name,
+                      email: adminUser.email,
+                      role: adminUser.role,
+                    });
+                    setRole('super_admin');
                   }
                 }
               } catch (e) {

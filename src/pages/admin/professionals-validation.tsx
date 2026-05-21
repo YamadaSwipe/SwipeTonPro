@@ -217,44 +217,22 @@ export default function AdminProfessionalsValidation() {
         `)
         .order("created_at", { ascending: false });
 
-      // Ne pas filtrer si "all" ou undefined
       if (activeTab && activeTab !== "all" && activeTab !== undefined) {
-        console.log("Application filtre statut:", activeTab);
-        // Utiliser une approche plus simple pour éviter l'erreur de type
-        try {
-          const supabaseAny = supabase as any;
-          const result = await supabaseAny
-            .from("profiles")
-            .select("id, email, full_name, phone, created_at")
-            .eq("role", "professional")
-            .eq("validation_status", activeTab)
-            .order("created_at", { ascending: false });
-          
-          if (result.error) {
-            console.error("Erreur chargement professionnels filtrés:", result.error);
-            setProfessionals([]);
-          } else {
-            setProfessionals(result.data || []);
-          }
-        } catch (err) {
-          console.error("Erreur lors de la requête:", err);
-          setProfessionals([]);
-        }
-      } else {
-        console.log("Pas de filtre appliqué");
-        const { data, error } = await query;
-        console.log("Résultat professionnels:", { data, error });
+        query = query.eq('status', activeTab);
+      }
 
-        if (error) {
-          console.error("Erreur chargement professionnels:", error);
-          setProfessionals([]);
-        } else if (!data) {
-          console.log("Aucune donnée retournée par Supabase");
-          setProfessionals([]);
-        } else {
-          console.log("Professionnels chargés:", data.length);
-          setProfessionals(data);
-        }
+      const { data, error } = await query;
+      console.log("Résultat professionnels:", { data, error });
+
+      if (error) {
+        console.error("Erreur chargement professionnels:", error);
+        setProfessionals([]);
+      } else if (!data) {
+        console.log("Aucune donnée retournée par Supabase");
+        setProfessionals([]);
+      } else {
+        console.log("Professionnels chargés:", data.length);
+        setProfessionals(data);
       }
     } catch (error) {
       console.error("Erreur inattendue:", error);
@@ -268,16 +246,15 @@ export default function AdminProfessionalsValidation() {
     if (!window.confirm(`Approuver ${companyName || "ce professionnel"} ?`)) return;
     try {
       const { error } = await supabase
-        .from("profiles")
+        .from("professionals")
         .update({ 
-          validation_status: "verified",
+          status: "verified",
           updated_at: new Date().toISOString()
         })
         .eq("id", professionalId);
 
       if (error) throw error;
 
-      // Email au pro + update profil
       await fetch('/api/notify-pro-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

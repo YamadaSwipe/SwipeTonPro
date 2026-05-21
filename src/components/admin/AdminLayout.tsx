@@ -66,13 +66,19 @@ const navigation = [
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
   const router = useRouter();
-  const { isAdminGhost, isolationVerified, logoutAdminGhost } =
-    useAdminGhostSecure();
+  const {
+    isAdminGhost,
+    isolationVerified,
+    isLoading: isAdminGhostLoading,
+    logoutAdminGhost,
+  } = useAdminGhostSecure();
   const {} = useSecurityGuard(); // Guard de sécurité automatique
   const { user: supabaseUser, logout: supabaseLogout } = useAuth();
 
   // SÉCURITÉ RENFORCÉE: Vérification stricte de l'accès admin
   useEffect(() => {
+    if (isAdminGhostLoading) return;
+
     // Vérifier si c'est un admin Supabase valide
     // @ts-ignore - role n'est pas typé sur User de Supabase
     const isSupabaseAdmin =
@@ -87,6 +93,8 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
       console.error(' ACCÈS REFUSÉ: Session admin non valide ou non isolée');
       // Nettoyer toute session invalide
       if (typeof window !== 'undefined') {
+        document.cookie =
+          'adminGhostSession_secure_v3=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
         localStorage.removeItem('adminGhostSession_secure_v3');
         localStorage.removeItem('sb-access-token');
         localStorage.removeItem('sb-refresh-token');
@@ -104,7 +112,13 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
         localStorage.removeItem('sb-refresh-token');
       }
     }
-  }, [isAdminGhost, isolationVerified, supabaseUser, router]);
+  }, [
+    isAdminGhost,
+    isolationVerified,
+    isAdminGhostLoading,
+    supabaseUser,
+    router,
+  ]);
 
   // Handler logout sécurisé
   const handleLogout = async () => {
@@ -124,13 +138,13 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             <Shield className="h-8 w-8 text-construction-orange" />
             <div>
               <h1 className="text-xl font-black">ADMIN</h1>
-              <p className="text-xs text-slate-400">EDSwipe</p>
+              <p className="text-xs text-slate-400">SwipeTonPro</p>
             </div>
           </div>
         </div>
 
         {/* Navigation principale */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-2 pb-28">
           <div className="mb-4">
             <p className="text-xs text-slate-400 font-semibold mb-2 px-4">
               PRINCIPAL

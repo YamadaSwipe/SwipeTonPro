@@ -13,6 +13,7 @@
 import React, { ReactNode, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/context/AuthContext';
+import { useAdminGhostSecure } from '@/hooks/useAdminGhostSecure';
 
 interface RoleGuardProps {
   children: ReactNode;
@@ -48,26 +49,41 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   }
 
   const { user, role, loading, initialized } = useAuth();
+  const {
+    isAdminGhost,
+    isolationVerified,
+    isLoading: isAdminGhostLoading,
+  } = useAdminGhostSecure();
   const router = useRouter();
+
+  // Mémoiser la vérification d'accès admin fantôme
+  const hasAdminGhostAccess = useMemo(() => {
+    if (!isAdminGhost || !isolationVerified) return false;
+    return allowedRoles.some((allowedRole) =>
+      ['admin', 'super_admin'].includes(allowedRole)
+    );
+  }, [allowedRoles, isAdminGhost, isolationVerified]);
 
   // Mémoiser la vérification d'autorisation pour optimiser les re-renders
   const isAuthorized = useMemo(() => {
-    return user && role && allowedRoles.includes(role);
-  }, [user, role, allowedRoles]);
+    return (user && role && allowedRoles.includes(role)) || hasAdminGhostAccess;
+  }, [user, role, allowedRoles, hasAdminGhostAccess]);
 
   // Mémoiser l'état de chargement
   const isLoading = useMemo(() => {
-    return loading || !initialized;
-  }, [loading, initialized]);
+    return loading || !initialized || isAdminGhostLoading;
+  }, [loading, initialized, isAdminGhostLoading]);
 
   useEffect(() => {
     // Ne rien faire pendant le chargement
     if (isLoading) return;
 
-    // Si pas d'utilisateur, rediriger vers login
-    if (!user) {
+    // Si pas d'utilisateur et pas de session admin fantôme, rediriger vers login
+    if (!user && !hasAdminGhostAccess) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('🚪 RoleGuard: No user, redirecting to login');
+        console.warn(
+          '🚪 RoleGuard: No user and no admin ghost, redirecting to login'
+        );
       }
       router.push(redirectTo);
       return;
@@ -79,6 +95,8 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
         console.warn('🚪 RoleGuard: Role not authorized', {
           userRole: role,
           allowedRoles,
+          isAdminGhost,
+          isolationVerified,
         });
       }
 
@@ -99,7 +117,18 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     if (process.env.NODE_ENV === 'development') {
       console.log('✅ RoleGuard: Access granted', { userRole: role });
     }
-  }, [user, role, isLoading, isAuthorized, allowedRoles, redirectTo, router]);
+  }, [
+    user,
+    role,
+    isLoading,
+    isAuthorized,
+    allowedRoles,
+    redirectTo,
+    router,
+    hasAdminGhostAccess,
+    isAdminGhost,
+    isolationVerified,
+  ]);
 
   // Afficher le loader pendant le chargement
   if (isLoading) {
