@@ -15,7 +15,7 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { useRouter } from 'next/router';
 
 // Types pour l'authentification
@@ -66,12 +66,6 @@ interface AuthContextType {
   hasRole: (requiredRole: string) => boolean;
   isOwner: (resourceUserId: string) => boolean;
 }
-
-// Initialisation Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // Création du contexte
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
