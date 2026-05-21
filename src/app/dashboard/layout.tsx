@@ -9,10 +9,12 @@ export default async function DashboardLayout({
   children: ReactNode;
 }) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/auth/login');
   }
 
   // Récupérer le profil de l'utilisateur
@@ -23,19 +25,17 @@ export default async function DashboardLayout({
     .single();
 
   if (!profile) {
-    redirect('/login');
+    redirect('/auth/login');
   }
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Navigation latérale */}
       <DashboardNav />
-      
+
       {/* Contenu principal */}
       <main className="flex-1 overflow-hidden">
-        <div className="h-full">
-          {children}
-        </div>
+        <div className="h-full">{children}</div>
       </main>
     </div>
   );

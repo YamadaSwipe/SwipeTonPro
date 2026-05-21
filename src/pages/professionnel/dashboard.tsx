@@ -279,7 +279,7 @@ function ProfessionalDashboardContent() {
         console.error('❌ ProfessionalDashboard: Error during logout:', error);
       }
     }
-  }, [logout, router]);
+  }, []);
 
   // Optimiser les fonctions de rendu avec useMemo
   const getStatusColor = useMemo(

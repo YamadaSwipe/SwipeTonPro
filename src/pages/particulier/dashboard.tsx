@@ -254,7 +254,7 @@ function ParticulierDashboardContent() {
         console.error('❌ ParticulierDashboard: Error during logout:', error);
       }
     }
-  }, [logout, router]);
+  }, []);
 
   // Optimiser les fonctions de rendu avec useMemo
   const welcomeMessage = useMemo(() => {
