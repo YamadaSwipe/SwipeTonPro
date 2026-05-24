@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Settings, 
-  Save, 
+import {
+  Settings,
+  Save,
   RefreshCw,
   AlertCircle,
   CheckCircle,
@@ -20,7 +20,7 @@ import {
   DollarSign,
   Bot,
   Mail,
-  Bell
+  Bell,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
     {
       id: 'lead_packs',
       name: 'Packs de Leads',
-      description: 'Permettre l\'achat de packs de leads (5, 15, 50 leads)',
+      description: "Permettre l'achat de packs de leads (5, 15, 50 leads)",
       enabled: false,
       category: 'monetization',
       icon: <DollarSign className="w-5 h-5" />,
@@ -82,7 +82,8 @@ export default function AdminSettingsPage() {
     {
       id: 'ai_matching',
       name: 'IA Matching Intelligent',
-      description: 'Système IA pour matcher les meilleurs professionnels avec les projets',
+      description:
+        'Système IA pour matcher les meilleurs professionnels avec les projets',
       enabled: false,
       category: 'ai',
       icon: <Bot className="w-5 h-5" />,
@@ -107,7 +108,8 @@ export default function AdminSettingsPage() {
     {
       id: 'dynamic_pricing',
       name: 'Prix Dynamique',
-      description: 'Ajustement automatique des prix selon la demande et le marché',
+      description:
+        'Ajustement automatique des prix selon la demande et le marché',
       enabled: false,
       category: 'ai',
       icon: <DollarSign className="w-5 h-5" />,
@@ -185,18 +187,18 @@ export default function AdminSettingsPage() {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { user, isLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && user) {
+    if (!authLoading && user) {
       loadSettings();
     }
-  }, [isLoading, user]);
+  }, [authLoading, user]);
 
   const loadSettings = async () => {
     setLoading(true);
     try {
-      const featureKeys = settings.map(setting => setting.id);
+      const featureKeys = settings.map((setting) => setting.id);
       const { data: savedSettings, error } = await (supabase as any)
         .from('app_settings')
         .select('setting_key, setting_value')
@@ -204,7 +206,11 @@ export default function AdminSettingsPage() {
 
       if (error) {
         // Si la table n'existe pas, utiliser les paramètres par défaut
-        if (error?.code === 'PGRST116' || error?.status === 404 || error?.code === 'PGRST205') {
+        if (
+          error?.code === 'PGRST116' ||
+          error?.status === 404 ||
+          error?.code === 'PGRST205'
+        ) {
           setLoading(false);
           return;
         }
@@ -215,8 +221,10 @@ export default function AdminSettingsPage() {
       }
 
       if (savedSettings && savedSettings.length > 0) {
-        const updatedSettings = settings.map(setting => {
-          const saved = savedSettings.find((s: any) => s.setting_key === setting.id);
+        const updatedSettings = settings.map((setting) => {
+          const saved = savedSettings.find(
+            (s: any) => s.setting_key === setting.id
+          );
           if (saved) {
             const savedValue = saved.setting_value || {};
             return {
@@ -237,63 +245,78 @@ export default function AdminSettingsPage() {
   };
 
   const toggleFeature = async (featureId: string, enabled: boolean) => {
-    const currentSetting = settings.find(s => s.id === featureId);
+    const currentSetting = settings.find((s) => s.id === featureId);
     const currentConfig = currentSetting?.config ?? {};
 
-    setSettings(prev => prev.map(setting => 
-      setting.id === featureId ? { ...setting, enabled } : setting
-    ));
+    setSettings((prev) =>
+      prev.map((setting) =>
+        setting.id === featureId ? { ...setting, enabled } : setting
+      )
+    );
 
     try {
-      const { error } = await (supabase as any)
-        .from('app_settings')
-        .upsert({
-          setting_key: featureId,
-          setting_value: {
-            enabled,
-            config: currentConfig,
-          },
-          description: currentSetting?.description,
-          category: 'features',
-          is_editable: true,
-          updated_at: new Date().toISOString(),
-        });
+      const { error } = await (supabase as any).from('app_settings').upsert({
+        setting_key: featureId,
+        setting_value: {
+          enabled,
+          config: currentConfig,
+        },
+        description: currentSetting?.description,
+        category: 'features',
+        is_editable: true,
+        updated_at: new Date().toISOString(),
+      });
 
-      if (error && error.code !== 'PGRST116' && error.status !== 404 && error.code !== 'PGRST205') {
+      if (
+        error &&
+        error.code !== 'PGRST116' &&
+        error.status !== 404 &&
+        error.code !== 'PGRST205'
+      ) {
         throw error;
       }
     } catch (error) {
       console.error('Erreur mise à jour feature:', error);
-      setSettings(prev => prev.map(setting => 
-        setting.id === featureId ? { ...setting, enabled: !enabled } : setting
-      ));
+      setSettings((prev) =>
+        prev.map((setting) =>
+          setting.id === featureId ? { ...setting, enabled: !enabled } : setting
+        )
+      );
     }
   };
 
-  const updateConfig = async (featureId: string, config: Record<string, any>) => {
-    const currentSetting = settings.find(s => s.id === featureId);
+  const updateConfig = async (
+    featureId: string,
+    config: Record<string, any>
+  ) => {
+    const currentSetting = settings.find((s) => s.id === featureId);
     const currentEnabled = currentSetting?.enabled ?? false;
 
-    setSettings(prev => prev.map(setting => 
-      setting.id === featureId ? { ...setting, config } : setting
-    ));
+    setSettings((prev) =>
+      prev.map((setting) =>
+        setting.id === featureId ? { ...setting, config } : setting
+      )
+    );
 
     try {
-      const { error } = await (supabase as any)
-        .from('app_settings')
-        .upsert({
-          setting_key: featureId,
-          setting_value: {
-            enabled: currentEnabled,
-            config,
-          },
-          description: currentSetting?.description,
-          category: 'features',
-          is_editable: true,
-          updated_at: new Date().toISOString(),
-        });
+      const { error } = await (supabase as any).from('app_settings').upsert({
+        setting_key: featureId,
+        setting_value: {
+          enabled: currentEnabled,
+          config,
+        },
+        description: currentSetting?.description,
+        category: 'features',
+        is_editable: true,
+        updated_at: new Date().toISOString(),
+      });
 
-      if (error && error.code !== 'PGRST116' && error.status !== 404 && error.code !== 'PGRST205') {
+      if (
+        error &&
+        error.code !== 'PGRST116' &&
+        error.status !== 404 &&
+        error.code !== 'PGRST205'
+      ) {
         throw error;
       }
     } catch (error) {
@@ -304,7 +327,7 @@ export default function AdminSettingsPage() {
   const saveAllSettings = async () => {
     setSaving(true);
     try {
-      const upsertData = settings.map(setting => ({
+      const upsertData = settings.map((setting) => ({
         setting_key: setting.id,
         setting_value: {
           enabled: setting.enabled,
@@ -320,7 +343,12 @@ export default function AdminSettingsPage() {
         .from('app_settings')
         .upsert(upsertData);
 
-      if (error && error.code !== 'PGRST116' && error.status !== 404 && error.code !== 'PGRST205') {
+      if (
+        error &&
+        error.code !== 'PGRST116' &&
+        error.status !== 404 &&
+        error.code !== 'PGRST205'
+      ) {
         throw error;
       }
 
@@ -365,27 +393,59 @@ export default function AdminSettingsPage() {
       <CardContent className="space-y-3">
         <div className="text-sm text-purple-700">
           <p className="mb-2">
-            <strong>L'IA Matching</strong> est un système intelligent qui analyse automatiquement 
-            les projets et trouve les meilleurs professionnels correspondants.
+            <strong>L'IA Matching</strong> est un système intelligent qui
+            analyse automatiquement les projets et trouve les meilleurs
+            professionnels correspondants.
           </p>
-          
-          <h4 className="font-semibold mt-3 mb-1">🔍 **Comment ça marche :**</h4>
+
+          <h4 className="font-semibold mt-3 mb-1">
+            🔍 **Comment ça marche :**
+          </h4>
           <ul className="list-disc list-inside space-y-1 ml-2">
-            <li><strong>Analyse du projet :</strong> L'IA lit la description et extrait les compétences requises</li>
-            <li><strong>Calcul de score :</strong> Évalue 7 critères (compétences, localisation, budget, etc.)</li>
-            <li><strong>Matching :</strong> Compare avec tous les professionnels vérifiés</li>
-            <li><strong>Classement :</strong> Fournit une liste des meilleurs matches avec score 0-100</li>
+            <li>
+              <strong>Analyse du projet :</strong> L'IA lit la description et
+              extrait les compétences requises
+            </li>
+            <li>
+              <strong>Calcul de score :</strong> Évalue 7 critères (compétences,
+              localisation, budget, etc.)
+            </li>
+            <li>
+              <strong>Matching :</strong> Compare avec tous les professionnels
+              vérifiés
+            </li>
+            <li>
+              <strong>Classement :</strong> Fournit une liste des meilleurs
+              matches avec score 0-100
+            </li>
           </ul>
 
-          <h4 className="font-semibold mt-3 mb-1">📊 **Les 7 critères analysés :**</h4>
+          <h4 className="font-semibold mt-3 mb-1">
+            📊 **Les 7 critères analysés :**
+          </h4>
           <ul className="list-disc list-inside space-y-1 ml-2">
-            <li><strong>Compétences (30%) :</strong> Correspondance des spécialités</li>
-            <li><strong>Localisation (25%) :</strong> Distance et zone de service</li>
-            <li><strong>Budget (15%) :</strong> Adéquation prix/projet</li>
-            <li><strong>Disponibilité (15%) :</strong> Rapidité d'intervention</li>
-            <li><strong>Expérience (10%) :</strong> Années d'expérience</li>
-            <li><strong>Note (5%) :</strong> Évaluation des clients</li>
-            <li><strong>Temps de réponse (5%) :</strong> Rapidité de contact</li>
+            <li>
+              <strong>Compétences (30%) :</strong> Correspondance des
+              spécialités
+            </li>
+            <li>
+              <strong>Localisation (25%) :</strong> Distance et zone de service
+            </li>
+            <li>
+              <strong>Budget (15%) :</strong> Adéquation prix/projet
+            </li>
+            <li>
+              <strong>Disponibilité (15%) :</strong> Rapidité d'intervention
+            </li>
+            <li>
+              <strong>Expérience (10%) :</strong> Années d'expérience
+            </li>
+            <li>
+              <strong>Note (5%) :</strong> Évaluation des clients
+            </li>
+            <li>
+              <strong>Temps de réponse (5%) :</strong> Rapidité de contact
+            </li>
           </ul>
 
           <h4 className="font-semibold mt-3 mb-1">🎯 **Avantages :**</h4>
@@ -398,8 +458,9 @@ export default function AdminSettingsPage() {
 
           <div className="mt-3 p-3 bg-purple-100 rounded-lg">
             <p className="text-xs text-purple-600">
-              <strong>Note :</strong> Vous pouvez l'activer/désactiver selon vos besoins. 
-              Désactivé, le système utilisera le matching manuel classique.
+              <strong>Note :</strong> Vous pouvez l'activer/désactiver selon vos
+              besoins. Désactivé, le système utilisera le matching manuel
+              classique.
             </p>
           </div>
         </div>
@@ -413,33 +474,42 @@ export default function AdminSettingsPage() {
     return (
       <div className="mt-3 p-3 bg-gray-50 rounded-lg space-y-2">
         <Label className="text-sm font-medium">Configuration</Label>
-        
+
         {Object.entries(setting.config).map(([key, value]) => (
           <div key={key} className="flex items-center space-x-2">
             <Label className="text-xs text-gray-600 w-32">
-              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
+              {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}:
             </Label>
             {typeof value === 'boolean' ? (
               <Switch
                 checked={value}
-                onCheckedChange={(checked) => 
-                  updateConfig(setting.id, { ...setting.config, [key]: checked })
+                onCheckedChange={(checked) =>
+                  updateConfig(setting.id, {
+                    ...setting.config,
+                    [key]: checked,
+                  })
                 }
               />
             ) : typeof value === 'number' ? (
               <Input
                 type="number"
                 value={value}
-                onChange={(e) => 
-                  updateConfig(setting.id, { ...setting.config, [key]: Number(e.target.value) })
+                onChange={(e) =>
+                  updateConfig(setting.id, {
+                    ...setting.config,
+                    [key]: Number(e.target.value),
+                  })
                 }
                 className="w-24 h-8"
               />
             ) : (
               <Input
                 value={value}
-                onChange={(e) => 
-                  updateConfig(setting.id, { ...setting.config, [key]: e.target.value })
+                onChange={(e) =>
+                  updateConfig(setting.id, {
+                    ...setting.config,
+                    [key]: e.target.value,
+                  })
                 }
                 className="w-32 h-8"
               />
@@ -495,9 +565,11 @@ export default function AdminSettingsPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Fonctionnalités actives</p>
+                  <p className="text-sm text-gray-600">
+                    Fonctionnalités actives
+                  </p>
                   <p className="text-2xl font-bold text-green-600">
-                    {settings.filter(s => s.enabled).length}
+                    {settings.filter((s) => s.enabled).length}
                   </p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-500" />
@@ -511,7 +583,12 @@ export default function AdminSettingsPage() {
                 <div>
                   <p className="text-sm text-gray-600">Monétisation</p>
                   <p className="text-2xl font-bold text-blue-600">
-                    {settings.filter(s => s.category === 'monetization' && s.enabled).length}/3
+                    {
+                      settings.filter(
+                        (s) => s.category === 'monetization' && s.enabled
+                      ).length
+                    }
+                    /3
                   </p>
                 </div>
                 <DollarSign className="w-8 h-8 text-blue-500" />
@@ -525,7 +602,15 @@ export default function AdminSettingsPage() {
                 <div>
                   <p className="text-sm text-gray-600">IA & Automatisation</p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {settings.filter(s => (s.category === 'ai' || s.category === 'automation') && s.enabled).length}/6
+                    {
+                      settings.filter(
+                        (s) =>
+                          (s.category === 'ai' ||
+                            s.category === 'automation') &&
+                          s.enabled
+                      ).length
+                    }
+                    /6
                   </p>
                 </div>
                 <Bot className="w-8 h-8 text-purple-500" />
@@ -539,7 +624,11 @@ export default function AdminSettingsPage() {
                 <div>
                   <p className="text-sm text-gray-600">Core Features</p>
                   <p className="text-2xl font-bold text-gray-600">
-                    {settings.filter(s => s.category === 'core' && s.enabled).length}/3
+                    {
+                      settings.filter((s) => s.category === 'core' && s.enabled)
+                        .length
+                    }
+                    /3
                   </p>
                 </div>
                 <Settings className="w-8 h-8 text-gray-500" />
@@ -549,7 +638,7 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Features par catégorie */}
-        {['monetization', 'ai', 'automation', 'core'].map(category => (
+        {['monetization', 'ai', 'automation', 'core'].map((category) => (
           <Card key={category}>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -557,14 +646,20 @@ export default function AdminSettingsPage() {
                   {getCategoryLabel(category)}
                 </Badge>
                 <span className="ml-2 text-sm text-gray-500">
-                  ({settings.filter(s => s.category === category && s.enabled).length}/{settings.filter(s => s.category === category).length} actives)
+                  (
+                  {
+                    settings.filter((s) => s.category === category && s.enabled)
+                      .length
+                  }
+                  /{settings.filter((s) => s.category === category).length}{' '}
+                  actives)
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {settings
-                .filter(setting => setting.category === category)
-                .map(setting => (
+                .filter((setting) => setting.category === category)
+                .map((setting) => (
                   <div key={setting.id} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -573,18 +668,24 @@ export default function AdminSettingsPage() {
                             {setting.icon}
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{setting.name}</h3>
-                            <p className="text-sm text-gray-600 mt-1">{setting.description}</p>
+                            <h3 className="font-semibold text-gray-900">
+                              {setting.name}
+                            </h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {setting.description}
+                            </p>
                           </div>
                         </div>
-                        
+
                         {renderConfigForm(setting)}
                       </div>
-                      
+
                       <div className="ml-4">
                         <Switch
                           checked={setting.enabled}
-                          onCheckedChange={(enabled) => toggleFeature(setting.id, enabled)}
+                          onCheckedChange={(enabled) =>
+                            toggleFeature(setting.id, enabled)
+                          }
                         />
                       </div>
                     </div>
@@ -603,8 +704,14 @@ export default function AdminSettingsPage() {
                 <p className="font-semibold mb-1">⚠️ Important</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Les changements sont sauvegardés automatiquement</li>
-                  <li>Désactiver une fonctionnalité n'affecte pas les données existantes</li>
-                  <li>Les fonctionnalités IA nécessitent plus de ressources serveur</li>
+                  <li>
+                    Désactiver une fonctionnalité n'affecte pas les données
+                    existantes
+                  </li>
+                  <li>
+                    Les fonctionnalités IA nécessitent plus de ressources
+                    serveur
+                  </li>
                   <li>La monétisation nécessite une configuration Stripe</li>
                 </ul>
               </div>
