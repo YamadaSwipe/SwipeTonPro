@@ -259,7 +259,7 @@ async function sendPaymentSuccessEmails(
 ) {
   try {
     // Récupérer les informations du projet
-    const { data: projet } = await supabase
+    const { data: projet } = await (supabase
       .from('projects')
       .select(
         `
@@ -270,7 +270,7 @@ async function sendPaymentSuccessEmails(
       `
       )
       .eq('id', projectId)
-      .single();
+      .single() as any);
 
     if (!projet) {
       console.error('Projet non trouvé pour envoi emails');

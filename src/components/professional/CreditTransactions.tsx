@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/database.types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,12 +10,19 @@ import { fr } from 'date-fns/locale';
 
 interface CreditTransaction {
   id: string;
-  transaction_type: 'purchase' | 'usage' | 'refund' | 'bonus';
+  type: 'purchase' | 'usage' | 'refund' | 'bonus';
+  amount: number;
+  balance_after: number;
+  created_at: string | null;
+  created_by: string | null;
+  description: string;
+  metadata: Json | null;
+  professional_id: string;
+  reference_id: string | null;
+  reference_type: string | null;
   credits_amount: number;
+  status: string;
   amount_euros?: number;
-  description?: string;
-  status: 'pending' | 'completed' | 'failed';
-  created_at: string;
 }
 
 export default function CreditTransactions() {
@@ -44,7 +52,7 @@ export default function CreditTransactions() {
         .limit(20);
 
       if (error) throw error;
-      setTransactions(data || []);
+      setTransactions((data || []) as CreditTransaction[]);
     } catch (error) {
       console.error('Error loading transactions:', error);
     } finally {
@@ -114,11 +122,11 @@ export default function CreditTransactions() {
             {transactions.map((tx) => (
               <div key={tx.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${getTransactionColor(tx.transaction_type)}`}>
-                    {getTransactionIcon(tx.transaction_type)}
+                  <div className={`p-2 rounded-lg ${getTransactionColor(tx.type)}`}>
+                    {getTransactionIcon(tx.type)}
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{getTransactionLabel(tx.transaction_type)}</p>
+                    <p className="font-medium text-sm">{getTransactionLabel(tx.type)}</p>
                     <p className="text-xs text-slate-500">
                       {format(new Date(tx.created_at), 'dd/MM/yyyy HH:mm', { locale: fr })}
                     </p>
@@ -126,8 +134,8 @@ export default function CreditTransactions() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`font-semibold ${tx.transaction_type === 'usage' ? 'text-red-600' : 'text-green-600'}`}>
-                    {tx.transaction_type === 'usage' ? '-' : '+'}{tx.credits_amount} crédits
+                  <p className={`font-semibold ${tx.type === 'usage' ? 'text-red-600' : 'text-green-600'}`}>
+                    {tx.type === 'usage' ? '-' : '+'}{tx.credits_amount} crédits
                   </p>
                   {tx.amount_euros && (
                     <p className="text-xs text-slate-500">{tx.amount_euros}€</p>

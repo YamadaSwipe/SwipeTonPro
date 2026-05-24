@@ -1124,6 +1124,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      whatsapp_settings: {
+        Row: {
+          id: string;
+          phone_number: string;
+          default_message: string | null;
+          is_enabled: boolean;
+          position: string;
+          show_on_mobile: boolean;
+          show_on_desktop: boolean;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          phone_number: string;
+          default_message?: string | null;
+          is_enabled?: boolean;
+          position?: string;
+          show_on_mobile?: boolean;
+          show_on_desktop?: boolean;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          phone_number?: string;
+          default_message?: string | null;
+          is_enabled?: boolean;
+          position?: string;
+          show_on_mobile?: boolean;
+          show_on_desktop?: boolean;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1198,6 +1234,17 @@ export type Database = {
       user_has_permission: {
         Args: { permission_name: string; user_id: string };
         Returns: boolean;
+      };
+      get_whatsapp_settings: {
+        Args: never;
+        Returns: {
+          phone_number: string;
+          default_message: string;
+          is_enabled: boolean;
+          position: string;
+          show_on_mobile: boolean;
+          show_on_desktop: boolean;
+        }[];
       };
     };
     Enums: {

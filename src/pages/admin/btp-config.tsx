@@ -83,10 +83,10 @@ export default function BTPConfig() {
 
   async function loadSettings() {
     try {
-      const { data, error } = await supabase
-        .from("app_settings")
+      const { data, error } = (await supabase
+        .from("app_settings" as any)
         .select("*")
-        .in("category", ["quotas", "features"]);
+        .in("category", ["quotas", "features"])) as any;
 
       if (error) throw error;
 
@@ -124,11 +124,11 @@ export default function BTPConfig() {
 
   async function loadFees() {
     try {
-      const { data, error } = await supabase
-        .from("matching_fees")
+      const { data, error } = (await supabase
+        .from("matching_fees" as any)
         .select("*")
         .eq("is_active", true)
-        .order("min_amount");
+        .order("min_amount")) as any;
 
       if (error) throw error;
       setFees(data || []);
@@ -143,7 +143,7 @@ export default function BTPConfig() {
       setLoading(true);
 
       const { error } = await supabase
-        .from("app_settings")
+        .from("app_settings" as any)
         .update({
           setting_value: { value },
           updated_at: new Date().toISOString(),
@@ -158,7 +158,7 @@ export default function BTPConfig() {
       });
 
       // Invalider le cache côté client
-      await supabase.rpc("invalidate_settings_cache", { setting_key: key });
+      await (supabase as any).rpc("invalidate_settings_cache", { setting_key: key });
     } catch (error) {
       console.error("Erreur sauvegarde quota:", error);
       toast({
@@ -177,7 +177,7 @@ export default function BTPConfig() {
       setLoading(true);
 
       const { error } = await supabase
-        .from("app_settings")
+        .from("app_settings" as any)
         .update({
           setting_value: { enabled },
           updated_at: new Date().toISOString(),
@@ -219,7 +219,7 @@ export default function BTPConfig() {
       if (editingFee) {
         // Update
         const { error } = await supabase
-          .from("matching_fees")
+          .from("matching_fees" as any)
           .update({
             ...feeData,
             updated_at: new Date().toISOString(),
@@ -232,7 +232,7 @@ export default function BTPConfig() {
       } else {
         // Create
         const { error } = await supabase
-          .from("matching_fees")
+          .from("matching_fees" as any)
           .insert({
             ...feeData,
             created_at: new Date().toISOString(),
@@ -268,7 +268,7 @@ export default function BTPConfig() {
       setLoading(true);
 
       const { error } = await supabase
-        .from("matching_fees")
+        .from("matching_fees" as any)
         .update({ is_active: false })
         .eq("id", id);
 

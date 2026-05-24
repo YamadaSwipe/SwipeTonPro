@@ -75,7 +75,7 @@ export default function ProfessionalDocuments() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments(data || []);
+      setDocuments((data as Document[]) || []);
     } catch (error) {
       console.error('Erreur chargement documents:', error);
     }

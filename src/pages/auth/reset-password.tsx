@@ -31,23 +31,14 @@ export default function ResetPasswordPage() {
       try {
         console.log('🔍 Vérification de la session de récupération...');
 
-        const auth = supabase.auth as any;
-        const hash = window.location.hash;
-        const search = window.location.search;
-        const query = new URLSearchParams(search);
-        const queryToken = query.get('token') || query.get('access_token');
-        const hashParams = new URLSearchParams(hash.replace('#', '?'));
-        const hashToken = hashParams.get('access_token') || hashParams.get('token');
-        const token = queryToken || hashToken || '';
+        let validated = false;
 
-        console.log(
-          '🔑 Token trouvé:',
-          token ? `${token.substring(0, 20)}...` : 'aucun'
-        );
-
-        if (typeof auth.getSessionFromUrl === 'function') {
-          const { data: urlData, error: urlError } =
-            await auth.getSessionFromUrl({ storeSession: true });
+        if (typeof (supabase.auth as any).getSessionFromUrl === 'function') {
+          const { data: urlData, error: urlError } = await (
+            supabase.auth as any
+          ).getSessionFromUrl({
+            storeSession: true,
+          });
 
           if (urlError) {
             console.warn('⚠️ getSessionFromUrl error:', urlError);
@@ -56,75 +47,48 @@ export default function ResetPasswordPage() {
               '✅ Session créée via getSessionFromUrl:',
               urlData.session.user.email
             );
-            setTokenValid(true);
-            setIsValidating(false);
-            return;
+            validated = true;
           }
         }
 
-        if (token) {
-          const { data: exchangeData, error: exchangeError } =
-            await supabase.auth.exchangeCodeForSession(token);
+        if (!validated) {
+          const { data: sessionData, error: sessionError } =
+            await supabase.auth.getSession();
 
-          if (exchangeError) {
-            console.error('❌ Erreur échange token:', exchangeError);
-          } else if (exchangeData?.session?.user) {
+          if (sessionError) {
+            console.error('❌ Erreur session:', sessionError);
+          } else if (sessionData?.session?.user) {
             console.log(
-              '✅ Session créée via échange de token:',
-              exchangeData.session.user.email
+              '✅ Session existante trouvée:',
+              sessionData.session.user.email
             );
-            setTokenValid(true);
-            setIsValidating(false);
-            return;
+            validated = true;
           }
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        const { data: sessionData, error: sessionError } =
-          await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error('❌ Erreur session:', sessionError);
+        if (validated) {
+          setTokenValid(true);
+        } else {
           setErrorMessage(
-            'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
+            'Ce lien de réinitialisation est invalide ou a expiré. Demandez un nouveau lien.'
           );
-          setIsValidating(false);
-          return;
+          setTokenValid(false);
         }
 
-        if (sessionData?.session?.user) {
-          console.log(
-            '✅ Session de récupération trouvée:',
-            sessionData.session.user.email
+        if (window.location.hash) {
+          window.history.replaceState(
+            null,
+            '',
+            window.location.pathname + window.location.search
           );
-          setTokenValid(true);
-          setIsValidating(false);
-          return;
         }
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user) {
-          console.log('✅ Utilisateur connecté:', user.email);
-          setTokenValid(true);
-          setIsValidating(false);
-          return;
-        }
-
-        console.log('❌ Aucune session valide trouvée');
-        setErrorMessage(
-          'Ce lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.'
-        );
-        setTokenValid(false);
-        setIsValidating(false);
       } catch (error) {
         console.error('❌ Erreur vérification:', error);
         setErrorMessage(
           'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
         );
+        setTokenValid(false);
+      } finally {
         setIsValidating(false);
       }
     };

@@ -27,14 +27,14 @@ interface User {
 
 interface Profile {
   id: string;
-  user_id: string;
+  user_id?: string;
   full_name: string;
   email: string;
   phone?: string;
   avatar_url?: string;
   city?: string;
   postal_code?: string;
-  role?: 'client' | 'professional' | 'admin' | 'super_admin';
+  role?: 'client' | 'professional' | 'admin' | 'super_admin' | 'support' | 'moderator';
 }
 
 interface Professional {
@@ -151,19 +151,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       // 1. Charger le profil de base
-      let { data: profileData, error: profileError } = await supabase
+      let { data: profileData, error: profileError } = (await (supabase as any)
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .maybeSingle();
+        .maybeSingle()) as any;
 
       // Fallback: chercher par email si user_id échoue (ID non synchronisé)
       if (!profileData && user?.email) {
-        const { data: byEmail } = await supabase
+        const { data: byEmail } = (await (supabase as any)
           .from('profiles')
           .select('*')
           .eq('email', user.email)
-          .maybeSingle();
+          .maybeSingle()) as any;
         if (byEmail) profileData = byEmail;
       } // <-- maybeSingle au lieu de single
 
@@ -182,11 +182,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           '🔍 AuthContext: Loading professional data for user:',
           userId
         );
-        const { data: profData } = await supabase
+        const { data: profData } = (await (supabase as any)
           .from('professionals')
           .select('*')
           .eq('user_id', userId)
-          .maybeSingle();
+          .maybeSingle()) as any;
 
         professionalData = profData;
         console.log('✅ AuthContext: Professional data loaded:', profData);
@@ -275,10 +275,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .maybeSingle();
 
       if (adminProfile) {
+        const profile = adminProfile as any;
         setUser({
-          id: adminProfile.id,
-          email: adminProfile.email,
-          created_at: adminProfile.created_at || new Date().toISOString(),
+          id: profile.id,
+          email: profile.email,
+          created_at: profile.created_at || new Date().toISOString(),
         });
         setProfile(adminProfile);
         setRole('super_admin');

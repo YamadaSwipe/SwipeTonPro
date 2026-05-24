@@ -35,7 +35,7 @@ export default async function handler(
         baseUrl: environment === 'production' ? 'https://www.swipetonpro.fr' : 'http://localhost:3000',
         endpoints: {
           resetPassword: '/api/auth/reset-password',
-          resetPasswordFixed: '/api/auth/reset-password-fixed',
+          legacyResetPasswordFixed: '/api/auth/reset-password-fixed',
           checkConfig: '/api/check-supabase-config'
         }
       },

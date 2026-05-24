@@ -9,15 +9,20 @@ const supabaseAdmin = createClient(
 const PRODUCTION_URL = 'https://www.swipetonpro.fr';
 
 function getHostBaseUrl(req: NextApiRequest): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '');
+  }
+
   const forwardedProto = req.headers['x-forwarded-proto'];
-  const protocol = typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : 'http';
+  const protocol =
+    typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : 'https';
   const host = req.headers.host;
 
   if (host) {
     return `${protocol}://${host.replace(/\/+$|\s+/g, '')}`;
   }
 
-  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? PRODUCTION_URL;
+  return PRODUCTION_URL;
 }
 
 function getRedirectUrl(req: NextApiRequest): string {

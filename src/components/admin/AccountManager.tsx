@@ -19,8 +19,9 @@ import {
   CheckCircle,
   AlertCircle,
   Eye,
-  EyeOff
+  EyeOff,
 } from 'lucide-react';
+import { generateTemporaryPassword } from '@/lib/passwordGenerator';
 
 interface Account {
   id: string;
@@ -40,13 +41,16 @@ export default function AccountManager() {
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [newAccount, setNewAccount] = useState({
     email: '',
     password: '',
     fullName: '',
-    role: 'professional'
+    role: 'professional',
   });
 
   // Rechercher des comptes
@@ -64,21 +68,21 @@ export default function AccountManager() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-ghost': 'true'
+          'x-admin-ghost': 'true',
         },
         body: JSON.stringify({
           action: 'search',
-          email: searchEmail
-        })
+          email: searchEmail,
+        }),
       });
 
       const data = await response.json();
 
       if (data.success) {
         setSearchResults(data.data);
-        setMessage({ 
-          type: 'success', 
-          text: `${data.data.profiles.length + data.data.professionals.length} compte(s) trouvé(s)` 
+        setMessage({
+          type: 'success',
+          text: `${data.data.profiles.length + data.data.professionals.length} compte(s) trouvé(s)`,
         });
       } else {
         setMessage({ type: 'error', text: data.error });
@@ -92,8 +96,8 @@ export default function AccountManager() {
 
   // Réinitialiser le mot de passe
   const handleResetPassword = async (email: string) => {
-    const newPassword = 'TempPassword123!';
-    
+    const newPassword = generateTemporaryPassword();
+
     setLoading(true);
     setMessage(null);
 
@@ -102,21 +106,21 @@ export default function AccountManager() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-ghost': 'true'
+          'x-admin-ghost': 'true',
         },
         body: JSON.stringify({
           action: 'reset',
           email: email,
-          password: newPassword
-        })
+          password: newPassword,
+        }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setMessage({ 
-          type: 'success', 
-          text: `Mot de passe réinitialisé pour ${email}: ${newPassword}` 
+        setMessage({
+          type: 'success',
+          text: `Mot de passe réinitialisé pour ${email}: ${newPassword}`,
         });
       } else {
         setMessage({ type: 'error', text: data.error });
@@ -143,22 +147,27 @@ export default function AccountManager() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-ghost': 'true'
+          'x-admin-ghost': 'true',
         },
         body: JSON.stringify({
           action: 'create',
-          ...newAccount
-        })
+          ...newAccount,
+        }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setMessage({ 
-          type: 'success', 
-          text: `Compte créé: ${data.credentials.email} / ${data.credentials.password}` 
+        setMessage({
+          type: 'success',
+          text: `Compte créé: ${data.credentials.email} / ${data.credentials.password}`,
         });
-        setNewAccount({ email: '', password: '', fullName: '', role: 'professional' });
+        setNewAccount({
+          email: '',
+          password: '',
+          fullName: '',
+          role: 'professional',
+        });
       } else {
         setMessage({ type: 'error', text: data.error });
       }
@@ -171,10 +180,10 @@ export default function AccountManager() {
 
   const getRoleBadge = (role: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      'super_admin': 'destructive',
-      'admin': 'destructive',
-      'professional': 'default',
-      'user': 'secondary'
+      super_admin: 'destructive',
+      admin: 'destructive',
+      professional: 'default',
+      user: 'secondary',
     };
     return variants[role] || 'secondary';
   };
@@ -183,8 +192,16 @@ export default function AccountManager() {
     <div className="space-y-6">
       {/* Messages */}
       {message && (
-        <Alert className={message.type === 'success' ? 'border-green-500' : 'border-red-500'}>
-          {message.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+        <Alert
+          className={
+            message.type === 'success' ? 'border-green-500' : 'border-red-500'
+          }
+        >
+          {message.type === 'success' ? (
+            <CheckCircle className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
           <AlertDescription>{message.text}</AlertDescription>
         </Alert>
       )}
@@ -222,11 +239,17 @@ export default function AccountManager() {
             <div className="space-y-4">
               <h3 className="font-semibold flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Résultats ({searchResults.profiles.length + searchResults.professionals.length})
+                Résultats (
+                {searchResults.profiles.length +
+                  searchResults.professionals.length}
+                )
               </h3>
-              
+
               {searchResults.profiles.map((profile) => (
-                <div key={profile.id} className="border rounded-lg p-4 space-y-2">
+                <div
+                  key={profile.id}
+                  className="border rounded-lg p-4 space-y-2"
+                >
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -241,7 +264,10 @@ export default function AccountManager() {
                         {profile.phone && <span> • {profile.phone}</span>}
                       </div>
                       <div className="text-xs text-gray-500">
-                        Créé le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
+                        Créé le{' '}
+                        {new Date(profile.created_at).toLocaleDateString(
+                          'fr-FR'
+                        )}
                       </div>
                     </div>
                     <Button
@@ -278,7 +304,9 @@ export default function AccountManager() {
                 type="email"
                 placeholder="nouveau@email.com"
                 value={newAccount.email}
-                onChange={(e) => setNewAccount({...newAccount, email: e.target.value})}
+                onChange={(e) =>
+                  setNewAccount({ ...newAccount, email: e.target.value })
+                }
               />
             </div>
             <div>
@@ -289,7 +317,9 @@ export default function AccountManager() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Mot de passe"
                   value={newAccount.password}
-                  onChange={(e) => setNewAccount({...newAccount, password: e.target.value})}
+                  onChange={(e) =>
+                    setNewAccount({ ...newAccount, password: e.target.value })
+                  }
                 />
                 <Button
                   type="button"
@@ -298,19 +328,25 @@ export default function AccountManager() {
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>
           </div>
-          
+
           <div>
             <Label htmlFor="fullName">Nom complet</Label>
             <Input
               id="fullName"
               placeholder="Nom complet de l'utilisateur"
               value={newAccount.fullName}
-              onChange={(e) => setNewAccount({...newAccount, fullName: e.target.value})}
+              onChange={(e) =>
+                setNewAccount({ ...newAccount, fullName: e.target.value })
+              }
             />
           </div>
 
@@ -320,7 +356,9 @@ export default function AccountManager() {
               id="role"
               className="w-full p-2 border rounded-md"
               value={newAccount.role}
-              onChange={(e) => setNewAccount({...newAccount, role: e.target.value})}
+              onChange={(e) =>
+                setNewAccount({ ...newAccount, role: e.target.value })
+              }
             >
               <option value="professional">Professionnel</option>
               <option value="user">Particulier</option>
@@ -328,7 +366,11 @@ export default function AccountManager() {
             </select>
           </div>
 
-          <Button onClick={handleCreateAccount} disabled={loading} className="w-full">
+          <Button
+            onClick={handleCreateAccount}
+            disabled={loading}
+            className="w-full"
+          >
             <UserPlus className="h-4 w-4 mr-2" />
             Créer le compte
           </Button>

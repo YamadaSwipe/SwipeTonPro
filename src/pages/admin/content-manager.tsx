@@ -106,16 +106,16 @@ export default function ContentManager() {
     setLoading(true);
     try {
       if (activeTab === "pages") {
-        const { data } = await supabase.from("content_pages").select("*").order("updated_at", { ascending: false });
+        const { data } = await (supabase.from("content_pages" as any).select("*").order("updated_at", { ascending: false }) as any);
         setPages(data || []);
       } else if (activeTab === "emails") {
-        const { data } = await supabase.from("email_templates").select("*").order("name");
+        const { data } = await (supabase.from("email_templates" as any).select("*").order("name") as any);
         setTemplates(data || []);
       } else if (activeTab === "faq") {
-        const { data } = await supabase.from("faq_items").select("*").order("order");
+        const { data } = await (supabase.from("faq_items" as any).select("*").order("order") as any);
         setFaqItems(data || []);
       } else if (activeTab === "hero") {
-        const { data } = await supabase.from("hero_sections").select("*").eq("is_active", true).single();
+        const { data } = await (supabase.from("hero_sections" as any).select("*").eq("is_active", true).single() as any);
         setHeroSection(data);
       }
     } catch (error) {
@@ -126,7 +126,7 @@ export default function ContentManager() {
 
   async function savePage() {
     try {
-      const { error } = await supabase.from("content_pages").upsert({
+      const { error } = await supabase.from("content_pages" as any).upsert({
         ...editingPage,
         ...pageForm,
         updated_at: new Date().toISOString()
@@ -145,7 +145,7 @@ export default function ContentManager() {
   async function togglePageStatus(page: ContentPage) {
     try {
       const { error } = await supabase
-        .from("content_pages")
+        .from("content_pages" as any)
         .update({ is_published: !page.is_published })
         .eq("id", page.id);
 

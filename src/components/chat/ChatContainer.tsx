@@ -45,12 +45,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       setError(null);
       
       // Vérifier si le paiement a été effectué
-      const { data: payment } = await supabase
+      const { data: payment } = await (supabase
         .from('match_payments')
         .select('status')
         .eq('project_id', projectId)
         .eq('professional_id', professionalId)
-        .maybeSingle();
+        .maybeSingle() as any);
       
       const paiementEffectue = payment?.status === 'paid';
       

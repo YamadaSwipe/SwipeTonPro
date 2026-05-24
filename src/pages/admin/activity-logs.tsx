@@ -65,7 +65,7 @@ export default function AdminActivityLogsPage() {
       .select(`
         *,
         admin_id,
-        target_user_id
+        target_id
       `)
       .order("created_at", { ascending: false })
       .limit(100);
@@ -263,7 +263,7 @@ export default function AdminActivityLogsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              {action.target_user_profile?.full_name || action.target_user_profile?.email || action.target_user_id || "-"}
+                              {action.target_user_profile?.full_name || action.target_user_profile?.email || action.target_id || "-"}
                             </TableCell>
                             <TableCell className="max-w-xs truncate">
                               <code className="text-xs bg-muted px-2 py-1 rounded">

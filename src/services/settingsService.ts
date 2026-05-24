@@ -48,46 +48,6 @@ export const settingsService = {
   /**
    * Obtenir les paramètres par défaut
    */
-  getDefaultSettings(): FeatureSettings[] {
-    return [
-      {
-        id: 'ai_features',
-        name: 'Fonctionnalités IA',
-        description: 'Activation des outils alimentés par l\'IA',
-        enabled: true,
-        category: 'ai',
-        icon: null,
-        config: { model: 'gpt-4', temperature: 0.7 },
-      },
-      {
-        id: 'automated_leads',
-        name: 'Génération Automatique de Leads',
-        description: 'Automatiser la création et la distribution de leads',
-        enabled: true,
-        category: 'automation',
-        icon: null,
-        config: { interval: 'daily', max_leads_per_day: 100 },
-      },
-      {
-        id: 'commission_system',
-        name: 'Système de Commissions',
-        description: 'Gestion des commissions et des paiements',
-        enabled: true,
-        category: 'monetization',
-        icon: null,
-        config: { currency: 'EUR', base_rate: 0.10 },
-      },
-      {
-        id: 'user_analytics',
-        name: 'Analytics Utilisateurs',
-        description: 'Suivre et analyser le comportement des utilisateurs',
-        enabled: true,
-        category: 'core',
-        icon: null,
-        config: { retention_days: 90 },
-      },
-    ];
-  },
 
   /**
    * Récupérer un paramètre spécifique

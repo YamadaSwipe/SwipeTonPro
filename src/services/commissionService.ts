@@ -506,6 +506,11 @@ export const commissionService = {
         period,
         status,
         createdAt: date.toISOString(),
+        bankDetails: {
+          iban: 'FR7612345987650123456789014',
+          bankName: 'Demo Banque',
+          accountHolder: userId ? `Utilisateur ${userId}` : 'Demo User',
+        },
         ...(status === 'paid' && { paidAt: new Date(date.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() }),
         ...(status === 'approved' && { approvedAt: new Date(date.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString() }),
       });

@@ -5,6 +5,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { generateTemporaryPassword } from '@/lib/passwordGenerator';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -98,6 +99,10 @@ async function resetPassword(
   newPassword: string,
   res: NextApiResponse
 ) {
+  // Si aucun mot de passe n'est fourni, en générer un sécurisé
+  if (!newPassword) {
+    newPassword = generateTemporaryPassword();
+  }
   // 1. Vérifier que le profil existe
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
