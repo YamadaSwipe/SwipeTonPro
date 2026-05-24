@@ -166,10 +166,10 @@ export default function CreateAccountPage() {
 
       // Créer le compte Supabase
       const email = formData.email.trim().toLowerCase();
-      const { user, error: signUpError } = await authService.signUp(
-        email,
-        formData.password
-      );
+      const signUpResult = await authService.signUp(email, formData.password);
+
+      let user = signUpResult.user;
+      const signUpError = signUpResult.error;
 
       if (signUpError || !user) {
         console.error('❌ Erreur Supabase:', signUpError);
