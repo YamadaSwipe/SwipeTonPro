@@ -30,6 +30,7 @@ export default function ContactPage() {
     name: '',
     email: '',
     phone: '',
+    address: '',
     requestType: 'Demande générale',
     subject: '',
     message: '',
@@ -101,7 +102,8 @@ export default function ContactPage() {
     setError('');
 
     try {
-      const { name, email, phone, requestType, subject, message } = formData;
+      const { name, email, phone, address, requestType, subject, message } =
+        formData;
       const emailValidation = validateEmail(email.trim());
       if (!emailValidation.isValid) {
         setError(emailValidation.error || 'Email invalide');
@@ -121,7 +123,15 @@ export default function ContactPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, phone, requestType, subject, message }),
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          address,
+          requestType,
+          subject,
+          message,
+        }),
       });
 
       const data = await response.json();
@@ -132,7 +142,15 @@ export default function ContactPage() {
       }
 
       setIsSubmitted(true);
-      setFormData({ name: '', email: '', phone: '', requestType: 'Demande générale', subject: '', message: '' });
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        requestType: 'Demande générale',
+        subject: '',
+        message: '',
+      });
 
       // Afficher une note si présente (utile pour le débogage)
       if (data.note) {
@@ -226,6 +244,50 @@ export default function ContactPage() {
                         placeholder="jean@example.com"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="phone">Téléphone</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        required
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="06 12 34 56 78"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="requestType">Type de demande</Label>
+                      <select
+                        id="requestType"
+                        name="requestType"
+                        required
+                        value={formData.requestType}
+                        onChange={handleChange}
+                        className="mt-2 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                      >
+                        <option>Demande générale</option>
+                        <option>Support technique</option>
+                        <option>Demande commerciale</option>
+                        <option>Proposition de partenariat</option>
+                        <option>Autre</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="address">Adresse</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      type="text"
+                      value={formData.address}
+                      onChange={handleChange}
+                      placeholder="123 Rue de la République, 75001 Paris"
+                    />
                   </div>
 
                   <div>

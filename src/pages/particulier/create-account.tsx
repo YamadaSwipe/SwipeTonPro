@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { validateEmail } from '@/utils/validation';
+import { validateEmail, validatePhone } from '@/utils/validation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -25,6 +25,8 @@ import {
   Loader2,
   HardHat,
   CheckCircle,
+  Phone,
+  MapPin,
 } from 'lucide-react';
 import axios from 'axios';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,6 +40,10 @@ export default function CreateAccountPage() {
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
+    address: '',
+    city: '',
+    postalCode: '',
     password: '',
     confirmPassword: '',
   });
@@ -58,6 +64,10 @@ export default function CreateAccountPage() {
           firstName: parsed.firstName || '',
           lastName: parsed.lastName || '',
           email: parsed.email || '',
+          phone: parsed.phone || '',
+          address: parsed.address || '',
+          city: parsed.city || '',
+          postalCode: parsed.postalCode || '',
           // Ne pas restaurer les mots de passe pour sécurité
         }));
         toast({
@@ -79,6 +89,10 @@ export default function CreateAccountPage() {
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+      postalCode: formData.postalCode,
       savedAt: new Date().toISOString(),
     };
 
@@ -103,6 +117,27 @@ export default function CreateAccountPage() {
     const emailValidation = validateEmail(trimmedEmail);
     if (!emailValidation.isValid) {
       setError(emailValidation.error || 'Email invalide');
+      return false;
+    }
+
+    if (formData.phone.trim()) {
+      const phoneValidation = validatePhone(formData.phone.trim());
+      if (!phoneValidation.isValid) {
+        setError(phoneValidation.error || 'Téléphone invalide');
+        return false;
+      }
+    }
+
+    if (!formData.address.trim()) {
+      setError("L'adresse est requise");
+      return false;
+    }
+    if (!formData.city.trim()) {
+      setError('La ville est requise');
+      return false;
+    }
+    if (!formData.postalCode.trim()) {
+      setError('Le code postal est requis');
       return false;
     }
 
@@ -170,6 +205,10 @@ export default function CreateAccountPage() {
                   id: signInResult.user.id,
                   email: formData.email,
                   full_name: `${formData.firstName} ${formData.lastName}`,
+                  phone: formData.phone,
+                  address: formData.address,
+                  city: formData.city,
+                  postal_code: formData.postalCode,
                   role: 'client',
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
@@ -216,6 +255,10 @@ export default function CreateAccountPage() {
           id: user.id,
           email,
           full_name: `${formData.firstName} ${formData.lastName}`,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          postal_code: formData.postalCode,
           role: 'client',
         });
 
@@ -450,6 +493,85 @@ export default function CreateAccountPage() {
                     disabled={loading}
                     className="h-10 text-sm"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="phone"
+                    className="flex items-center gap-2 text-xs font-semibold"
+                  >
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    Téléphone
+                  </Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="06 12 34 56 78"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                    className="h-10 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="address"
+                    className="flex items-center gap-2 text-xs font-semibold"
+                  >
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    Adresse
+                  </Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    type="text"
+                    placeholder="123 Rue de la République"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    required
+                    disabled={loading}
+                    className="h-10 text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-xs font-semibold">
+                      Ville
+                    </Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      type="text"
+                      placeholder="Paris"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      required
+                      disabled={loading}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="postalCode"
+                      className="text-xs font-semibold"
+                    >
+                      Code postal
+                    </Label>
+                    <Input
+                      id="postalCode"
+                      name="postalCode"
+                      type="text"
+                      placeholder="75001"
+                      value={formData.postalCode}
+                      onChange={handleInputChange}
+                      required
+                      disabled={loading}
+                      className="h-10 text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
