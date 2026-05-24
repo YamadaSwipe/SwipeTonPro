@@ -93,7 +93,6 @@ export const authService = {
         password,
         options: {
           emailRedirectTo: `${getURL()}/auth/confirm-email`,
-          emailConfirm: false, // Disable email confirmation to avoid Supabase email sending errors
         },
       });
 

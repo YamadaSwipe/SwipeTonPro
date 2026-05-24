@@ -174,8 +174,29 @@ export default function CreateAccountPage() {
       if (signUpError || !user) {
         console.error('❌ Erreur Supabase:', signUpError);
 
-        // Cas spécial : utilisateur existe déjà mais profil manquant
+        // Cas spécial : erreur d'envoi d'email de confirmation (ne pas bloquer)
         if (
+          signUpError?.message?.includes('email') ||
+          signUpError?.message?.includes('confirmation') ||
+          signUpError?.message?.includes('sending')
+        ) {
+          console.log(
+            '⚠️ Erreur email de confirmation, tentative de connexion...'
+          );
+          // Tenter de se connecter avec les identifiants
+          const signInResult = await authService.signIn(
+            formData.email,
+            formData.password
+          );
+          if (signInResult.user) {
+            console.log('✅ Connexion réussie malgré erreur email');
+            user = signInResult.user;
+          } else {
+            throw signUpError;
+          }
+        }
+        // Cas spécial : utilisateur existe déjà mais profil manquant
+        else if (
           signUpError?.message?.includes('User already registered') ||
           signUpError?.code === '422'
         ) {
