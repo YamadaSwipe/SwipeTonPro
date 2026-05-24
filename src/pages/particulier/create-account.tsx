@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { validateEmail } from '@/utils/validation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -98,14 +99,17 @@ export default function CreateAccountPage() {
       setError('Le nom est requis');
       return false;
     }
-    if (!formData.email.includes('@')) {
-      setError('Email invalide');
+    const trimmedEmail = formData.email.trim().toLowerCase();
+    const emailValidation = validateEmail(trimmedEmail);
+    if (!emailValidation.isValid) {
+      setError(emailValidation.error || 'Email invalide');
       return false;
     }
+
     if (formData.password.length < 8) {
       setError('Le mot de passe doit contenir au moins 8 caractères');
       return false;
-    }
+    
     if (formData.password !== formData.confirmPassword) {
       setError('Les mots de passe ne correspondent pas');
       return false;
@@ -125,8 +129,9 @@ export default function CreateAccountPage() {
       console.log('📝 Création du compte...');
 
       // Créer le compte Supabase
+      const email = formData.email.trim().toLowerCase();
       const { user, error: signUpError } = await authService.signUp(
-        formData.email,
+        email,
         formData.password
       );
 
@@ -208,7 +213,7 @@ export default function CreateAccountPage() {
         .from('profiles')
         .insert({
           id: user.id,
-          email: formData.email,
+          email,
           full_name: `${formData.firstName} ${formData.lastName}`,
           role: 'client',
         });

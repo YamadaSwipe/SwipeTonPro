@@ -132,7 +132,7 @@ export const settingsService = {
       return { success: true };
     } catch (error) {
       console.error('Erreur mise à jour setting:', error);
-      return { success: true };
+      return { success: false, error: String(error) };
     }
   },
 
@@ -151,6 +151,47 @@ export const settingsService = {
     config: Record<string, any>
   ): Promise<{ success: boolean; error?: string }> {
     return this.updateSetting(featureId, { config });
+  },
+
+  /**
+   * Mettre à jour plusieurs paramètres en une seule requête
+   */
+  async bulkUpdateSettings(
+    updates: Array<{
+      featureId: string;
+      enabled?: boolean;
+      config?: Record<string, any>;
+      description?: string;
+      category?: string;
+    }>
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const upsertData = updates.map(update => ({
+        setting_key: update.featureId,
+        setting_value: {
+          ...(update.enabled !== undefined ? { enabled: update.enabled } : {}),
+          ...(update.config !== undefined ? { config: update.config } : {}),
+        },
+        description: update.description || null,
+        category: update.category || 'features',
+        is_editable: true,
+        updated_at: new Date().toISOString(),
+      }));
+
+      const { error } = await (supabase as any)
+        .from('app_settings')
+        .upsert(upsertData);
+
+      if (error?.code === 'PGRST116' || error?.status === 404 || error?.code === 'PGRST205') {
+        return { success: true };
+      }
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Erreur mise à jour bulk settings:', error);
+      return { success: false, error: String(error) };
+    }
   },
 
   /**

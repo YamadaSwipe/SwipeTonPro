@@ -23,6 +23,7 @@ import {
   Bell
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FeatureSettings {
   id: string;
@@ -184,10 +185,13 @@ export default function AdminSettingsPage() {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    loadSettings();
-  }, []);
+    if (!isLoading && user) {
+      loadSettings();
+    }
+  }, [isLoading, user]);
 
   const loadSettings = async () => {
     setLoading(true);
@@ -234,6 +238,7 @@ export default function AdminSettingsPage() {
 
   const toggleFeature = async (featureId: string, enabled: boolean) => {
     const currentSetting = settings.find(s => s.id === featureId);
+    const currentConfig = currentSetting?.config ?? {};
 
     setSettings(prev => prev.map(setting => 
       setting.id === featureId ? { ...setting, enabled } : setting
@@ -246,7 +251,7 @@ export default function AdminSettingsPage() {
           setting_key: featureId,
           setting_value: {
             enabled,
-            config: currentSetting?.config ?? {},
+            config: currentConfig,
           },
           description: currentSetting?.description,
           category: 'features',
@@ -266,18 +271,20 @@ export default function AdminSettingsPage() {
   };
 
   const updateConfig = async (featureId: string, config: Record<string, any>) => {
+    const currentSetting = settings.find(s => s.id === featureId);
+    const currentEnabled = currentSetting?.enabled ?? false;
+
     setSettings(prev => prev.map(setting => 
       setting.id === featureId ? { ...setting, config } : setting
     ));
 
     try {
-      const currentSetting = settings.find(s => s.id === featureId);
       const { error } = await (supabase as any)
         .from('app_settings')
         .upsert({
           setting_key: featureId,
           setting_value: {
-            enabled: currentSetting?.enabled ?? false,
+            enabled: currentEnabled,
             config,
           },
           description: currentSetting?.description,

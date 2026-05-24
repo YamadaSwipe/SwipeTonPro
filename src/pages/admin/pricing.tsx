@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { getAllPricingTiers, updatePricingTier, PricingTier } from "@/services/matchPaymentService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import {
 export default function AdminPricingPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, isLoading } = useAuth();
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -33,11 +35,12 @@ export default function AdminPricingPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    checkAdminAndLoad();
-  }, []);
+    if (!isLoading) {
+      checkAdminAndLoad();
+    }
+  }, [isLoading, router]);
 
   async function checkAdminAndLoad() {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/auth/login"); return; }
 
     const { data: profile } = await supabase

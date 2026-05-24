@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { validateEmail, validatePhone } from '@/utils/validation';
 
 interface ContactSettings {
   email: string;
@@ -28,6 +29,8 @@ export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
+    requestType: 'Demande générale',
     subject: '',
     message: '',
   });
@@ -98,12 +101,27 @@ export default function ContactPage() {
     setError('');
 
     try {
+      const { name, email, phone, requestType, subject, message } = formData;
+      const emailValidation = validateEmail(email.trim());
+      if (!emailValidation.isValid) {
+        setError(emailValidation.error || 'Email invalide');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const phoneValidation = validatePhone(phone.trim());
+      if (!phoneValidation.isValid) {
+        setError(phoneValidation.error || 'Téléphone invalide');
+        setIsSubmitting(false);
+        return;
+      }
+
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ name, email, phone, requestType, subject, message }),
       });
 
       const data = await response.json();
@@ -114,7 +132,7 @@ export default function ContactPage() {
       }
 
       setIsSubmitted(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
+      setFormData({ name: '', email: '', phone: '', requestType: 'Demande générale', subject: '', message: '' });
 
       // Afficher une note si présente (utile pour le débogage)
       if (data.note) {
