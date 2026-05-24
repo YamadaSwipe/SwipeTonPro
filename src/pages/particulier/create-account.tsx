@@ -109,7 +109,8 @@ export default function CreateAccountPage() {
     if (formData.password.length < 8) {
       setError('Le mot de passe doit contenir au moins 8 caractères');
       return false;
-    
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Les mots de passe ne correspondent pas');
       return false;
