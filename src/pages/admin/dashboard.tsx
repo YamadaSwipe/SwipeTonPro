@@ -70,7 +70,7 @@ const NAV_ITEMS = [
     href: '/admin/professionals-validation',
     icon: CheckCircle,
   },
-  { label: 'Tarifs', href: '/admin/pricing', icon: Euro },
+  { label: 'Tarifs', href: '/admin/match-pricing-tiers', icon: Euro },
   { label: 'Finances', href: '/admin/finances', icon: CreditCard },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Notifications', href: '/admin/notification-settings', icon: Bell },
@@ -95,10 +95,10 @@ function StatCard({
 }) {
   const inner = (
     <div
-      className={`relative group bg-gray-900 border rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] hover:shadow-xl ${
+      className={`relative group bg-white border rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${
         urgent
-          ? 'border-amber-500/50 shadow-amber-500/10 shadow-lg'
-          : 'border-white/10 hover:border-white/20'
+          ? 'border-amber-300 shadow-amber-200 shadow-lg'
+          : 'border-gray-200 hover:border-gray-300'
       }`}
     >
       {urgent && (
@@ -112,11 +112,13 @@ function StatCard({
           <Icon className="h-5 w-5" />
         </div>
         {href && (
-          <ArrowRight className="h-4 w-4 text-gray-600 group-hover:text-gray-400 transition-colors" />
+          <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
         )}
       </div>
-      <p className="text-3xl font-bold text-white mb-1 tabular-nums">{value}</p>
-      <p className="text-sm text-gray-400">{label}</p>
+      <p className="text-3xl font-bold text-gray-900 mb-1 tabular-nums">
+        {value}
+      </p>
+      <p className="text-sm text-gray-600">{label}</p>
     </div>
   );
 
@@ -187,27 +189,27 @@ function AdminDashboardContent() {
           pendingPros,
           totalMatches,
         ] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          // Count-only queries: empty select() for optimal performance
+          supabase.from('profiles').select('', { count: 'exact', head: true }),
           supabase
             .from('projects')
-            .select('*', { count: 'exact', head: true })
+            .select('', { count: 'exact', head: true })
             .in('status', ['published', 'pending']),
           supabase
             .from('profiles')
-            .select('id', { count: 'exact', head: true })
+            .select('', { count: 'exact', head: true })
             .eq('role', 'professional'),
           supabase
             .from('projects')
-            .select('id', { count: 'exact', head: true })
+            .select('', { count: 'exact', head: true })
             .eq('status', 'pending'),
           supabase
             .from('profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('role', 'professional')
-            .single(),
+            .select('', { count: 'exact', head: true })
+            .eq('role', 'professional'),
           supabase
             .from('project_interests')
-            .select('id', { count: 'exact', head: true })
+            .select('', { count: 'exact', head: true })
             .eq('status', 'accepted'),
         ]);
 
@@ -313,13 +315,13 @@ function AdminDashboardContent() {
     () => (status: string) => {
       switch (status) {
         case 'published':
-          return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+          return 'bg-emerald-100 text-emerald-700 border-emerald-300';
         case 'pending':
-          return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+          return 'bg-amber-100 text-amber-700 border-amber-300';
         case 'rejected':
-          return 'bg-red-500/15 text-red-400 border-red-500/30';
+          return 'bg-red-100 text-red-700 border-red-300';
         default:
-          return 'bg-gray-500/15 text-gray-400 border-gray-500/30';
+          return 'bg-gray-100 text-gray-700 border-gray-300';
       }
     },
     []
@@ -349,23 +351,21 @@ function AdminDashboardContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400 text-sm">Chargement du dashboard...</p>
+          <p className="text-gray-600 text-sm">Chargement du dashboard...</p>
         </div>
       </div>
     );
   }
 
-  
-
   return (
     <>
       <SEO title="Dashboard Admin — SwipeTonPro" />
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="min-h-screen bg-white text-gray-900">
         {/* ── HEADER ── */}
-        <header className="sticky top-0 z-50 bg-gray-950/90 backdrop-blur-md border-b border-white/8">
+        <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
             {/* Logo + titre */}
             <div className="flex items-center gap-3 flex-shrink-0">
@@ -373,13 +373,13 @@ function AdminDashboardContent() {
                 <Shield className="h-4 w-4 text-white" />
               </div>
               <div>
-                <span className="font-bold text-white text-sm">
+                <span className="font-bold text-gray-900 text-sm">
                   SwipeTonPro
                 </span>
                 <span className="text-gray-500 text-xs ml-2">Admin</span>
               </div>
               {urgentCount > 0 && (
-                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+                <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs">
                   {urgentCount} action{urgentCount > 1 ? 's' : ''} requise
                   {urgentCount > 1 ? 's' : ''}
                 </Badge>
@@ -392,7 +392,7 @@ function AdminDashboardContent() {
                 <Link
                   key={href}
                   href={href}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white hover:bg-white/8 transition-all whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all whitespace-nowrap"
                 >
                   <Icon className="h-3.5 w-3.5" />
                   {label}
@@ -405,7 +405,7 @@ function AdminDashboardContent() {
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/8 transition-all"
+                className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
                 title="Rafraîchir"
               >
                 <RefreshCw
@@ -415,7 +415,7 @@ function AdminDashboardContent() {
               <Link href="/">
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/8 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   Retour site
@@ -429,7 +429,9 @@ function AdminDashboardContent() {
           {/* ── TITRE ── */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white">Tableau de bord</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Tableau de bord
+              </h1>
               <p className="text-sm text-gray-500 mt-0.5">
                 Mis à jour{' '}
                 {lastUpdated.toLocaleTimeString('fr-FR', {
@@ -445,39 +447,39 @@ function AdminDashboardContent() {
             <div className="grid sm:grid-cols-2 gap-3">
               {stats.pendingProjects > 0 && (
                 <Link href="/admin/projects">
-                  <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 hover:bg-amber-500/15 transition-colors cursor-pointer">
-                    <div className="p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
-                      <AlertCircle className="h-5 w-5 text-amber-400" />
+                  <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 hover:bg-amber-100 transition-colors cursor-pointer">
+                    <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                      <AlertCircle className="h-5 w-5 text-amber-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-amber-300 text-sm">
+                      <p className="font-semibold text-amber-900 text-sm">
                         {stats.pendingProjects} projet
                         {stats.pendingProjects > 1 ? 's' : ''} à valider
                       </p>
-                      <p className="text-amber-400/70 text-xs">
+                      <p className="text-amber-700/70 text-xs">
                         Cliquez pour traiter
                       </p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                    <ArrowRight className="h-4 w-4 text-amber-600 flex-shrink-0" />
                   </div>
                 </Link>
               )}
               {stats.pendingPros > 0 && (
                 <Link href="/admin/professionals-validation">
-                  <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 hover:bg-blue-500/15 transition-colors cursor-pointer">
-                    <div className="p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
-                      <Shield className="h-5 w-5 text-blue-400" />
+                  <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition-colors cursor-pointer">
+                    <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                      <Shield className="h-5 w-5 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-blue-300 text-sm">
+                      <p className="font-semibold text-blue-900 text-sm">
                         {stats.pendingPros} professionnel
                         {stats.pendingPros > 1 ? 's' : ''} à valider
                       </p>
-                      <p className="text-blue-400/70 text-xs">
+                      <p className="text-blue-700/70 text-xs">
                         Cliquez pour traiter
                       </p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                    <ArrowRight className="h-4 w-4 text-blue-600 flex-shrink-0" />
                   </div>
                 </Link>
               )}
@@ -490,46 +492,46 @@ function AdminDashboardContent() {
               label="Utilisateurs"
               value={stats.totalUsers}
               icon={Users}
-              color="bg-blue-500/20 text-blue-400"
+              color="bg-blue-100 text-blue-500"
               href="/admin/users"
             />
             <StatCard
               label="Projets actifs"
               value={stats.totalProjects}
               icon={FolderOpen}
-              color="bg-emerald-500/20 text-emerald-400"
+              color="bg-emerald-100 text-emerald-500"
               href="/admin/projects"
             />
             <StatCard
               label="Professionnels"
               value={stats.activeProfessionals}
               icon={CheckCircle}
-              color="bg-purple-500/20 text-purple-400"
+              color="bg-purple-100 text-purple-500"
               href="/admin/professionals-validation"
             />
             <StatCard
               label="Matchs réalisés"
               value={stats.totalMatches}
               icon={Handshake}
-              color="bg-orange-500/20 text-orange-400"
+              color="bg-orange-100 text-orange-500"
             />
           </div>
 
           {/* ── CONTENU PRINCIPAL ── */}
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Projets récents */}
-            <div className="lg:col-span-2 bg-gray-900 border border-white/10 rounded-xl overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
-                <h2 className="font-semibold text-white text-sm">
+            <div className="lg:col-span-2 bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h2 className="font-semibold text-gray-900 text-sm">
                   Derniers projets soumis
                 </h2>
                 <Link href="/admin/projects">
-                  <button className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1">
+                  <button className="text-xs text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-1">
                     Voir tout <ArrowRight className="h-3 w-3" />
                   </button>
                 </Link>
               </div>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-gray-200">
                 {recentProjects.length === 0 ? (
                   <div className="px-6 py-8 text-center text-gray-500 text-sm">
                     Aucun projet pour l'instant
@@ -537,12 +539,12 @@ function AdminDashboardContent() {
                 ) : (
                   recentProjects.map((project) => (
                     <Link key={project.id} href={`/admin/projects`}>
-                      <div className="flex items-center gap-4 px-6 py-3.5 hover:bg-white/4 transition-colors cursor-pointer">
-                        <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0">
+                      <div className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-100 transition-colors cursor-pointer">
+                        <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
                           <FolderOpen className="h-4 w-4 text-gray-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
+                          <p className="text-sm font-medium text-gray-900 truncate">
                             {project.title}
                           </p>
                           <p className="text-xs text-gray-500">
@@ -569,9 +571,9 @@ function AdminDashboardContent() {
             </div>
 
             {/* Accès rapide */}
-            <div className="bg-gray-900 border border-white/10 rounded-xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/8">
-                <h2 className="font-semibold text-white text-sm">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="font-semibold text-gray-900 text-sm">
                   Accès rapide
                 </h2>
               </div>
@@ -581,63 +583,63 @@ function AdminDashboardContent() {
                     label: 'CRM',
                     href: '/admin/crm',
                     icon: Users,
-                    color: 'text-blue-400',
+                    color: 'text-blue-500',
                   },
                   {
                     label: 'Projets',
                     href: '/admin/projects',
                     icon: FolderOpen,
-                    color: 'text-emerald-400',
+                    color: 'text-emerald-500',
                   },
                   {
                     label: 'Tarifs',
-                    href: '/admin/pricing',
+                    href: '/admin/match-pricing-tiers',
                     icon: Euro,
-                    color: 'text-orange-400',
+                    color: 'text-orange-500',
                   },
                   {
                     label: 'Pros',
                     href: '/admin/professionals-validation',
                     icon: Shield,
-                    color: 'text-purple-400',
+                    color: 'text-purple-500',
                   },
                   {
                     label: 'Finances',
                     href: '/admin/finances',
                     icon: DollarSign,
-                    color: 'text-yellow-400',
+                    color: 'text-yellow-500',
                   },
                   {
                     label: 'Analytics',
                     href: '/admin/analytics',
                     icon: TrendingUp,
-                    color: 'text-pink-400',
+                    color: 'text-pink-500',
                   },
                   {
                     label: 'Paramètres',
                     href: '/admin/settings-page',
                     icon: Settings,
-                    color: 'text-gray-400',
+                    color: 'text-gray-500',
                   },
                   {
                     label: 'Team',
                     href: '/contact?subject=team',
                     icon: MessageSquare,
-                    color: 'text-blue-400',
+                    color: 'text-blue-500',
                   },
                   {
                     label: 'Logs',
                     href: '/admin/activity-logs',
                     icon: ClipboardList,
-                    color: 'text-gray-400',
+                    color: 'text-gray-500',
                   },
                 ].map(({ label, href, icon: Icon, color }) => (
                   <Link key={href} href={href}>
-                    <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 transition-all cursor-pointer group">
+                    <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white hover:bg-gray-50 border border-gray-200 transition-all cursor-pointer group">
                       <Icon
                         className={`h-5 w-5 ${color} group-hover:scale-110 transition-transform`}
                       />
-                      <span className="text-xs text-gray-400 group-hover:text-white transition-colors">
+                      <span className="text-xs text-gray-600 group-hover:text-gray-900 transition-colors">
                         {label}
                       </span>
                     </div>
@@ -648,16 +650,16 @@ function AdminDashboardContent() {
           </div>
 
           {/* ── NAV MOBILE ── */}
-          <div className="lg:hidden bg-gray-900 border border-white/10 rounded-xl p-4">
-            <h2 className="text-sm font-semibold text-white mb-3">
+          <div className="lg:hidden bg-gray-50 border border-gray-200 rounded-xl p-4">
+            <h2 className="text-sm font-semibold text-gray-900 mb-3">
               Navigation
             </h2>
             <div className="grid grid-cols-3 gap-2">
               {NAV_ITEMS.map(({ label, href, icon: Icon }) => (
                 <Link key={href} href={href}>
-                  <div className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all cursor-pointer">
-                    <Icon className="h-4 w-4 text-gray-400" />
-                    <span className="text-xs text-gray-400 text-center leading-tight">
+                  <div className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-white hover:bg-gray-100 border border-gray-200 transition-all cursor-pointer">
+                    <Icon className="h-4 w-4 text-gray-600" />
+                    <span className="text-xs text-gray-600 text-center leading-tight">
                       {label}
                     </span>
                   </div>

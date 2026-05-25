@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { generateTemporaryPassword } from '@/lib/passwordGenerator';
 
 interface Account {
@@ -53,6 +54,20 @@ export default function AccountManager() {
     role: 'professional',
   });
 
+  const getAuthHeaders = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      return {};
+    }
+
+    return {
+      Authorization: `Bearer ${session.access_token}`,
+    };
+  };
+
   // Rechercher des comptes
   const handleSearch = async () => {
     if (!searchEmail.trim()) {
@@ -68,7 +83,7 @@ export default function AccountManager() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-ghost': 'true',
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           action: 'search',
@@ -106,7 +121,7 @@ export default function AccountManager() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-ghost': 'true',
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           action: 'reset',
@@ -147,7 +162,7 @@ export default function AccountManager() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-ghost': 'true',
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({
           action: 'create',

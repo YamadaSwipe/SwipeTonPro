@@ -15,10 +15,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import {
-  useAdminGhostSecure,
-  useSecurityGuard,
-} from '@/hooks/useAdminGhostSecure';
 import { useAuth } from '@/context/AuthContext';
 
 interface AdminLayoutProps {
@@ -66,67 +62,21 @@ const navigation = [
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
   const router = useRouter();
-  const {
-    isAdminGhost,
-    isolationVerified,
-    isLoading: isAdminGhostLoading,
-    logoutAdminGhost,
-  } = useAdminGhostSecure();
-  const {} = useSecurityGuard(); // Guard de sécurité automatique
-  const { user: supabaseUser, logout: supabaseLogout } = useAuth();
+  const { user, role, logout } = useAuth();
 
   // SÉCURITÉ RENFORCÉE: Vérification stricte de l'accès admin
   useEffect(() => {
-    if (isAdminGhostLoading) return;
+    const isSupabaseAdmin = role === 'admin' || role === 'super_admin';
 
-    // Vérifier si c'est un admin Supabase valide
-    // @ts-ignore - role n'est pas typé sur User de Supabase
-    const isSupabaseAdmin =
-      supabaseUser &&
-      ((supabaseUser as any).role === 'admin' ||
-        (supabaseUser as any).role === 'super_admin');
-
-    // Conditions d'accès:
-    // - Admin fantôme avec isolation vérifiée
-    // - OU admin Supabase valide
-    if ((!isAdminGhost || !isolationVerified) && !isSupabaseAdmin) {
-      console.error(' ACCÈS REFUSÉ: Session admin non valide ou non isolée');
-      // Nettoyer toute session invalide
-      if (typeof window !== 'undefined') {
-        document.cookie =
-          'adminGhostSession_secure_v3=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        localStorage.removeItem('adminGhostSession_secure_v3');
-        localStorage.removeItem('sb-access-token');
-        localStorage.removeItem('sb-refresh-token');
-        sessionStorage.clear();
-      }
+    if (!isSupabaseAdmin) {
+      console.error('ACCÈS REFUSÉ: Utilisateur non administrateur');
       router.push('/auth/login');
-      return;
     }
-
-    if (isAdminGhost && isolationVerified) {
-      console.log(' Admin fantôme sécurisé accédé');
-      // S'assurer qu'aucune session Supabase n'est active
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('sb-access-token');
-        localStorage.removeItem('sb-refresh-token');
-      }
-    }
-  }, [
-    isAdminGhost,
-    isolationVerified,
-    isAdminGhostLoading,
-    supabaseUser,
-    router,
-  ]);
+  }, [role, router]);
 
   // Handler logout sécurisé
   const handleLogout = async () => {
-    if (isAdminGhost) {
-      logoutAdminGhost();
-    } else {
-      await supabaseLogout();
-    }
+    await logout();
   };
 
   return (

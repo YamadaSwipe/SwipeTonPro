@@ -3,29 +3,22 @@
  * Recherche, réinitialisation et création de comptes
  */
 
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { generateTemporaryPassword } from '@/lib/passwordGenerator';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(
-  req: NextApiRequest,
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
-  // Vérifier que c'est un admin
-  const adminToken = req.headers.authorization?.replace('Bearer ', '');
-  const isAdminGhost = req.headers['x-admin-ghost'] === 'true';
-
-  if (!adminToken && !isAdminGhost) {
-    return res.status(401).json({
-      success: false,
-      error: 'Accès non autorisé',
-    });
-  }
+  // withAuth middleware already verifies the user is authenticated
+  // No need for x-admin-ghost header checks
 
   try {
     const { action, email, password, role, fullName } = req.body;
@@ -52,7 +45,7 @@ export default async function handler(
       error: error.message,
     });
   }
-}
+});
 
 // Rechercher des comptes
 async function searchAccounts(email: string, res: NextApiResponse) {

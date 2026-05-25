@@ -47,45 +47,8 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const ADMIN_GHOST_KEY = 'adminGhostSession_secure_v3';
-  const ADMIN_ISOLATION_KEY = 'EDSWIPE_ADMIN_ISOLATION_2024';
-  const ADMIN_SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
-
-  const adminGhostCookie = request.cookies.get(ADMIN_GHOST_KEY)?.value;
-  let isAdminGhost = false;
-  let adminGhostUserEmail: string | null = null;
-
-  if (adminGhostCookie) {
-    try {
-      const parsed = JSON.parse(adminGhostCookie);
-      const now = Date.now();
-
-      if (
-        parsed?.isolation_key === ADMIN_ISOLATION_KEY &&
-        parsed?.user?.email === 'admin@swipetonpro.fr' &&
-        parsed?.user?.role === 'super_admin' &&
-        typeof parsed.timestamp === 'number' &&
-        now - parsed.timestamp < ADMIN_SESSION_TIMEOUT
-      ) {
-        isAdminGhost = true;
-        adminGhostUserEmail = parsed.user.email;
-      }
-    } catch (error) {
-      console.warn('⚠️ Middleware: Invalid admin ghost cookie', error);
-    }
-  }
-
   // Protection routes admin
   if (pathname.startsWith('/admin')) {
-    if (isAdminGhost) {
-      response.headers.set('x-admin-ghost', '1');
-      response.headers.set(
-        'x-user-email',
-        adminGhostUserEmail || 'admin@swipetonpro.fr'
-      );
-      return response;
-    }
-
     if (!user) {
       return NextResponse.redirect(new URL('/auth/login', request.url));
     }

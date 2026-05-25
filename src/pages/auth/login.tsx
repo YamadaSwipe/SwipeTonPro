@@ -27,7 +27,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/context/AuthContext';
-import { useAdminGhostSecure } from '@/hooks/useAdminGhostSecure';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -52,8 +51,7 @@ export default function LoginPage() {
   }
 
   const router = useRouter();
-  const { login, role, user } = useAuth();
-  const { loginAdminGhost } = useAdminGhostSecure();
+  const { login, role } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -66,18 +64,17 @@ export default function LoginPage() {
 
   // Redirection automatique après connexion réussie
   useEffect(() => {
-    if (loginSuccess) {
-      console.log('🚀 LoginPage: Redirecting to default dashboard');
-      // Redirection vers le dashboard approprié selon le rôle
-      if (email === 'admin@swipetonpro.fr') {
-        console.log('🚀 LoginPage: Redirecting to admin dashboard');
-        router.push('/admin/dashboard');
-      } else {
-        console.log('🚀 LoginPage: Redirecting to particulier dashboard');
-        router.push('/particulier/dashboard');
-      }
-    }
-  }, [loginSuccess, router, email]);
+    if (!loginSuccess || !role) return;
+
+    const destination =
+      role === 'admin' || role === 'super_admin'
+        ? '/admin/dashboard'
+        : role === 'professional'
+          ? '/professionnel/dashboard'
+          : '/particulier/dashboard';
+
+    router.push(destination);
+  }, [loginSuccess, role, router]);
 
   // Simplifier la gestion des erreurs
   const getErrorMessage = useCallback((err: any) => {
@@ -105,110 +102,15 @@ export default function LoginPage() {
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      console.log('🚀 LoginPage: handleLogin called');
-      console.log('📧 Email:', email);
-      console.log('🔑 Password length:', password.length);
-      console.log(
-        '🔑 ADMIN_SECURE_PASSWORD set:',
-        !!process.env.ADMIN_SECURE_PASSWORD
-      );
-      console.log(
-        '🔑 Password matches admin:',
-        email === 'admin@swipetonpro.fr' &&
-          password === process.env.ADMIN_SECURE_PASSWORD
-      );
-
       setLoading(true);
       setError('');
 
       try {
-        // === NETTOYAGE PRÉVENTIF ===
-        // DEBUG: affichage visuel pour confirmer l'appel client-side
-        try {
-          window.alert('Debug: handleLogin appelé');
-        } catch (e) {
-          /* noop */
-        }
-
-        // Éviter toute contamination entre comptes
-        if (typeof window !== 'undefined') {
-          // Si admin fantôme détecté, nettoyer avant login normal
-          const adminSession = localStorage.getItem(
-            'adminGhostSession_secure_v3'
-          );
-          if (adminSession && email !== 'admin@swipetonpro.fr') {
-            console.warn(
-              '🧹 Nettoyage session admin fantôme avant login normal'
-            );
-            document.cookie =
-              'adminGhostSession_secure_v3=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            localStorage.removeItem('adminGhostSession_secure_v3');
-            localStorage.removeItem('sb-access-token');
-            localStorage.removeItem('sb-refresh-token');
-            sessionStorage.clear();
-          }
-        }
-
-        // === VÉRIFICATION ADMIN DIRECTE ===
-        if (email === 'admin@swipetonpro.fr' && password === 'Admin1980') {
-          console.log('🔐 LoginPage: Connexion admin directe détectée');
-          console.log('🔐 LoginPage: Mot de passe admin correspond');
-
-          // DEBUG: confirmer chemin admin
-          try {
-            window.alert('Debug: chemin admin détecté');
-          } catch (e) {
-            /* noop */
-          }
-
-          // Utiliser le hook sécurisé d'admin fantôme
-          try {
-            const adminSuccess = await loginAdminGhost(email, password);
-            if (!adminSuccess) {
-              console.error('❌ LoginPage: loginAdminGhost a échoué');
-              setError('Impossible de se connecter en tant qu’administrateur.');
-              setLoading(false);
-              return;
-            }
-          } catch (adminError) {
-            console.error('❌ LoginPage: Erreur loginAdminGhost:', adminError);
-            setError('Erreur de connexion administrateur.');
-            setLoading(false);
-            return;
-          }
-
-          console.log('✅ LoginPage: Admin ghost login success');
-          console.log(
-            '🔀 LoginPage: Redirecting to /admin/dashboard via router.replace'
-          );
-          try {
-            await router.replace('/admin/dashboard');
-          } catch (err) {
-            console.error('❌ LoginPage: router.replace failed', err);
-            setError(
-              'Impossible de rediriger vers le tableau de bord administrateur.'
-            );
-          }
-          return;
-        }
-
-        // === AUTHENTIFICATION NORMALE SUPABASE ===
-        // Uniquement pour les comptes non-admin
-        console.log('🔐 LoginPage: Login utilisateur normal via Supabase');
         const loginResult = await login(email, password);
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ LoginPage: Login result:', loginResult);
-        }
-
         if (loginResult.success) {
-          // Marquer la connexion comme réussie pour déclencher la redirection automatique
-          console.log(
-            '✅ LoginPage: Login success, setting loginSuccess to true'
-          );
           setLoginSuccess(true);
         } else {
-          // Afficher l'erreur si la connexion a échoué
           console.error('❌ LoginPage: Login failed:', loginResult.error);
           setError(loginResult.error || 'Erreur de connexion');
         }
@@ -221,7 +123,7 @@ export default function LoginPage() {
         setLoading(false);
       }
     },
-    [email, password, login, loginAdminGhost, getErrorMessage]
+    [email, password, login, getErrorMessage]
   );
 
   return (

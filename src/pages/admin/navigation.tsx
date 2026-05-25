@@ -169,7 +169,7 @@ export default function AdminNavigationPage() {
         {
           title: 'Pricing',
           description: 'Configuration des prix et tarifs',
-          url: '/admin/pricing',
+          url: '/admin/match-pricing-tiers',
           icon: <DollarSign className="w-5 h-5" />,
           status: 'actif',
           features: ['Tarifs', 'Packs', 'Abonnements'],
@@ -425,7 +425,8 @@ export default function AdminNavigationPage() {
                     IA/automatisation
                   </li>
                   <li>
-                    2. <strong>/admin/pricing</strong> - Tarifs et monétisation
+                    2. <strong>/admin/match-pricing-tiers</strong> - Tarifs et
+                    monétisation
                   </li>
                   <li>
                     3. <strong>/admin/emails</strong> - Templates emails

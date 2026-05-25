@@ -34,7 +34,13 @@ interface Profile {
   avatar_url?: string;
   city?: string;
   postal_code?: string;
-  role?: 'client' | 'professional' | 'admin' | 'super_admin' | 'support' | 'moderator';
+  role?:
+    | 'client'
+    | 'professional'
+    | 'admin'
+    | 'super_admin'
+    | 'support'
+    | 'moderator';
 }
 
 interface Professional {
@@ -46,10 +52,6 @@ interface Professional {
   experience_years?: number;
   rating_average?: number;
 }
-
-const ADMIN_GHOST_KEY = 'adminGhostSession_secure_v3';
-const ADMIN_ISOLATION_KEY = 'EDSWIPE_ADMIN_ISOLATION_2024';
-const ADMIN_SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
 
 interface AuthContextType {
   // États
@@ -237,81 +239,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const getCookie = (name: string) => {
-    if (typeof window === 'undefined') return null;
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-      const cookieValue = parts.pop()?.split(';').shift();
-      return cookieValue ? decodeURIComponent(cookieValue) : null;
-    }
-    return null;
-  };
-
-  const syncAdminGhostSession = async () => {
-    if (typeof window === 'undefined') return;
-    if (!initialized || loading || user) return;
-
-    const adminSessionStr = getCookie(ADMIN_GHOST_KEY);
-    if (!adminSessionStr) return;
-
-    try {
-      const adminSession = JSON.parse(adminSessionStr);
-      if (
-        adminSession.isolation_key !== ADMIN_ISOLATION_KEY ||
-        adminSession.user?.email !== 'admin@swipetonpro.fr' ||
-        adminSession.user?.role !== 'super_admin' ||
-        typeof adminSession.timestamp !== 'number' ||
-        Date.now() - adminSession.timestamp > ADMIN_SESSION_TIMEOUT
-      ) {
-        return;
-      }
-
-      const { data: adminProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', 'admin@swipetonpro.fr')
-        .eq('role', 'super_admin')
-        .maybeSingle();
-
-      if (adminProfile) {
-        const profile = adminProfile as any;
-        setUser({
-          id: profile.id,
-          email: profile.email,
-          created_at: profile.created_at || new Date().toISOString(),
-        });
-        setProfile(adminProfile);
-        setRole('super_admin');
-      } else {
-        const adminUser = adminSession.user;
-        setUser({
-          id: adminUser.id,
-          email: adminUser.email,
-          created_at: adminUser.created_at,
-        });
-        setProfile({
-          id: adminUser.id,
-          user_id: adminUser.id,
-          full_name: adminUser.full_name,
-          email: adminUser.email,
-          role: adminUser.role,
-        });
-        setRole('super_admin');
-      }
-
-      console.log('✅ AuthContext: Admin ghost session synced from cookie');
-    } catch (error) {
-      console.error('❌ AuthContext: Error parsing admin ghost session:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!initialized || loading || user) return;
-    syncAdminGhostSession();
-  }, [initialized, loading, user, router.asPath]);
-
   /**
    * Initialisation au chargement du composant
    */
@@ -337,73 +264,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         console.log('🚀 AuthContext: Initializing authentication...');
 
-        // 1. Récupérer la session Supabase avec retry pour les locks
-        let session = null;
-        let sessionError = null;
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        while (retryCount < maxRetries) {
-          try {
-            const result = await supabase.auth.getSession();
-            session = result.data.session;
-            sessionError = result.error;
-
-            if (!sessionError && !session) {
-              // Pas de session et pas d'erreur - c'est normal
-              break;
-            }
-
-            if (!sessionError && session) {
-              // Session trouvée - succès
-              break;
-            }
-
-            // Si l'erreur est un lock, attendre et réessayer
-            if (
-              sessionError?.message?.includes('lock') ||
-              sessionError?.message?.includes('stole')
-            ) {
-              console.warn(
-                `⚠️ AuthContext: Session lock detected, retry ${retryCount + 1}/${maxRetries}`
-              );
-              retryCount++;
-              await new Promise((resolve) =>
-                setTimeout(resolve, 300 * retryCount)
-              );
-              continue;
-            }
-
-            // Autre erreur, sortir de la boucle
-            break;
-          } catch (e) {
-            sessionError = e;
-            if (
-              e instanceof Error &&
-              (e.message?.includes('lock') || e.message?.includes('stole'))
-            ) {
-              console.warn(
-                `⚠️ AuthContext: Session lock exception, retry ${retryCount + 1}/${maxRetries}`
-              );
-              retryCount++;
-              await new Promise((resolve) =>
-                setTimeout(resolve, 300 * retryCount)
-              );
-              continue;
-            }
-            break;
-          }
-        }
+        // 1. Récupérer la session Supabase - sans retry bloquant
+        const result = await supabase.auth.getSession();
+        const session = result.data.session;
+        const sessionError = result.error;
 
         console.log('📊 Session result:', {
           session: !!session,
           error: !!sessionError,
-          retries: retryCount,
         });
 
         if (sessionError && !session) {
           console.error(
-            '❌ AuthContext: Session error after retries:',
+            '❌ AuthContext: Session error:',
             sessionError
           );
           setLoading(false);
@@ -425,86 +298,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // 2. Charger les données complètes
           await loadUserData(session.user.id);
         } else {
-          // Pas de session Supabase - vérifier si admin fantôme connecté
-          console.log(
-            'ℹ️ AuthContext: No session found, checking admin ghost...'
-          );
-
-          if (typeof window !== 'undefined') {
-            // Lire le cookie adminGhostSession_secure_v3
-            const getCookie = (name: string) => {
-              const value = `; ${document.cookie}`;
-              const parts = value.split(`; ${name}=`);
-              if (parts.length === 2) {
-                const cookieValue = parts.pop()?.split(';').shift();
-                return cookieValue ? decodeURIComponent(cookieValue) : null;
-              }
-              return null;
-            };
-
-            const adminSessionStr = getCookie('adminGhostSession_secure_v3');
-            if (adminSessionStr) {
-              try {
-                const adminSession = JSON.parse(adminSessionStr);
-                if (
-                  adminSession.isolation_key ===
-                    'EDSWIPE_ADMIN_ISOLATION_2024' &&
-                  adminSession.user?.email === 'admin@swipetonpro.fr' &&
-                  adminSession.user?.role === 'super_admin' &&
-                  Date.now() - adminSession.timestamp < 24 * 60 * 60 * 1000
-                ) {
-                  console.log('✅ AuthContext: Admin ghost session detected');
-                  // Charger le profil admin depuis Supabase
-                  const { data: adminProfile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('email', 'admin@swipetonpro.fr')
-                    .eq('role', 'super_admin')
-                    .maybeSingle();
-
-                  if (adminProfile) {
-                    setUser({
-                      id: adminProfile.id,
-                      email: adminProfile.email,
-                      created_at:
-                        adminProfile.created_at || new Date().toISOString(),
-                    });
-                    setProfile(adminProfile);
-                    setRole('super_admin');
-                    console.log(
-                      '✅ AuthContext: Admin profile loaded from ghost session'
-                    );
-                  } else {
-                    console.warn(
-                      '⚠️ AuthContext: No admin profile row found, using ghost session user'
-                    );
-                    const adminUser = adminSession.user;
-                    setUser({
-                      id: adminUser.id,
-                      email: adminUser.email,
-                      created_at: adminUser.created_at,
-                    });
-                    setProfile({
-                      id: adminUser.id,
-                      user_id: adminUser.id,
-                      full_name: adminUser.full_name,
-                      email: adminUser.email,
-                      role: adminUser.role,
-                    });
-                    setRole('super_admin');
-                  }
-                }
-              } catch (e) {
-                console.error(
-                  '❌ AuthContext: Error parsing admin ghost session:',
-                  e
-                );
-              }
-            }
-          }
-
-          setLoading(false);
-          setInitialized(true);
+          console.log('ℹ️ AuthContext: No Supabase session found');
         }
       } catch (error) {
         console.error('❌ AuthContext: Initialization error:', error);
@@ -515,14 +309,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    // Timeout de sécurité pour éviter le blocage
+    // Timeout de sécurité pour éviter le blocage - réduit pour meilleure UX
     const timeout = setTimeout(() => {
       if (!initialized) {
-        console.warn("⏰ AuthContext: Timeout d'initialisation, forçage...");
+        console.warn("⏰ AuthContext: Timeout d'initialisation (3s), forçage...");
         setLoading(false);
         setInitialized(true);
       }
-    }, 10000); // 10 secondes
+    }, 3000); // 3 secondes au lieu de 10
 
     initializeAuth();
 
