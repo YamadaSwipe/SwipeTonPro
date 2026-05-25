@@ -269,6 +269,17 @@ export default function CreateAccountPage() {
 
       console.log('✅ Connexion automatique réussie');
 
+      // Confirmer l'email automatiquement via le service role
+      try {
+        await axios.post('/api/auth/confirm-email', {
+          userId: user.id,
+        });
+        console.log('✅ Email confirmé automatiquement');
+      } catch (confirmError) {
+        console.error('⚠️ Erreur confirmation email:', confirmError);
+        // Ne pas bloquer si la confirmation échoue
+      }
+
       // Créer le profil utilisateur avec rôle client
       const { error: profileError } = await (supabase as any)
         .from('profiles')
