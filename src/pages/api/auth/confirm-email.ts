@@ -16,6 +16,14 @@ export default async function handler(
       return res.status(400).json({ error: 'userId is required' });
     }
 
+    // Check if service role key is available
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({
+        error: 'SUPABASE_SERVICE_ROLE_KEY not configured',
+        details: 'Environment variable missing',
+      });
+    }
+
     // Use service role key to bypass email confirmation
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,13 +36,11 @@ export default async function handler(
     });
 
     if (error) {
-      console.error('Error confirming email:', error);
       return res.status(500).json({ error: error.message });
     }
 
     res.status(200).json({ success: true });
   } catch (error: any) {
-    console.error('Error in confirm-email API:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }

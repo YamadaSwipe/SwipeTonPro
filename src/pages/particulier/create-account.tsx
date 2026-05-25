@@ -251,11 +251,15 @@ export default function CreateAccountPage() {
 
       // Confirmer l'email automatiquement via le service role
       try {
-        await axios.post('/api/auth/confirm-email', {
+        const confirmResponse = await axios.post('/api/auth/confirm-email', {
           userId: user.id,
         });
-      } catch (confirmError) {
-        // Ne pas bloquer si la confirmation échoue
+        if (!confirmResponse.data.success) {
+          throw new Error('Email confirmation failed');
+        }
+      } catch (confirmError: any) {
+        // Si la confirmation échoue, continuer quand même
+        // L'utilisateur pourra se connecter manuellement si nécessaire
       }
 
       // Créer le profil utilisateur avec rôle client
