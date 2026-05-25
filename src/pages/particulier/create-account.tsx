@@ -75,7 +75,7 @@ export default function CreateAccountPage() {
           description: 'Vos informations ont été restaurées',
         });
       } catch (e) {
-        console.error('Erreur chargement localStorage:', e);
+        // Ignore localStorage errors
       }
     }
   }, [toast]);
@@ -162,8 +162,6 @@ export default function CreateAccountPage() {
     setLoading(true);
 
     try {
-      console.log('📝 Création du compte...');
-
       // Créer le compte Supabase
       const email = formData.email.trim().toLowerCase();
       const signUpResult = await authService.signUp(email, formData.password);
@@ -172,24 +170,18 @@ export default function CreateAccountPage() {
       const signUpError = signUpResult.error;
 
       if (signUpError || !user) {
-        console.error('❌ Erreur Supabase:', signUpError);
-
         // Cas spécial : erreur d'envoi d'email de confirmation (ne pas bloquer)
         if (
           signUpError?.message?.includes('email') ||
           signUpError?.message?.includes('confirmation') ||
           signUpError?.message?.includes('sending')
         ) {
-          console.log(
-            '⚠️ Erreur email de confirmation, tentative de connexion...'
-          );
           // Tenter de se connecter avec les identifiants
           const signInResult = await authService.signIn(
             formData.email,
             formData.password
           );
           if (signInResult.user) {
-            console.log('✅ Connexion réussie malgré erreur email');
             user = signInResult.user;
           } else {
             throw signUpError;
@@ -200,16 +192,12 @@ export default function CreateAccountPage() {
           signUpError?.message?.includes('User already registered') ||
           signUpError?.code === '422'
         ) {
-          console.log('🔄 Utilisateur existe déjà, tentative de connexion...');
-
           // Tenter de se connecter
           const signInResult = await authService.signIn(
             formData.email,
             formData.password
           );
           if (signInResult) {
-            console.log('✅ Connexion réussie, vérification du profil...');
-
             // Vérifier si le profil existe
             const { data: profile } = await supabase
               .from('profiles')
@@ -218,7 +206,6 @@ export default function CreateAccountPage() {
               .single();
 
             if (!profile) {
-              console.log('📝 Profil manquant, création...');
               // Créer le profil manquant
               const { error: profileError } = await (supabase as any)
                 .from('profiles')
@@ -236,11 +223,8 @@ export default function CreateAccountPage() {
                 });
 
               if (profileError) {
-                console.error('❌ Erreur création profil:', profileError);
                 throw new Error('Erreur lors de la création du profil');
               }
-
-              console.log('✅ Profil créé avec succès');
             }
 
             toast({
@@ -256,8 +240,6 @@ export default function CreateAccountPage() {
         throw signUpError || new Error('Erreur lors de la création du compte');
       }
 
-      console.log('✅ Compte créé:', user.id);
-
       // Se connecter automatiquement
       const signInResult = await authService.signIn(
         formData.email,
@@ -267,16 +249,12 @@ export default function CreateAccountPage() {
         throw new Error('Erreur lors de la connexion automatique');
       }
 
-      console.log('✅ Connexion automatique réussie');
-
       // Confirmer l'email automatiquement via le service role
       try {
         await axios.post('/api/auth/confirm-email', {
           userId: user.id,
         });
-        console.log('✅ Email confirmé automatiquement');
       } catch (confirmError) {
-        console.error('⚠️ Erreur confirmation email:', confirmError);
         // Ne pas bloquer si la confirmation échoue
       }
 
@@ -295,7 +273,6 @@ export default function CreateAccountPage() {
         });
 
       if (profileError) {
-        console.error('❌ Erreur création profil:', profileError);
         // Ne pas bloquer si le profil existe déjà
       }
 
@@ -305,21 +282,16 @@ export default function CreateAccountPage() {
           userId: user.id,
           userType: 'client',
         });
-        console.log('✅ Email de bienvenue envoyé');
       } catch (emailError) {
-        console.error('⚠️ Erreur email de bienvenue:', emailError);
         // Ne pas bloquer si l'email échoue
       }
 
       // Notifier admin + support + team
       try {
-        console.log('📧 Envoi notifications admin...');
         await axios.post('/api/notify-client-inscription', {
           userId: user.id,
         });
-        console.log('✅ Notifications admin envoyées');
       } catch (notifError) {
-        console.error('⚠️ Erreur notifications admin:', notifError);
         // Ne pas bloquer si les notifications échouent
       }
 
@@ -343,8 +315,6 @@ export default function CreateAccountPage() {
         }
       }, 3000);
     } catch (err: any) {
-      console.error('❌ Erreur création de compte:', err);
-
       if (err.message?.includes('already registered')) {
         setError('Cet email est déjà utilisé. Veuillez vous connecter.');
       } else if (err.message?.includes('password')) {

@@ -62,27 +62,21 @@ export class CentralAuthService {
    */
   async getCurrentUser(): Promise<{ user: User | null; error: any }> {
     try {
-      console.log('🔍 CentralAuthService: Getting current user...');
-
       const {
         data: { session },
         error,
       } = await supabase.auth.getSession();
 
       if (error) {
-        console.error('❌ CentralAuthService: Session error:', error);
         return { user: null, error };
       }
 
       if (session?.user) {
-        console.log('✅ CentralAuthService: User found:', session.user.email);
         return { user: session.user, error: null };
       }
 
-      console.log('ℹ️ CentralAuthService: No active session');
       return { user: null, error: null };
     } catch (error) {
-      console.error('❌ CentralAuthService: Exception getting user:', error);
       return { user: null, error };
     }
   }
@@ -94,8 +88,6 @@ export class CentralAuthService {
     userId: string
   ): Promise<{ profile: Profile | null; error: any }> {
     try {
-      console.log('🔍 CentralAuthService: Getting user profile for:', userId);
-
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -103,14 +95,11 @@ export class CentralAuthService {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('❌ CentralAuthService: Profile error:', error);
         return { profile: null, error };
       }
 
-      console.log('✅ CentralAuthService: Profile found:', data?.full_name);
       return { profile: data, error: null };
     } catch (error) {
-      console.error('❌ CentralAuthService: Exception getting profile:', error);
       return { profile: null, error };
     }
   }
@@ -122,11 +111,6 @@ export class CentralAuthService {
     userId: string
   ): Promise<{ professional: Professional | null; error: any }> {
     try {
-      console.log(
-        '🔍 CentralAuthService: Getting professional profile for:',
-        userId
-      );
-
       const { data, error } = await supabase
         .from('professionals')
         .select('*')
@@ -134,20 +118,11 @@ export class CentralAuthService {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('❌ CentralAuthService: Professional error:', error);
         return { professional: null, error };
       }
 
-      console.log(
-        '✅ CentralAuthService: Professional found:',
-        data?.company_name
-      );
       return { professional: data, error: null };
     } catch (error) {
-      console.error(
-        '❌ CentralAuthService: Exception getting professional:',
-        error
-      );
       return { professional: null, error };
     }
   }
@@ -160,8 +135,6 @@ export class CentralAuthService {
     error: any;
   }> {
     try {
-      console.log('🔍 CentralAuthService: Determining role for user:', userId);
-
       // 1. Vérifier si admin en premier (priorité haute)
       const { data: adminProfile, error: adminError } = await supabase
         .from('profiles')
@@ -171,12 +144,10 @@ export class CentralAuthService {
         .maybeSingle();
 
       if (adminError && adminError.code !== 'PGRST116') {
-        console.error('❌ CentralAuthService: Admin check error:', adminError);
         return { role: null, error: adminError };
       }
 
       if (adminProfile?.role) {
-        console.log('✅ CentralAuthService: User is', adminProfile.role);
         return {
           role: adminProfile.role as 'admin' | 'super_admin',
           error: null,
@@ -191,26 +162,16 @@ export class CentralAuthService {
         .maybeSingle();
 
       if (proError && proError.code !== 'PGRST116') {
-        console.error(
-          '❌ CentralAuthService: Professional check error:',
-          proError
-        );
         return { role: null, error: proError };
       }
 
       if (professionalData) {
-        console.log('✅ CentralAuthService: User is professional');
         return { role: 'professional', error: null };
       }
 
       // 3. Par défaut, c'est un client
-      console.log('✅ CentralAuthService: User is client');
       return { role: 'client', error: null };
     } catch (error) {
-      console.error(
-        '❌ CentralAuthService: Exception determining role:',
-        error
-      );
       return { role: null, error };
     }
   }
@@ -226,8 +187,6 @@ export class CentralAuthService {
     error: any;
   }> {
     try {
-      console.log('🔄 CentralAuthService: Getting complete auth data...');
-
       // 1. Récupérer l'utilisateur
       const { user, error: userError } = await this.getCurrentUser();
 
@@ -242,7 +201,6 @@ export class CentralAuthService {
       }
 
       if (!user) {
-        console.log('ℹ️ CentralAuthService: No user logged in');
         return {
           user: null,
           profile: null,
@@ -257,33 +215,12 @@ export class CentralAuthService {
         user.id
       );
 
-      if (profileError) {
-        console.warn(
-          '⚠️ CentralAuthService: Profile error, continuing...',
-          profileError
-        );
-      }
-
       // 3. Récupérer le profil professionnel
       const { professional, error: proError } =
         await this.getProfessionalProfile(user.id);
 
-      if (proError) {
-        console.warn(
-          '⚠️ CentralAuthService: Professional error, continuing...',
-          proError
-        );
-      }
-
       // 4. Déterminer le rôle
       const { role, error: roleError } = await this.determineUserRole(user.id);
-
-      if (roleError) {
-        console.warn(
-          '⚠️ CentralAuthService: Role error, continuing...',
-          roleError
-        );
-      }
 
       const authData = {
         user,
@@ -293,19 +230,8 @@ export class CentralAuthService {
         error: null,
       };
 
-      console.log('✅ CentralAuthService: Auth data loaded:', {
-        userId: user.id,
-        role: role,
-        hasProfile: !!profile,
-        hasProfessional: !!professional,
-      });
-
       return authData;
     } catch (error) {
-      console.error(
-        '❌ CentralAuthService: Exception getting auth data:',
-        error
-      );
       return {
         user: null,
         profile: null,
@@ -396,8 +322,6 @@ export class CentralAuthService {
     role: string | null;
     error: any;
   }> {
-    console.log('🔄 CentralAuthService: Refreshing auth data...');
-
     // Forcer la rafraîchissement de la session
     const {
       data: { session },
@@ -405,7 +329,6 @@ export class CentralAuthService {
     } = await supabase.auth.refreshSession();
 
     if (error) {
-      console.error('❌ CentralAuthService: Refresh error:', error);
       return {
         user: null,
         profile: null,
