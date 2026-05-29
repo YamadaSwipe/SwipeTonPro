@@ -44,9 +44,6 @@ import GoogleAuthButton from '@/components/GoogleAuthButton';
 export default function LoginPage() {
   // Protection SSR
   if (typeof window === 'undefined') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🛡️ LoginPage: SSR detected, returning loading state');
-    }
     return null;
   }
 
@@ -58,9 +55,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [loginSuccess, setLoginSuccess] = useState(false);
-
-  // Debug: Check initial state
-  console.log('🔍 LoginPage: Component mounted, loading:', loading);
 
   // Redirection automatique après connexion réussie
   useEffect(() => {
@@ -78,13 +72,6 @@ export default function LoginPage() {
 
   // Simplifier la gestion des erreurs
   const getErrorMessage = useCallback((err: any) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔍 LoginPage: Error analysis:', {
-        message: err?.message,
-        code: err?.code,
-      });
-    }
-
     if (err?.message?.includes('Invalid login credentials')) {
       return 'Email ou mot de passe incorrect';
     }
@@ -111,13 +98,9 @@ export default function LoginPage() {
         if (loginResult.success) {
           setLoginSuccess(true);
         } else {
-          console.error('❌ LoginPage: Login failed:', loginResult.error);
           setError(loginResult.error || 'Erreur de connexion');
         }
       } catch (err: any) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ LoginPage: Login failed:', err);
-        }
         setError(getErrorMessage(err));
       } finally {
         setLoading(false);

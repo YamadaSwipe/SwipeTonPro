@@ -52,7 +52,6 @@ async function generateRecoveryLink(
   });
 
   if (error) {
-    console.error('❌ Erreur generation recovery link:', error);
     if (isUserNotFoundError(error)) {
       return null;
     }
@@ -72,12 +71,10 @@ async function sendResetEmailViaResend(
   resetLink: string
 ): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) {
-    console.error('❌ RESEND_API_KEY non configurée');
     return false;
   }
 
   try {
-    console.log('📧 Envoi Resend de l’email de réinitialisation à:', email);
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -131,14 +128,11 @@ async function sendResetEmailViaResend(
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('❌ Erreur Resend:', error);
       throw new Error(`Resend API error: ${error.message}`);
     }
 
-    console.log('✅ Email envoyé via Resend à:', email);
     return true;
   } catch (error) {
-    console.error('❌ Erreur envoi email Resend:', error);
     return false;
   }
 }
@@ -158,10 +152,7 @@ export default async function handler(
   }
 
   try {
-    console.log('🔄 Début processus de réinitialisation FORCÉ pour:', email);
-
     const redirectUrl = getRedirectUrl(req);
-    console.log('🔗 redirectTo calculé:', redirectUrl);
 
     if (process.env.RESEND_API_KEY) {
       const resetLink = await generateRecoveryLink(email, redirectUrl);
@@ -176,7 +167,6 @@ export default async function handler(
       const sent = await sendResetEmailViaResend(email, resetLink);
 
       if (!sent) {
-        console.error('❌ Le mail Resend n a pas pu être envoyé');
         return res.status(500).json({
           error: 'Erreur envoi email de réinitialisation',
         });
@@ -195,20 +185,17 @@ export default async function handler(
       });
 
     if (resetError) {
-      console.error('❌ Erreur resetPasswordForEmail:', resetError);
       return res.status(500).json({
         error: 'Erreur de réinitialisation',
       });
     }
 
-    console.log('✅ Email de réinitialisation envoyé via Supabase à:', email);
     return res.status(200).json({
       success: true,
       message:
         'Si cet email existe dans notre système, un lien de réinitialisation a été envoyé.',
     });
   } catch (error: any) {
-    console.error('❌ Erreur reset-password-fixed API:', error);
     return res.status(500).json({
       error: 'Erreur serveur',
       details: error?.message ?? 'Erreur inconnue',
