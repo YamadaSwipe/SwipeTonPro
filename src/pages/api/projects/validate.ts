@@ -1,13 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { withAdminAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(
-  req: NextApiRequest,
+export default withAdminAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
@@ -18,14 +19,14 @@ export default async function handler(
     const { projectId, action, reason } = req.body;
 
     if (!projectId) {
-      return res.status(400).json({ 
-        error: 'ID du projet requis' 
+      return res.status(400).json({
+        error: 'ID du projet requis',
       });
     }
 
     if (!action || !['validate', 'reject'].includes(action)) {
-      return res.status(400).json({ 
-        error: 'Action invalide. Actions possibles: validate, reject' 
+      return res.status(400).json({
+        error: 'Action invalide. Actions possibles: validate, reject',
       });
     }
 
@@ -38,14 +39,14 @@ export default async function handler(
 
     if (fetchError) {
       console.error('❌ Erreur récupération projet:', fetchError);
-      return res.status(500).json({ 
-        error: 'Erreur lors de la récupération du projet' 
+      return res.status(500).json({
+        error: 'Erreur lors de la récupération du projet',
       });
     }
 
     if (!project) {
-      return res.status(404).json({ 
-        error: 'Projet non trouvé' 
+      return res.status(404).json({
+        error: 'Projet non trouvé',
       });
     }
 
@@ -62,7 +63,8 @@ export default async function handler(
       updateData.status = 'rejected';
       updateData.rejected_at = new Date().toISOString();
       updateData.rejected_by = 'admin';
-      updateData.rejection_reason = reason || 'Projet rejeté par l\'administrateur';
+      updateData.rejection_reason =
+        reason || "Projet rejeté par l'administrateur";
     }
 
     const { data: updatedProject, error: updateError } = await supabase
@@ -74,8 +76,8 @@ export default async function handler(
 
     if (updateError) {
       console.error('❌ Erreur mise à jour projet:', updateError);
-      return res.status(500).json({ 
-        error: 'Erreur lors de la mise à jour du projet' 
+      return res.status(500).json({
+        error: 'Erreur lors de la mise à jour du projet',
       });
     }
 
@@ -91,16 +93,21 @@ export default async function handler(
         };
 
         // Appeler l'API de notification
-        const notificationResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/notifications/project-status`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(notificationData),
-        });
+        const notificationResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_SITE_URL}/api/notifications/project-status`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(notificationData),
+          }
+        );
 
         if (notificationResponse.ok) {
-          console.log(`✅ Notification envoyée au client: ${project.client_email}`);
+          console.log(
+            `✅ Notification envoyée au client: ${project.client_email}`
+          );
         } else {
           console.warn('⚠️ Erreur envoi notification client');
         }
@@ -114,17 +121,17 @@ export default async function handler(
 
     return res.status(200).json({
       success: true,
-      message: action === 'validate' 
-        ? 'Projet validé avec succès' 
-        : 'Projet rejeté avec succès',
+      message:
+        action === 'validate'
+          ? 'Projet validé avec succès'
+          : 'Projet rejeté avec succès',
       project: updatedProject,
       action: action,
     });
-
   } catch (error) {
     console.error('❌ Erreur API validation projet:', error);
-    return res.status(500).json({ 
-      error: 'Erreur serveur lors de la validation du projet' 
+    return res.status(500).json({
+      error: 'Erreur serveur lors de la validation du projet',
     });
   }
-}
+});

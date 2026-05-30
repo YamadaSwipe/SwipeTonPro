@@ -1,13 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(
-  req: NextApiRequest,
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
@@ -15,7 +16,8 @@ export default async function handler(
   }
 
   try {
-    const { projectId, professionalId, paymentIntentId, acceptedAt, clause } = req.body;
+    const { projectId, professionalId, paymentIntentId, acceptedAt, clause } =
+      req.body;
 
     if (!projectId || !professionalId || !acceptedAt || !clause) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -30,8 +32,11 @@ export default async function handler(
         payment_intent_id: paymentIntentId,
         clause_text: clause,
         accepted_at: acceptedAt,
-        ip_address: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown',
-        user_agent: req.headers['user-agent'] || 'unknown'
+        ip_address:
+          req.headers['x-forwarded-for'] ||
+          req.headers['x-real-ip'] ||
+          'unknown',
+        user_agent: req.headers['user-agent'] || 'unknown',
       })
       .select()
       .single();
@@ -50,14 +55,13 @@ export default async function handler(
         .eq('professional_id', professionalId);
     }
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data,
-      message: 'Liability acceptance recorded successfully' 
+      message: 'Liability acceptance recorded successfully',
     });
-
   } catch (error) {
     console.error('Error in record-liability-acceptance:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-}
+});
