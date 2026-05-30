@@ -1,17 +1,22 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST only' });
   }
 
-  const { action, project_id, professional_id, match_id, client_id, message } = req.body;
+  const { action, project_id, professional_id, match_id, client_id, message } =
+    req.body;
 
   try {
     switch (action) {
@@ -22,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           .insert({
             project_id,
             professional_id,
-            status: 'interested'
+            status: 'interested',
           })
           .select('*, project:projects(*), professional:professionals(*)')
           .single();
@@ -30,10 +35,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (error) throw error;
 
         // Notification au client
-        await notifyClient(data.project.client_id, 'Nouvelle candidature', 
-          `${data.professional.company_name} est intéressé par votre projet`);
+        await notifyClient(
+          data.project.client_id,
+          'Nouvelle candidature',
+          `${data.professional.company_name} est intéressé par votre projet`
+        );
 
-        return res.status(200).json({ success: true, interest: data, match_created: true });
+        return res
+          .status(200)
+          .json({ success: true, interest: data, match_created: true });
       }
 
       case 'accept_match': {
@@ -48,8 +58,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (error) throw error;
 
         // Notifier le pro
-        await notifyPro(match.professional.user_id, 'Candidature acceptée',
-          `Le client a accepté votre candidature pour "${match.project.title}"`);
+        await notifyPro(
+          match.professional.user_id,
+          'Candidature acceptée',
+          `Le client a accepté votre candidature pour "${match.project.title}"`
+        );
 
         return res.status(200).json({ success: true, match });
       }
@@ -80,10 +93,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (error) throw error;
 
         // Notifications des deux côtés
-        await notifyClient(match.project.client_id, 'Match confirmé',
-          `${match.professional.company_name} a accès à vos coordonnées`);
-        await notifyPro(match.professional.user_id, 'Paiement confirmé',
-          `Vous avez maintenant accès aux coordonnées du client`);
+        await notifyClient(
+          match.project.client_id,
+          'Match confirmé',
+          `${match.professional.company_name} a accès à vos coordonnées`
+        );
+        await notifyPro(
+          match.professional.user_id,
+          'Paiement confirmé',
+          `Vous avez maintenant accès aux coordonnées du client`
+        );
 
         return res.status(200).json({ success: true, match });
       }
@@ -94,16 +113,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
-}
+});
 
-async function notifyClient(recipient_id: string, title: string, message: string) {
+async function notifyClient(
+  recipient_id: string,
+  title: string,
+  message: string
+) {
   await supabase.from('match_notifications').insert({
-    recipient_id, type: 'interest_received', title, message
+    recipient_id,
+    type: 'interest_received',
+    title,
+    message,
   });
 }
 
 async function notifyPro(recipient_id: string, title: string, message: string) {
   await supabase.from('match_notifications').insert({
-    recipient_id, type: 'match_accepted', title, message
+    recipient_id,
+    type: 'match_accepted',
+    title,
+    message,
   });
 }

@@ -1,12 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'GET only' });
   }
@@ -22,11 +26,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Matches du professionnel
       const { data: matches, error } = await supabase
         .from('matches')
-        .select(`
+        .select(
+          `
           *,
           project:projects(id, title, category, city, status, client_id),
           professional:professionals(id, company_name)
-        `)
+        `
+        )
         .eq('professional_id', user_id)
         .order('created_at', { ascending: false });
 
@@ -40,8 +46,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .eq('is_read', false)
         .order('created_at', { ascending: false });
 
-      return res.status(200).json({ matches, notifications, count: matches?.length || 0 });
-
+      return res
+        .status(200)
+        .json({ matches, notifications, count: matches?.length || 0 });
     } else {
       // Matches du client (par project)
       const { data: projects } = await supabase
@@ -49,15 +56,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .select('id')
         .eq('client_id', user_id);
 
-      const projectIds = projects?.map(p => p.id) || [];
+      const projectIds = projects?.map((p) => p.id) || [];
 
       const { data: matches, error } = await supabase
         .from('matches')
-        .select(`
+        .select(
+          `
           *,
           project:projects(id, title, category, city),
           professional:professionals(id, company_name, specialties, rating_average)
-        `)
+        `
+        )
         .in('project_id', projectIds)
         .order('created_at', { ascending: false });
 
@@ -71,9 +80,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .eq('is_read', false)
         .order('created_at', { ascending: false });
 
-      return res.status(200).json({ matches, notifications, count: matches?.length || 0 });
+      return res
+        .status(200)
+        .json({ matches, notifications, count: matches?.length || 0 });
     }
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
-}
+});
