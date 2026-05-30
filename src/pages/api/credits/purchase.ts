@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
@@ -11,7 +12,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -75,8 +79,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       ],
       mode: 'payment',
-      success_url: successUrl || `${process.env.NEXT_PUBLIC_APP_URL}/professionnel/credits/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL}/professionnel/credits/cancel`,
+      success_url:
+        successUrl ||
+        `${process.env.NEXT_PUBLIC_APP_URL}/professionnel/credits/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:
+        cancelUrl ||
+        `${process.env.NEXT_PUBLIC_APP_URL}/professionnel/credits/cancel`,
       customer_email: userData.email,
       metadata: {
         professional_id: professionalId,
@@ -110,4 +118,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       details: error.message,
     });
   }
-}
+});

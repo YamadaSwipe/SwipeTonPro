@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
@@ -11,8 +12,8 @@ const supabase = createClient(
 );
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-export default async function handler(
-  req: NextApiRequest,
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST')
@@ -138,4 +139,4 @@ export default async function handler(
     console.error('Match payment error:', err);
     return res.status(500).json({ error: err.message });
   }
-}
+});
