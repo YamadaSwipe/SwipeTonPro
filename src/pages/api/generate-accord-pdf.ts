@@ -1,14 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import puppeteer from 'puppeteer';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(
-  req: NextApiRequest,
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
@@ -28,14 +29,14 @@ export default async function handler(
     // Lancer Puppeteer pour générer le PDF
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 
     const page = await browser.newPage();
-    
+
     // Définir le contenu HTML
     await page.setContent(contractHTML, {
-      waitUntil: 'networkidle0'
+      waitUntil: 'networkidle0',
     });
 
     // Générer le PDF
@@ -46,8 +47,8 @@ export default async function handler(
         top: '20mm',
         right: '20mm',
         bottom: '20mm',
-        left: '20mm'
-      }
+        left: '20mm',
+      },
     });
 
     await browser.close();
@@ -60,7 +61,7 @@ export default async function handler(
       .from('documents')
       .upload(filePath, pdfBuffer, {
         contentType: 'application/pdf',
-        upsert: true
+        upsert: true,
       });
 
     if (uploadError) {
@@ -69,9 +70,9 @@ export default async function handler(
     }
 
     // Obtenir l'URL publique du fichier
-    const { data: { publicUrl } } = supabase.storage
-      .from('documents')
-      .getPublicUrl(filePath);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('documents').getPublicUrl(filePath);
 
     // Mettre à jour le projet avec les informations de l'accord
     await supabase
@@ -81,32 +82,35 @@ export default async function handler(
         accord_pdf_path: filePath,
         accord_generated_at: new Date().toISOString(),
         accord_status: 'generated',
-        accord_data: formData
+        accord_data: formData,
       })
       .eq('id', projectId);
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       pdfUrl: publicUrl,
       filePath,
-      message: 'PDF generated successfully' 
+      message: 'PDF generated successfully',
     });
-
   } catch (error) {
     console.error('Error generating PDF:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-}
+});
 
 function generateContractHTML(data: any, dateSignature: string): string {
-  const etapesHTML = data.etapes.map((etape: any) => `
+  const etapesHTML = data.etapes
+    .map(
+      (etape: any) => `
     <tr>
       <td style="border: 1px solid #ddd; padding: 8px;">${etape.label}</td>
       <td style="border: 1px solid #ddd; padding: 8px;">${etape.pourcentage}%</td>
       <td style="border: 1px solid #ddd; padding: 8px;">${etape.condition}</td>
       <td style="border: 1px solid #ddd; padding: 8px;">${etape.montant} €</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 
   return `
     <div id="contract-template" style="font-family: Arial, sans-serif; padding: 40px; color: #333;">
