@@ -1,51 +1,30 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { withAdminAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Verify admin authentication
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  
+export default withAdminAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   try {
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    // Check if user is admin
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || profile?.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     switch (req.method) {
       case 'GET':
         return await getPricingTiers(res);
-      
+
       case 'POST':
-        return await createPricingTier(req, res, user.id);
-      
+        return await createPricingTier(req, res, req.user.id);
+
       case 'PUT':
-        return await updatePricingTier(req, res, user.id);
-      
+        return await updatePricingTier(req, res, req.user.id);
+
       case 'DELETE':
         return await deletePricingTier(req, res);
-      
+
       default:
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -53,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Error in match-pricing-tiers API:', error);
     return res.status(500).json({ error: error.message });
   }
-}
+});
 
 async function getPricingTiers(res: NextApiResponse) {
   try {
@@ -73,31 +52,37 @@ async function getPricingTiers(res: NextApiResponse) {
       console.warn('Could not fetch pricing summary:', statsError);
     }
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       tiers: data || [],
-      stats: stats || []
+      stats: stats || [],
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
 }
 
-async function createPricingTier(req: NextApiRequest, res: NextApiResponse, adminId: string) {
+async function createPricingTier(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  adminId: string
+) {
   try {
-    const { 
-      key, 
-      label, 
-      description, 
-      budget_min, 
-      budget_max, 
-      credits_cost, 
+    const {
+      key,
+      label,
+      description,
+      budget_min,
+      budget_max,
+      credits_cost,
       price_cents,
-      sort_order 
+      sort_order,
     } = req.body;
 
     if (!key || !label || price_cents === undefined) {
-      return res.status(400).json({ error: 'Missing required fields: key, label, price_cents' });
+      return res
+        .status(400)
+        .json({ error: 'Missing required fields: key, label, price_cents' });
     }
 
     const { data, error } = await supabaseAdmin
@@ -111,7 +96,7 @@ async function createPricingTier(req: NextApiRequest, res: NextApiResponse, admi
         credits_cost: credits_cost || 1,
         price_cents,
         sort_order: sort_order || 0,
-        created_by: adminId
+        created_by: adminId,
       })
       .select()
       .single();
@@ -124,7 +109,11 @@ async function createPricingTier(req: NextApiRequest, res: NextApiResponse, admi
   }
 }
 
-async function updatePricingTier(req: NextApiRequest, res: NextApiResponse, adminId: string) {
+async function updatePricingTier(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  adminId: string
+) {
   try {
     const { id, ...updates } = req.body;
 
@@ -133,11 +122,14 @@ async function updatePricingTier(req: NextApiRequest, res: NextApiResponse, admi
     }
 
     // Use the database function for update
-    const { data, error } = await supabaseAdmin.rpc('update_match_pricing_tier', {
-      p_tier_id: id,
-      p_updates: updates,
-      p_admin_id: adminId
-    });
+    const { data, error } = await supabaseAdmin.rpc(
+      'update_match_pricing_tier',
+      {
+        p_tier_id: id,
+        p_updates: updates,
+        p_admin_id: adminId,
+      }
+    );
 
     if (error) throw error;
 
