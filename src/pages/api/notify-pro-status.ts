@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { sendEmailServerSide } from '@/lib/email';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,8 +10,12 @@ const supabaseAdmin = createClient(
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST')
+    return res.status(405).json({ message: 'Method not allowed' });
 
   const { professionalId, action, reason, proEmail, companyName } = req.body;
 
@@ -93,7 +98,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           </div>`,
         fromType: 'noreply',
       });
-
     } else if (action === 'reject') {
       await sendEmailServerSide({
         to: email,
@@ -137,7 +141,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           </div>`,
         fromType: 'noreply',
       });
-
     } else if (action === 'suspend') {
       await sendEmailServerSide({
         to: email,
@@ -184,9 +187,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     return res.status(200).json({ message: `Email ${action} envoyé` });
-
   } catch (error) {
     console.error('Erreur notify-pro-status:', error);
     return res.status(500).json({ message: 'Erreur serveur' });
   }
-}
+});

@@ -1,23 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { withAdminAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Only allow admin users
-  const authHeader = req.headers.authorization?.replace('Bearer ', '');
-  if (!authHeader) {
-    return res.status(401).json({ error: 'Authorization required' });
-  }
-
-  // Simple admin check - in production, use proper JWT verification
-  if (authHeader !== 'admin-token-123') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-
+export default withAdminAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method === 'GET') {
     try {
       // Get settings from database or return defaults
@@ -41,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           publicApi: true,
           twoFactorAuth: true,
           darkMode: true,
-          moderation: true
+          moderation: true,
         },
         pricing: {
           emergencyMultiplier: 1.5,
@@ -51,53 +44,77 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               name: 'Starter',
               price: 29,
               credits: 50,
-              features: ['Accès basic', '5 projets/mois', 'Support email']
+              features: ['Accès basic', '5 projets/mois', 'Support email'],
             },
             {
               id: 'pro',
               name: 'Professional',
               price: 79,
               credits: 200,
-              features: ['Accès complet', 'Projets illimités', 'Support prioritaire', 'Analytics'],
-              popular: true
+              features: [
+                'Accès complet',
+                'Projets illimités',
+                'Support prioritaire',
+                'Analytics',
+              ],
+              popular: true,
             },
             {
               id: 'enterprise',
               name: 'Enterprise',
               price: 199,
               credits: 1000,
-              features: ['API complète', 'White label', 'Dédié support', 'Custom features']
-            }
+              features: [
+                'API complète',
+                'White label',
+                'Dédié support',
+                'Custom features',
+              ],
+            },
           ],
           leadPacks: [
             { id: 'pack1', name: 'Pack Découverte', price: 19, credits: 10 },
-            { id: 'pack2', name: 'Pack Croissance', price: 49, credits: 30, discount: 15 },
-            { id: 'pack3', name: 'Pack Pro', price: 99, credits: 70, discount: 25 }
+            {
+              id: 'pack2',
+              name: 'Pack Croissance',
+              price: 49,
+              credits: 30,
+              discount: 15,
+            },
+            {
+              id: 'pack3',
+              name: 'Pack Pro',
+              price: 99,
+              credits: 70,
+              discount: 25,
+            },
           ],
           loyaltyPoints: {
             perProject: 15,
             perReview: 10,
             perReferral: 100,
-            perDailyLogin: 5
-          }
+            perDailyLogin: 5,
+          },
         },
         content: {
-          welcomeText: 'Bienvenue sur SwipeTonPro - La plateforme moderne pour vos projets',
-          emergencyDescription: 'Service d\'urgence disponible 24h/24 et 7j/7 avec majoration de 50%',
-          loyaltyDescription: 'Cumulez des points et débloquez des avantages exclusifs',
+          welcomeText:
+            'Bienvenue sur SwipeTonPro - La plateforme moderne pour vos projets',
+          emergencyDescription:
+            "Service d'urgence disponible 24h/24 et 7j/7 avec majoration de 50%",
+          loyaltyDescription:
+            'Cumulez des points et débloquez des avantages exclusifs',
           supportEmail: 'support@swipetonpro.fr',
-          supportPhone: '09 72 58 45 12'
+          supportPhone: '09 72 58 45 12',
         },
         limits: {
           maxProjectsPerClient: 10,
           maxPhotosPerProject: 5,
           maxMessageLength: 1000,
-          apiRateLimit: 100
-        }
+          apiRateLimit: 100,
+        },
       };
 
       return res.status(200).json(settings?.settings || defaultSettings);
-
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
@@ -108,7 +125,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const settings = req.body;
 
       // Validate settings structure
-      if (!settings.features || !settings.pricing || !settings.content || !settings.limits) {
+      if (
+        !settings.features ||
+        !settings.pricing ||
+        !settings.content ||
+        !settings.limits
+      ) {
         return res.status(400).json({ error: 'Invalid settings structure' });
       }
 
@@ -118,7 +140,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .upsert({
           id: 'main',
           settings,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -128,16 +150,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Update environment variables if needed
       // This would require server restart in production
 
-      return res.status(200).json({ 
-        success: true, 
+      return res.status(200).json({
+        success: true,
         message: 'Settings saved successfully',
-        data
+        data,
       });
-
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
-}
+});

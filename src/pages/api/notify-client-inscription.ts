@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { sendEmailServerSide } from '@/lib/email';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,8 +100,8 @@ async function getNotificationRecipients(
   }));
 }
 
-export default async function handler(
-  req: NextApiRequest,
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST')
@@ -182,4 +183,4 @@ export default async function handler(
     console.error('Erreur notify-client-inscription:', error);
     return res.status(500).json({ message: 'Erreur serveur' });
   }
-}
+});

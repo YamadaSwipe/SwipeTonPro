@@ -1,13 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { withAdminAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(
-  req: NextApiRequest,
+export default withAdminAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'GET') {
@@ -27,7 +28,7 @@ export default async function handler(
     console.log('🔐 Admin profile check:', {
       found: !!adminProfile,
       error: adminError?.message,
-      role: adminProfile?.role
+      role: adminProfile?.role,
     });
 
     // Vérifier si bgreen.rs@gmail.com existe
@@ -41,7 +42,7 @@ export default async function handler(
       found: !!userProfile,
       error: userError?.message,
       role: userProfile?.role,
-      id: userProfile?.id
+      id: userProfile?.id,
     });
 
     // Vérifier s'il y a des doublons d'emails
@@ -53,29 +54,32 @@ export default async function handler(
     console.log('📋 All relevant profiles:', allProfiles);
 
     return res.status(200).json({
-      adminProfile: adminProfile ? {
-        id: adminProfile.id,
-        email: adminProfile.email,
-        role: adminProfile.role,
-        created_at: adminProfile.created_at
-      } : null,
-      userProfile: userProfile ? {
-        id: userProfile.id,
-        email: userProfile.email,
-        role: userProfile.role,
-        created_at: userProfile.created_at
-      } : null,
+      adminProfile: adminProfile
+        ? {
+            id: adminProfile.id,
+            email: adminProfile.email,
+            role: adminProfile.role,
+            created_at: adminProfile.created_at,
+          }
+        : null,
+      userProfile: userProfile
+        ? {
+            id: userProfile.id,
+            email: userProfile.email,
+            role: userProfile.role,
+            created_at: userProfile.created_at,
+          }
+        : null,
       adminError: adminError?.message || null,
       userError: userError?.message || null,
       allProfiles: allProfiles || [],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error: any) {
     console.error('❌ Erreur vérification conflits:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Erreur serveur',
-      message: error.message 
+      message: error.message,
     });
   }
-}
+});

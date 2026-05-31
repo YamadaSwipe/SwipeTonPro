@@ -1,13 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { google } from 'googleapis';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -23,8 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (proError || !professional?.google_access_token) {
-      return res.status(400).json({ 
-        error: 'Google Calendar non connecté pour ce professionnel' 
+      return res.status(400).json({
+        error: 'Google Calendar non connecté pour ce professionnel',
       });
     }
 
@@ -37,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     oauth2Client.setCredentials({
       access_token: professional.google_access_token,
-      refresh_token: professional.google_refresh_token
+      refresh_token: professional.google_refresh_token,
     });
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
@@ -51,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       timeMin: now.toISOString(),
       timeMax: thirtyDaysLater.toISOString(),
       singleEvents: true,
-      orderBy: 'startTime'
+      orderBy: 'startTime',
     });
 
     const events = response.data.items || [];
@@ -89,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             is_available: false, // Les événements Google sont considérés comme occupés
             google_event_id: event.id,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           });
 
         if (!insertError) {
@@ -98,27 +102,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       synced: syncedCount,
-      total: events.length 
+      total: events.length,
     });
-
   } catch (error: any) {
     console.error('Google Calendar sync error:', error);
-    
+
     // Si c'est une erreur de token expiré, essayer de rafraîchir
     if (error.code === 401) {
       try {
         // Implémenter la logique de refresh token ici
-        res.status(401).json({ 
-          error: 'Token Google expiré. Veuillez reconnecter Google Calendar.' 
+        res.status(401).json({
+          error: 'Token Google expiré. Veuillez reconnecter Google Calendar.',
         });
       } catch (refreshError) {
         res.status(500).json({ error: 'Erreur de rafraîchissement du token' });
       }
     } else {
-      res.status(500).json({ error: 'Erreur de synchronisation Google Calendar' });
+      res
+        .status(500)
+        .json({ error: 'Erreur de synchronisation Google Calendar' });
     }
   }
-}
+});

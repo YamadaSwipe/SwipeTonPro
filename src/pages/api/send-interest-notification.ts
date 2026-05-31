@@ -10,6 +10,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 // Initialisation Supabase
 const supabase = createClient(
@@ -77,8 +78,8 @@ interface ClientData {
 /**
  * Fonction principale de l'API
  */
-export default async function handler(
-  req: NextApiRequest,
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   // Vérifier la méthode HTTP
@@ -221,7 +222,7 @@ export default async function handler(
       message: "Une erreur est survenue lors de l'envoi des notifications",
     });
   }
-}
+});
 
 /**
  * Envoyer l'email au client pour l'informer de l'intérêt
