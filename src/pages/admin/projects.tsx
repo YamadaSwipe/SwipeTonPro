@@ -167,14 +167,20 @@ export default function AdminProjectsPage() {
   ) => {
     setActionLoading(projectId);
     try {
+      // Only include rejection_reason in the update, not info_needed_message
+      const updateData: any = {
+        status: status as any,
+        validation_status: status,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (extra?.rejection_reason) {
+        updateData.rejection_reason = extra.rejection_reason;
+      }
+
       const { error } = await supabase
         .from('projects')
-        .update({
-          status: status as any,
-          validation_status: status,
-          ...extra,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', projectId);
 
       if (error) throw error;
