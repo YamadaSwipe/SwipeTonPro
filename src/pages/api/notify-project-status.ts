@@ -103,6 +103,54 @@ function templateRejected(data: {
   `;
 }
 
+function templateInfoNeeded(data: {
+  clientName: string;
+  projectTitle: string;
+  reason: string;
+  dashboardUrl: string;
+}): string {
+  return `
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#f8f9fa;">
+      <div style="background:linear-gradient(135deg,#3b82f6,#60a5fa);padding:32px 24px;text-align:center;border-radius:12px 12px 0 0;">
+        <h1 style="color:white;margin:0;font-size:28px;font-weight:800;">SwipeTon<span style="opacity:0.85;">Pro</span></h1>
+        <p style="color:rgba(255,255,255,0.95);margin:8px 0 0;font-size:16px;">ℹ️ Complément d'information demandé</p>
+      </div>
+      <div style="background:white;padding:36px 32px;">
+        <h2 style="color:#1a1a1a;margin:0 0 8px;font-size:22px;">Bonjour ${data.clientName},</h2>
+        <p style="color:#555;line-height:1.7;margin:0 0 24px;font-size:15px;">
+          Votre projet <strong>"${data.projectTitle}"</strong> est en cours de validation. Notre équipe a besoin de quelques informations supplémentaires pour pouvoir le publier :
+        </p>
+
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:20px;margin:0 0 24px;">
+          <h3 style="color:#1d4ed8;margin:0 0 8px;font-size:14px;font-weight:700;">📝 Informations demandées :</h3>
+          <p style="color:#1e40af;font-size:14px;margin:0;font-style:italic;">"${data.reason}"</p>
+        </div>
+
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:20px;margin:0 0 28px;">
+          <h3 style="color:#15803d;margin:0 0 12px;font-size:14px;font-weight:700;">✏️ Que faire ?</h3>
+          <p style="color:#166534;margin:6px 0;font-size:14px;">1. Connectez-vous à votre espace particulier</p>
+          <p style="color:#166534;margin:6px 0;font-size:14px;">2. Complétez les informations demandées</p>
+          <p style="color:#166534;margin:6px 0;font-size:14px;">3. Soumettez à nouveau pour validation</p>
+          <p style="color:#166534;margin:6px 0;font-size:14px;">4. Notre équipe revalidera sous 24h</p>
+        </div>
+
+        <div style="text-align:center;margin:0 0 16px;">
+          <a href="${data.dashboardUrl}" style="background:linear-gradient(135deg,#3b82f6,#60a5fa);color:white;padding:14px 36px;text-decoration:none;border-radius:8px;display:inline-block;font-weight:700;font-size:15px;">
+            Compléter mon projet →
+          </a>
+        </div>
+
+        <p style="color:#9ca3af;font-size:13px;text-align:center;margin:0;">
+          Des questions ? Contactez-nous à <a href="mailto:support@qwipetonpro.fr" style="color:#3b82f6;">support@qwipetonpro.fr</a>
+        </p>
+      </div>
+      <div style="background:#f8f9fa;padding:20px;text-align:center;border-radius:0 0 12px 12px;border-top:1px solid #e5e7eb;">
+        <p style="color:#9ca3af;font-size:12px;margin:0;">SwipeTonPro — La mise en relation BTP par intérêt mutuel</p>
+      </div>
+    </div>
+  `;
+}
+
 function templateSupportValidated(data: {
   projectTitle: string;
   projectId: string;
@@ -224,6 +272,21 @@ export default withAuth(async function handler(
             projectId,
             clientEmail: client.email,
             validatedBy: validatedBy || 'Admin',
+          }),
+          fromType: 'noreply',
+        })
+      );
+    } else if (action === 'info_needed') {
+      // Email au particulier — informations complémentaires demandées
+      emailsToSend.push(
+        sendEmailServerSide({
+          to: client.email,
+          subject: `ℹ️ Complément d'information demandé pour "${project.title}"`,
+          html: templateInfoNeeded({
+            clientName: client.full_name || 'Client',
+            projectTitle: project.title,
+            reason,
+            dashboardUrl: `${BASE_URL}/particulier/projects`,
           }),
           fromType: 'noreply',
         })
