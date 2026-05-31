@@ -1,12 +1,18 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { contactRateLimit } from '@/middleware/rateLimit';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-async function sendContactEmail(formData: { name: string; email: string; subject: string; message: string }) {
+async function sendContactEmail(formData: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}) {
   // Vérifier si la clé API Resend est configurée
   if (!process.env.RESEND_API_KEY) {
     console.error('❌ RESEND_API_KEY non configurée');
@@ -17,7 +23,7 @@ async function sendContactEmail(formData: { name: string; email: string; subject
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -96,6 +102,15 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Appliquer le rate limiting
+  await new Promise<void>((resolve, reject) => {
+    contactRateLimit(req, res, () => resolve());
+  });
+
+  if (res.headersSent) {
+    return; // Le rate limiting a déjà répondu
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
@@ -105,16 +120,16 @@ export default async function handler(
 
     // Validation des champs
     if (!name || !email || !subject || !message) {
-      return res.status(400).json({ 
-        error: 'Tous les champs sont obligatoires' 
+      return res.status(400).json({
+        error: 'Tous les champs sont obligatoires',
       });
     }
 
     // Validation email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
-        error: 'Email invalide' 
+      return res.status(400).json({
+        error: 'Email invalide',
       });
     }
 
@@ -127,9 +142,10 @@ export default async function handler(
       return res.status(200).json({
         success: true,
         message: 'Message envoyé avec succès',
-        note: process.env.NODE_ENV === 'development' 
-          ? 'En développement: Vérifiez la configuration Resend.'
-          : 'Nous avons bien reçu votre message et vous répondrons rapidement.',
+        note:
+          process.env.NODE_ENV === 'development'
+            ? 'En développement: Vérifiez la configuration Resend.'
+            : 'Nous avons bien reçu votre message et vous répondrons rapidement.',
       });
     }
 
@@ -138,18 +154,18 @@ export default async function handler(
       success: true,
       message: 'Message envoyé avec succès',
     });
-
   } catch (error) {
     console.error('❌ Erreur API contact:', error);
-    
+
     // En cas d'erreur serveur, retourner quand même un succès pour ne pas frustrer l'utilisateur
     // mais logger l'erreur pour le débogage
     return res.status(200).json({
       success: true,
       message: 'Message envoyé avec succès',
-      note: process.env.NODE_ENV === 'development' 
-        ? 'Erreur serveur en développement: ' + (error as Error).message
-        : 'Nous avons bien reçu votre message et vous répondrons rapidement.',
+      note:
+        process.env.NODE_ENV === 'development'
+          ? 'Erreur serveur en développement: ' + (error as Error).message
+          : 'Nous avons bien reçu votre message et vous répondrons rapidement.',
     });
   }
 }

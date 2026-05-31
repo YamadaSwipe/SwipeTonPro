@@ -1,22 +1,36 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { signupTrackingRateLimit } from '@/middleware/rateLimit';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  // Appliquer le rate limiting
+  await new Promise<void>((resolve, reject) => {
+    signupTrackingRateLimit(req, res, () => resolve());
+  });
 
-  const { 
-    email, 
-    userId, 
-    lastStep, 
+  if (res.headersSent) {
+    return; // Le rate limiting a déjà répondu
+  }
+
+  if (req.method !== 'POST')
+    return res.status(405).json({ message: 'Method not allowed' });
+
+  const {
+    email,
+    userId,
+    lastStep,
     partialData,
     utmSource,
     utmMedium,
-    utmCampaign 
+    utmCampaign,
   } = req.body;
 
   if (!email || !lastStep) {
@@ -27,19 +41,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Upsert: mettre à jour si existe, créer sinon
     const { data, error } = await supabaseAdmin
       .from('pro_signup_abandons')
-      .upsert({
-        email,
-        user_id: userId || null,
-        last_step: lastStep,
-        step_reached_at: new Date().toISOString(),
-        partial_data: partialData || {},
-        utm_source: utmSource || null,
-        utm_medium: utmMedium || null,
-        utm_campaign: utmCampaign || null,
-        completed: false,
-      }, {
-        onConflict: 'email',
-      })
+      .upsert(
+        {
+          email,
+          user_id: userId || null,
+          last_step: lastStep,
+          step_reached_at: new Date().toISOString(),
+          partial_data: partialData || {},
+          utm_source: utmSource || null,
+          utm_medium: utmMedium || null,
+          utm_campaign: utmCampaign || null,
+          completed: false,
+        },
+        {
+          onConflict: 'email',
+        }
+      )
       .select()
       .single();
 
@@ -48,11 +65,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ message: 'Erreur base de données' });
     }
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       message: 'Abandon tracké',
-      id: data.id 
+      id: data.id,
     });
-
   } catch (error) {
     console.error('Erreur track-signup-abandon:', error);
     return res.status(500).json({ message: 'Erreur serveur' });

@@ -120,3 +120,17 @@ export const apiRateLimit = createRateLimit({
   maxRequests: 100, // 100 requêtes par 15 minutes
   message: 'Trop de requêtes. Veuillez ralentir.',
 });
+
+// Rate limiting pour le formulaire de contact
+export const contactRateLimit = createRateLimit({
+  windowMs: 60 * 60 * 1000, // 1 heure
+  maxRequests: 5, // 5 messages de contact par heure
+  message: 'Trop de messages de contact. Veuillez réessayer dans 1 heure.',
+});
+
+// Rate limiting pour le tracking d'abandon d'inscription
+export const signupTrackingRateLimit = createRateLimit({
+  windowMs: 60 * 60 * 1000, // 1 heure
+  maxRequests: 10, // 10 événements de tracking par heure
+  message: 'Trop de requêtes de tracking. Veuillez réessayer dans 1 heure.',
+});
