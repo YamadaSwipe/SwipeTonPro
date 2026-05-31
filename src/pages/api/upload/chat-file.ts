@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import formidable from 'formidable';
 import fs from 'fs';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +15,10 @@ export const config = {
   },
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -42,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
 
     if (!allowedTypes.includes(file.mimetype || '')) {
@@ -52,12 +56,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Upload vers Supabase Storage
     const fileBuffer = fs.readFileSync(file.filepath);
     const fileName = `chat-files/${Date.now()}-${file.originalFilename}`;
-    
+
     const { data, error } = await supabase.storage
       .from('chat-attachments')
       .upload(fileName, fileBuffer, {
         contentType: file.mimetype,
-        upsert: false
+        upsert: false,
       });
 
     if (error) {
@@ -66,9 +70,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Obtenir l'URL publique
-    const { data: { publicUrl } } = supabase.storage
-      .from('chat-attachments')
-      .getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('chat-attachments').getPublicUrl(fileName);
 
     // Nettoyer le fichier temporaire
     fs.unlinkSync(file.filepath);
@@ -79,11 +83,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       size: file.size,
       type: file.mimetype,
       url: publicUrl,
-      path: fileName
+      path: fileName,
     });
-
   } catch (error: any) {
     console.error('File upload error:', error);
     res.status(500).json({ error: 'Upload failed' });
   }
-}
+});
