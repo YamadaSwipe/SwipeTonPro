@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { sendEmailServerSide } from '@/lib/email';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -130,7 +131,10 @@ function templateSupportValidated(data: {
 // HANDLER PRINCIPAL
 // ============================================
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
@@ -142,11 +146,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (!['validate', 'reject', 'info_needed'].includes(action)) {
-    return res.status(400).json({ message: 'action doit être "validate" ou "reject"' });
+    return res
+      .status(400)
+      .json({ message: 'action doit être "validate" ou "reject"' });
   }
 
   if (action === 'reject' && !reason) {
-    return res.status(400).json({ message: 'Le motif est requis pour un refus' });
+    return res
+      .status(400)
+      .json({ message: 'Le motif est requis pour un refus' });
   }
 
   try {
@@ -172,9 +180,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Mettre à jour le statut du projet
-    const newStatus = action === 'validate' ? 'published'
-      : action === 'reject' ? 'rejected'
-      : 'info_needed';
+    const newStatus =
+      action === 'validate'
+        ? 'published'
+        : action === 'reject'
+          ? 'rejected'
+          : 'info_needed';
     await supabaseAdmin
       .from('projects')
       .update({
@@ -235,16 +246,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const results = await Promise.allSettled(emailsToSend);
-    const sent = results.filter(r => r.status === 'fulfilled').length;
+    const sent = results.filter((r) => r.status === 'fulfilled').length;
 
     return res.status(200).json({
-      message: `Projet ${action === 'validate' ? 'validé' : action === 'reject' ? 'refusé' : 'en attente d\'infos'} — ${sent} email(s) envoyé(s)`,
+      message: `Projet ${action === 'validate' ? 'validé' : action === 'reject' ? 'refusé' : "en attente d'infos"} — ${sent} email(s) envoyé(s)`,
       status: newStatus,
       sent,
     });
-
   } catch (error) {
     console.error('Erreur notification statut projet:', error);
     return res.status(500).json({ message: 'Erreur serveur', error });
   }
-}
+});
