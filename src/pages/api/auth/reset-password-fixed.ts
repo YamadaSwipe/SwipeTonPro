@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
+import { resetPasswordRateLimit } from '@/middleware/rateLimit';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -137,10 +137,19 @@ async function sendResetEmailViaResend(
   }
 }
 
-export default withAuth(async function handler(
-  req: AuthenticatedRequest,
+export default async function handler(
+  req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Appliquer le rate limiting
+  await new Promise<void>((resolve, reject) => {
+    resetPasswordRateLimit(req, res, () => resolve());
+  });
+
+  if (res.headersSent) {
+    return; // Le rate limiting a déjà répondu
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -201,4 +210,4 @@ export default withAuth(async function handler(
       details: error?.message ?? 'Erreur inconnue',
     });
   }
-});
+}
