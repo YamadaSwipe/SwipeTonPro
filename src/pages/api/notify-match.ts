@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { sendEmailServerSide } from '@/lib/email';
 import { createClient } from '@supabase/supabase-js';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -205,7 +206,10 @@ function templateMatchSupport(data: {
 // HANDLER PRINCIPAL
 // ============================================
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
@@ -213,7 +217,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { projectId, professionalId, clientId, pricePaid } = req.body;
 
   if (!projectId || !professionalId || !clientId) {
-    return res.status(400).json({ message: 'Champs manquants: projectId, professionalId, clientId' });
+    return res.status(400).json({
+      message: 'Champs manquants: projectId, professionalId, clientId',
+    });
   }
 
   try {
@@ -248,9 +254,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? `à partir de ${project.budget_min.toLocaleString('fr-FR')} €`
         : 'Non spécifié';
 
-    const pricePaidDisplay = pricePaid
-      ? `${pricePaid} €`
-      : 'Voir admin';
+    const pricePaidDisplay = pricePaid ? `${pricePaid} €` : 'Voir admin';
 
     const results = await Promise.allSettled([
       // Email au professionnel
@@ -299,17 +303,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
     ]);
 
-    const sent = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const sent = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
 
     return res.status(200).json({
       message: `${sent}/3 emails envoyés`,
       sent,
       failed,
     });
-
   } catch (error) {
     console.error('Erreur notification match:', error);
     return res.status(500).json({ message: 'Erreur serveur', error });
   }
-}
+});
