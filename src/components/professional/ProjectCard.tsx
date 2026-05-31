@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 type Project = Database['public']['Tables']['projects']['Row'] & {
   has_bid?: boolean;
   ai_analysis?: any; // Add AI analysis field
+  stripe_escrow_active?: boolean;
 };
 
 interface ProjectCardProps {
