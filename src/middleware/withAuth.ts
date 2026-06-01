@@ -42,20 +42,6 @@ export function withAuth(handler: ApiHandler): ApiHandler {
         return;
       }
 
-      // Vérifier si c'est la session admin personnalisée
-      try {
-        const adminSession = JSON.parse(token);
-        if (
-          adminSession.isolation_key === 'EDSWIPE_ADMIN_ISOLATION_2024' &&
-          adminSession.user?.role === 'super_admin'
-        ) {
-          req.user = adminSession.user;
-          return await handler(req, res);
-        }
-      } catch {
-        // Ce n'est pas une session admin, continuer avec la validation Supabase
-      }
-
       // Vérifier le token avec Supabase
       const {
         data: { user },

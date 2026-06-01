@@ -33,59 +33,20 @@ export default async function handler(
   // Validation email stricte
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: 'Format d\'email invalide' });
+    return res.status(400).json({ error: "Format d'email invalide" });
   }
 
   try {
     console.log('🔐 Tentative de connexion sécurisée pour:', email);
 
-    // Vérifier si c'est l'admin
-    if (email === 'admin@swipetonpro.fr') {
-      if (password !== process.env.ADMIN_SECURE_PASSWORD) {
-        console.warn('⚠️ Tentative de connexion admin échouée');
-        return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
-      }
-
-      // Vérifier les conflits de comptes
-      const { data: existingUser } = await supabaseAdmin
-        .from('profiles')
-        .select('id, role')
-        .eq('email', email)
-        .single();
-
-      if (existingUser && existingUser.role !== 'super_admin') {
-        console.error('🚨 Conflit admin détecté');
-        return res.status(403).json({ error: 'Conflit de compte. Contactez l\'administrateur.' });
-      }
-
-      // Créer session admin sécurisée
-      const adminSession = {
-        user: {
-          id: '29a2361d-6568-4d5f-99c6-557b971778cc',
-          email: 'admin@swipetonpro.fr',
-          role: 'super_admin',
-          created_at: new Date().toISOString()
-        },
-        timestamp: Date.now(),
-        isolation_key: 'EDSWIPE_ADMIN_ISOLATION_2024'
-      };
-
-      return res.status(200).json({
-        success: true,
-        user: adminSession.user,
-        session: adminSession,
-        isAdmin: true
-      });
-    }
-
-    // Connexion utilisateur normal via Supabase
+    // Connexion via Supabase pour tous les utilisateurs (y compris admin)
     const { data, error } = await supabaseAdmin.auth.signInWithPassword({
       email,
-      password
+      password,
     });
 
     if (error) {
-      console.warn('⚠️ Erreur connexion utilisateur:', error.message);
+      console.warn('⚠️ Erreur connexion:', error.message);
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
@@ -96,16 +57,19 @@ export default async function handler(
       .eq('id', data.user.id)
       .single();
 
-    console.log('✅ Connexion réussie pour:', email);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profil introuvable' });
+    }
+
+    console.log('✅ Connexion réussie pour:', email, 'Rôle:', profile.role);
 
     return res.status(200).json({
       success: true,
       user: data.user,
       profile,
       session: data.session,
-      isAdmin: false
+      isAdmin: profile.role === 'super_admin' || profile.role === 'admin',
     });
-
   } catch (error: any) {
     console.error('❌ Erreur connexion sécurisée:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
