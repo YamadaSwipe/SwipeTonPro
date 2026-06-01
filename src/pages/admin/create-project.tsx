@@ -502,11 +502,19 @@ export default function AdminCreateProject() {
     try {
       setLoading(true);
 
+      // Get current user ID
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non connecté');
+      }
+
       // Créer le projet
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .insert({
-          client_id: 'admin-created', // ID temporaire pour les projets créés par admin
+          client_id: user.id, // Utiliser l'ID de l'admin connecté
           title: formData.title,
           description: formData.description,
           category: formData.category,
