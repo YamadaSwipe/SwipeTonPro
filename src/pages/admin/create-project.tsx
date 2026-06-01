@@ -518,7 +518,6 @@ export default function AdminCreateProject() {
           title: formData.title,
           description: formData.description,
           category: formData.category,
-          location: formData.location,
           city: formData.city,
           postal_code: formData.postal_code,
           work_type: formData.work_type,
