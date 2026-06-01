@@ -520,7 +520,7 @@ export default function AdminCreateProject() {
           category: formData.category,
           city: formData.city,
           postal_code: formData.postal_code,
-          work_type: formData.work_type,
+          work_types: formData.work_type,
           budget_min: formData.budget_min
             ? parseInt(formData.budget_min)
             : null,
