@@ -10,7 +10,10 @@ interface AuthenticatedRequest extends NextApiRequest {
   };
 }
 
-type ApiHandler = (req: AuthenticatedRequest, res: NextApiResponse) => Promise<void> | void;
+type ApiHandler = (
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) => Promise<void> | void;
 
 /**
  * Middleware d'authentification pour les API routes
@@ -21,9 +24,14 @@ export function withAuth(handler: ApiHandler): ApiHandler {
     try {
       // Récupérer le token depuis le header Authorization
       const authHeader = req.headers.authorization;
-      
+
       if (!authHeader?.startsWith('Bearer ')) {
-        errorResponse(res, 'Token d\'authentification manquant', 401, 'MISSING_TOKEN');
+        errorResponse(
+          res,
+          "Token d'authentification manquant",
+          401,
+          'MISSING_TOKEN'
+        );
         return;
       }
 
@@ -34,8 +42,25 @@ export function withAuth(handler: ApiHandler): ApiHandler {
         return;
       }
 
+      // Vérifier si c'est la session admin personnalisée
+      try {
+        const adminSession = JSON.parse(token);
+        if (
+          adminSession.isolation_key === 'EDSWIPE_ADMIN_ISOLATION_2024' &&
+          adminSession.user?.role === 'super_admin'
+        ) {
+          req.user = adminSession.user;
+          return await handler(req, res);
+        }
+      } catch {
+        // Ce n'est pas une session admin, continuer avec la validation Supabase
+      }
+
       // Vérifier le token avec Supabase
-      const { data: { user }, error } = await supabase.auth.getUser(token);
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser(token);
 
       if (error || !user) {
         console.error('❌ Auth error:', error);
@@ -54,14 +79,14 @@ export function withAuth(handler: ApiHandler): ApiHandler {
       req.user = {
         id: user.id,
         email: user.email,
-        role: profile?.role || 'client'
+        role: profile?.role || 'client',
       };
 
       // Appeler le handler
       return await handler(req, res);
     } catch (error) {
       console.error('❌ Erreur middleware auth:', error);
-      errorResponse(res, 'Erreur d\'authentification', 500, 'AUTH_ERROR');
+      errorResponse(res, "Erreur d'authentification", 500, 'AUTH_ERROR');
     }
   };
 }
@@ -74,13 +99,15 @@ export function withOptionalAuth(handler: ApiHandler): ApiHandler {
   return async (req: AuthenticatedRequest, res: NextApiResponse) => {
     try {
       const authHeader = req.headers.authorization;
-      
+
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
-        
+
         if (token) {
-          const { data: { user } } = await supabase.auth.getUser(token);
-          
+          const {
+            data: { user },
+          } = await supabase.auth.getUser(token);
+
           if (user) {
             const { data: profile } = await supabase
               .from('profiles')
@@ -91,7 +118,7 @@ export function withOptionalAuth(handler: ApiHandler): ApiHandler {
             req.user = {
               id: user.id,
               email: user.email,
-              role: profile?.role || 'client'
+              role: profile?.role || 'client',
             };
           }
         }
@@ -144,7 +171,8 @@ export function withRateLimit(
   const requests = new Map<string, { count: number; resetTime: number }>();
 
   return async (req: AuthenticatedRequest, res: NextApiResponse) => {
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const ip =
+      req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
     const key = `${ip}:${req.url}`;
     const now = Date.now();
 
@@ -154,14 +182,22 @@ export function withRateLimit(
       // Premier appel ou fenêtre expirée
       requests.set(key, {
         count: 1,
-        resetTime: now + windowMs
+        resetTime: now + windowMs,
       });
     } else {
       record.count++;
-      
+
       if (record.count > maxRequests) {
-        res.setHeader('Retry-After', Math.ceil((record.resetTime - now) / 1000).toString());
-        errorResponse(res, 'Trop de requêtes, veuillez réessayer plus tard', 429, 'RATE_LIMITED');
+        res.setHeader(
+          'Retry-After',
+          Math.ceil((record.resetTime - now) / 1000).toString()
+        );
+        errorResponse(
+          res,
+          'Trop de requêtes, veuillez réessayer plus tard',
+          429,
+          'RATE_LIMITED'
+        );
         return;
       }
     }
