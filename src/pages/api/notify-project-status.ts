@@ -227,23 +227,8 @@ export default withAuth(async function handler(
       return res.status(404).json({ message: 'Client introuvable' });
     }
 
-    // Mettre à jour le statut du projet
-    const newStatus =
-      action === 'validate'
-        ? 'published'
-        : action === 'reject'
-          ? 'rejected'
-          : 'info_needed';
-    await supabaseAdmin
-      .from('projects')
-      .update({
-        status: newStatus,
-        validation_status: newStatus,
-        ...(action === 'reject' && { rejection_reason: reason }),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', projectId);
-
+    // Le statut est déjà mis à jour par l'admin panel
+    // Cet endpoint ne fait qu'envoyer les notifications
     const emailsToSend = [];
 
     if (action === 'validate') {
