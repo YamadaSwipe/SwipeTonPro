@@ -298,7 +298,6 @@ export default withAuth(async function handler(
 
     return res.status(200).json({
       message: `Projet ${action === 'validate' ? 'validé' : action === 'reject' ? 'refusé' : "en attente d'infos"} — ${sent} email(s) envoyé(s)`,
-      status: newStatus,
       sent,
     });
   } catch (error) {
