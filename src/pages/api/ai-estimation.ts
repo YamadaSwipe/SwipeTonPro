@@ -5,6 +5,91 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+/**
+ * Valide et plafonne les estimations IA pour éviter les valeurs irréalistes
+ */
+function validateAndCapEstimation(
+  estimationData: any,
+  surface?: number,
+  category?: string
+): any {
+  const surfaceValue = surface || 50; // Valeur par défaut
+  const categoryLower = category?.toLowerCase() || '';
+
+  // Prix maximum par m² selon le type de travaux
+  const maxPricePerM2: Record<string, number> = {
+    'rénovation complète': 2000,
+    rénovation: 2000,
+    plomberie: 200,
+    électricité: 200,
+    peinture: 80,
+    carrelage: 150,
+    maçonnerie: 200,
+    menuiserie: 1500,
+    isolation: 150,
+    climatisation: 6000,
+    'pompe à chaleur': 20000,
+    fenêtres: 2000,
+    'panneaux solaires': 25000,
+    default: 500,
+  };
+
+  // Déterminer le prix max par m² applicable
+  let applicableMax = maxPricePerM2.default;
+  for (const [key, value] of Object.entries(maxPricePerM2)) {
+    if (categoryLower.includes(key)) {
+      applicableMax = value;
+      break;
+    }
+  }
+
+  // Calculer le maximum autorisé
+  const maxAllowed = applicableMax * surfaceValue * 1.5; // +50% de marge
+
+  // Plafonner les valeurs
+  const cappedEstimation = { ...estimationData };
+
+  if (cappedEstimation.estimation_min > maxAllowed) {
+    console.warn(
+      `⚠️ Estimation min trop haute (${cappedEstimation.estimation_min}), plafonnée à ${maxAllowed}`
+    );
+    cappedEstimation.estimation_min = Math.round(maxAllowed * 0.7);
+  }
+
+  if (cappedEstimation.estimation_max > maxAllowed) {
+    console.warn(
+      `⚠️ Estimation max trop haute (${cappedEstimation.estimation_max}), plafonnée à ${maxAllowed}`
+    );
+    cappedEstimation.estimation_max = Math.round(maxAllowed);
+  }
+
+  if (cappedEstimation.estimatedCost > maxAllowed) {
+    console.warn(
+      `⚠️ Estimated cost trop haut (${cappedEstimation.estimatedCost}), plafonné à ${maxAllowed}`
+    );
+    cappedEstimation.estimatedCost = Math.round(maxAllowed * 0.85);
+  }
+
+  // S'assurer que min <= max
+  if (cappedEstimation.estimation_min > cappedEstimation.estimation_max) {
+    cappedEstimation.estimation_min = Math.round(
+      cappedEstimation.estimation_max * 0.7
+    );
+  }
+
+  // S'assurer que l'écart entre min et max ne dépasse pas 50%
+  const maxGap = cappedEstimation.estimation_max * 0.5;
+  const currentGap =
+    cappedEstimation.estimation_max - cappedEstimation.estimation_min;
+  if (currentGap > maxGap) {
+    cappedEstimation.estimation_min = Math.round(
+      cappedEstimation.estimation_max - maxGap
+    );
+  }
+
+  return cappedEstimation;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -51,17 +136,28 @@ CATÉGORIE : ${category}
 VILLE : ${city}
 SURFACE : ${surface || 'Non spécifiée'} m²
 TYPE DE BIEN : ${type_bien || 'Non spécifié'}
-BUDGET ESTIMÉ PAR LE CLIENT : ${estimated_budget_min || 'Non spécifié'}€ - ${estimated_budget_max || 'Non spécifié'}€
+
+IMPORTANT : Fournissez une estimation CONSERVATRICE et RÉALISTE basée sur les tarifs du marché français 2024. Ne tenez PAS compte d'un éventuel budget client. Basez-vous uniquement sur la description technique.
 
 Veuillez fournir :
-1. Une estimation réaliste du coût total en euros
+1. Une estimation réaliste du coût total en euros (soyez prudent)
 2. Les facteurs principaux qui influencent le prix
-3. Une fourchette basse et haute
+3. Une fourchette basse et haute (écart maximum 30% entre min et max)
 4. Les éléments essentiels à prévoir
 5. La durée estimée en jours
 6. Le niveau de complexité
 7. Les risques potentiels
 8. Des conseils pour optimiser les coûts
+
+CONTRAINTES :
+- Estimation MINIMUM réaliste (pas trop bas)
+- Estimation MAXIMUM prudente (incluant 15-20% pour imprévus)
+- Pour une rénovation complète : 800-1500€/m²
+- Pour peinture : 25-50€/m²
+- Pour plomberie : 80-150€/m²
+- Pour électricité : 90-140€/m²
+- Pour carrelage : 45-90€/m²
+- Pour maçonnerie : 60-120€/m²
 
 Répondez uniquement avec un JSON valide :
 {
@@ -114,22 +210,31 @@ Répondez uniquement avec un JSON valide :
 
     console.log('✅ AI Estimation successful:', estimationData);
 
+    // Valider et plafonner les estimations
+    const validatedEstimation = validateAndCapEstimation(
+      estimationData,
+      surface,
+      category
+    );
+
+    console.log('✅ Validated estimation:', validatedEstimation);
+
     // Réponse compatible avec les deux formats
     res.status(200).json({
       success: true,
       error: null,
-      estimation: estimationData,
-      estimatedCost: estimationData.estimatedCost,
-      estimation_min: estimationData.estimation_min,
-      estimation_max: estimationData.estimation_max,
-      factors: estimationData.factors,
-      essentials: estimationData.essentials,
-      categories: estimationData.categories,
-      complexite: estimationData.complexite,
-      duree_jours: estimationData.duree_jours,
-      risques: estimationData.risques,
-      conseils: estimationData.conseils,
-      confidence_score: estimationData.confidence_score,
+      estimation: validatedEstimation,
+      estimatedCost: validatedEstimation.estimatedCost,
+      estimation_min: validatedEstimation.estimation_min,
+      estimation_max: validatedEstimation.estimation_max,
+      factors: validatedEstimation.factors,
+      essentials: validatedEstimation.essentials,
+      categories: validatedEstimation.categories,
+      complexite: validatedEstimation.complexite,
+      duree_jours: validatedEstimation.duree_jours,
+      risques: validatedEstimation.risques,
+      conseils: validatedEstimation.conseils,
+      confidence_score: validatedEstimation.confidence_score,
     });
   } catch (error: any) {
     console.error('❌ Erreur estimation IA:', error);
