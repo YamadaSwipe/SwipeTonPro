@@ -157,11 +157,16 @@ export default function ResetPasswordPage() {
 
       console.log('✅ Session validée pour:', session.user.email);
       console.log('🔄 Mise à jour du mot de passe...');
+      console.log('🔍 User ID:', session.user.id);
+      console.log('🔍 Session access token exists:', !!session.access_token);
 
       // Mettre à jour le mot de passe (sans retry complexe pour éviter les boucles)
       const { error: updateError } = await supabase.auth.updateUser({
         password: password,
       });
+
+      console.log('🔍 Update error:', updateError);
+      console.log('🔍 Update error message:', updateError?.message);
 
       if (updateError) {
         console.error('❌ Password update error:', updateError);

@@ -38,12 +38,22 @@ export default async function handler(
 
   try {
     console.log('🔐 Tentative de connexion sécurisée pour:', email);
+    console.log('🔍 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log(
+      '🔍 Using service role key:',
+      !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
 
     // Connexion via Supabase pour tous les utilisateurs (y compris admin)
     const { data, error } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });
+
+    console.log('🔍 Login response data:', data ? 'Data present' : 'No data');
+    console.log('🔍 Login error:', error);
+    console.log('🔍 Login error message:', error?.message);
+    console.log('🔍 Login error status:', error?.status);
 
     if (error) {
       console.warn('⚠️ Erreur connexion:', error.message);
