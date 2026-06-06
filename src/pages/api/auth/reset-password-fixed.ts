@@ -36,12 +36,10 @@ async function generateRecoveryLink(
   email: string,
   redirectUrl: string
 ): Promise<string | null> {
+  // Generate the recovery token first
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
     email,
-    options: {
-      redirectTo: redirectUrl,
-    },
   });
 
   if (error) {
@@ -51,12 +49,18 @@ async function generateRecoveryLink(
     throw error;
   }
 
-  const link = data?.properties?.action_link;
-  if (!link || typeof link !== 'string') {
-    throw new Error('Impossible de générer le lien de récupération.');
+  const token = (data as any)?.properties?.token;
+  if (!token || typeof token !== 'string') {
+    throw new Error('Impossible de générer le token de récupération.');
   }
 
-  return link;
+  // Manually construct the link with the correct redirect URL
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    'https://qhuvnpmqlucpjdslnfui.supabase.co';
+  const recoveryLink = `${supabaseUrl}/auth/v1/verify?token=${token}&type=recovery&redirect_to=${encodeURIComponent(redirectUrl)}`;
+
+  return recoveryLink;
 }
 
 async function sendResetEmailViaResend(
