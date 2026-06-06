@@ -10,12 +10,32 @@ const supabaseAdmin = createClient(
 const PRODUCTION_URL = 'https://www.swipetonpro.fr';
 
 function getHostBaseUrl(req: NextApiRequest): string {
-  // Always use production URL for email links to avoid localhost in production
+  // For email links, always use production URL to avoid localhost in production
+  // Check if we're in production environment
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'production' ||
+    req.headers.host?.includes('swipetonpro.fr');
+
+  if (isProduction) {
+    return PRODUCTION_URL;
+  }
+
+  // For local development, use NEXT_PUBLIC_SITE_URL or fallback to localhost
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '');
   }
 
-  return PRODUCTION_URL;
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const protocol =
+    typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : 'http';
+  const host = req.headers.host;
+
+  if (host) {
+    return `${protocol}://${host.replace(/\/+$|\s+/g, '')}`;
+  }
+
+  return 'http://localhost:3000';
 }
 
 function getRedirectUrl(req: NextApiRequest): string {
@@ -36,10 +56,12 @@ async function generateRecoveryLink(
   email: string,
   redirectUrl: string
 ): Promise<string | null> {
-  // Generate the recovery token first
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
     email,
+    options: {
+      redirectTo: redirectUrl,
+    },
   });
 
   if (error) {
@@ -49,18 +71,12 @@ async function generateRecoveryLink(
     throw error;
   }
 
-  const token = (data as any)?.properties?.token;
-  if (!token || typeof token !== 'string') {
-    throw new Error('Impossible de générer le token de récupération.');
+  const link = data?.properties?.action_link;
+  if (!link || typeof link !== 'string') {
+    throw new Error('Impossible de générer le lien de récupération.');
   }
 
-  // Manually construct the link with the correct redirect URL
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    'https://qhuvnpmqlucpjdslnfui.supabase.co';
-  const recoveryLink = `${supabaseUrl}/auth/v1/verify?token=${token}&type=recovery&redirect_to=${encodeURIComponent(redirectUrl)}`;
-
-  return recoveryLink;
+  return link;
 }
 
 async function sendResetEmailViaResend(
