@@ -160,32 +160,27 @@ export default function ResetPasswordPage() {
       console.log('🔍 User ID:', session.user.id);
       console.log('🔍 Session access token exists:', !!session.access_token);
 
-      // Mettre à jour le mot de passe (sans retry complexe pour éviter les boucles)
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
+      // Mettre à jour le mot de passe via API endpoint (admin client)
+      const response = await fetch('/api/auth/update-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          password: password,
+        }),
       });
 
-      console.log('🔍 Update error:', updateError);
-      console.log('🔍 Update error message:', updateError?.message);
+      const data = await response.json();
 
-      if (updateError) {
-        console.error('❌ Password update error:', updateError);
+      console.log('🔍 Update response:', data);
 
-        // Message d'erreur personnalisé
-        if (updateError.message?.includes('different from the old password')) {
-          setErrorMessage(
-            "Le nouveau mot de passe doit être différent de l'ancien"
-          );
-        } else if (updateError.message?.includes('Lock')) {
-          setErrorMessage(
-            'Erreur de synchronisation. Veuillez réessayer dans quelques instants.'
-          );
-        } else {
-          setErrorMessage(
-            updateError.message || 'Impossible de mettre à jour le mot de passe'
-          );
-        }
-
+      if (!response.ok || data.error) {
+        console.error('❌ Password update error:', data.error);
+        setErrorMessage(
+          data.error || 'Impossible de mettre à jour le mot de passe'
+        );
         setLoading(false);
         return;
       }
