@@ -10,17 +10,9 @@ const supabaseAdmin = createClient(
 const PRODUCTION_URL = 'https://www.swipetonpro.fr';
 
 function getHostBaseUrl(req: NextApiRequest): string {
+  // Always use production URL for email links to avoid localhost in production
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, '');
-  }
-
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const protocol =
-    typeof forwardedProto === 'string' ? forwardedProto.split(',')[0] : 'https';
-  const host = req.headers.host;
-
-  if (host) {
-    return `${protocol}://${host.replace(/\/+$|\s+/g, '')}`;
   }
 
   return PRODUCTION_URL;
