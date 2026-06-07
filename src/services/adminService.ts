@@ -114,16 +114,16 @@ export const adminService = {
         return { success: false, error: 'Not authenticated' };
       }
 
-      const response = await fetch('/api/admin/manage-projects', {
-        method: 'PATCH',
+      const response = await fetch('/api/projects/validate', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.data.session.access_token}`,
         },
         body: JSON.stringify({
-          project_id: projectId,
+          projectId: projectId,
           action: 'validate',
-          validation_notes: notes,
+          reason: notes,
         }),
       });
 
@@ -152,16 +152,16 @@ export const adminService = {
         return { success: false, error: 'Not authenticated' };
       }
 
-      const response = await fetch('/api/admin/manage-projects', {
-        method: 'PATCH',
+      const response = await fetch('/api/projects/validate', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.data.session.access_token}`,
         },
         body: JSON.stringify({
-          project_id: projectId,
+          projectId: projectId,
           action: 'reject',
-          validation_notes: reason,
+          reason: reason,
         }),
       });
 
