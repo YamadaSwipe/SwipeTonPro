@@ -128,6 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Guards pour éviter les initialisations multiples
   const isInitialized = useRef(false);
   const isLoadingUserRef = useRef(false);
+  const isLoadingUserData = useRef(false);
 
   // États globaux - SOURCE UNIQUE DE VÉRITÉ
   const [user, setUser] = useState<User | null>(null);
@@ -149,25 +150,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * Charger les données complètes de l'utilisateur
    */
   const loadUserData = async (userId: string) => {
+    // Empêcher les appels dupliqués
+    if (isLoadingUserData.current) {
+      console.log('⚠️ loadUserData already in progress, skipping');
+      return;
+    }
+
+    isLoadingUserData.current = true;
     console.log('🔄 LOAD USER DATA ONCE for:', userId);
 
     try {
       // 1. Charger le profil de base
+      console.log('🔍 Loading profile for user_id:', userId);
       let { data: profileData, error: profileError } = (await (supabase as any)
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle()) as any;
 
+      console.log('🔍 Profile query result:', {
+        profileData: !!profileData,
+        error: profileError,
+      });
+
       // Fallback: chercher par email si user_id échoue (ID non synchronisé)
       if (!profileData && user?.email) {
+        console.log('🔍 Fallback: searching by email:', user.email);
         const { data: byEmail } = (await (supabase as any)
           .from('profiles')
           .select('*')
           .eq('email', user.email)
           .maybeSingle()) as any;
-        if (byEmail) profileData = byEmail;
-      } // <-- maybeSingle au lieu de single
+        if (byEmail) {
+          profileData = byEmail;
+          console.log('✅ Profile found by email');
+        }
+      }
 
       if (!profileData) {
         console.warn('⚠️ AuthContext: No profile found for user:', userId);
@@ -236,6 +254,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setProfile(null);
       setProfessional(null);
       setRole(null);
+    } finally {
+      isLoadingUserData.current = false;
     }
   };
 
@@ -275,10 +295,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
 
         if (sessionError && !session) {
-          console.error(
-            '❌ AuthContext: Session error:',
-            sessionError
-          );
+          console.error('❌ AuthContext: Session error:', sessionError);
           setLoading(false);
           setInitialized(true);
           return;
@@ -312,7 +329,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Timeout de sécurité pour éviter le blocage - réduit pour meilleure UX
     const timeout = setTimeout(() => {
       if (!initialized) {
-        console.warn("⏰ AuthContext: Timeout d'initialisation (3s), forçage...");
+        console.warn(
+          "⏰ AuthContext: Timeout d'initialisation (3s), forçage..."
+        );
         setLoading(false);
         setInitialized(true);
       }
