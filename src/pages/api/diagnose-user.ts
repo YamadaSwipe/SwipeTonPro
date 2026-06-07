@@ -24,19 +24,24 @@ export default async function handler(
     console.log('🔍 Diagnostic pour email:', email);
 
     // 1. Chercher l'utilisateur dans auth.users
-    const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    const {
+      data: { users },
+      error: authError,
+    } = await supabaseAdmin.auth.admin.listUsers();
 
     if (authError) {
       console.error('❌ Erreur listUsers:', authError);
-      return res.status(500).json({ error: 'Erreur récupération utilisateurs' });
+      return res
+        .status(500)
+        .json({ error: 'Erreur récupération utilisateurs' });
     }
 
-    const user = users?.find(u => u.email === email);
+    const user = (users as any[])?.find((u: any) => u.email === email);
 
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Utilisateur non trouvé',
-        details: 'Aucun utilisateur avec cet email dans auth.users'
+        details: 'Aucun utilisateur avec cet email dans auth.users',
       });
     }
 
@@ -60,22 +65,31 @@ export default async function handler(
       console.error('❌ Erreur profil:', profileError);
     }
 
-    console.log('📊 Profil:', profile ? {
-      id: profile.id,
-      role: profile.role,
-      user_id: profile.user_id,
-    } : 'Non trouvé');
+    console.log(
+      '📊 Profil:',
+      profile
+        ? {
+            id: profile.id,
+            role: profile.role,
+            user_id: profile.user_id,
+          }
+        : 'Non trouvé'
+    );
 
     // 3. Vérifier si le mot de passe peut être réinitialisé
-    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-    });
+    const { data: resetData, error: resetError } =
+      await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+      });
 
     if (resetError) {
       console.error('❌ Erreur generateLink:', resetError);
     } else {
-      console.log('✅ Lien de récupération généré:', !!resetData?.properties?.action_link);
+      console.log(
+        '✅ Lien de récupération généré:',
+        !!resetData?.properties?.action_link
+      );
     }
 
     return res.status(200).json({
@@ -94,6 +108,8 @@ export default async function handler(
     });
   } catch (error: any) {
     console.error('❌ Erreur diagnostic:', error);
-    return res.status(500).json({ error: 'Erreur serveur', details: error.message });
+    return res
+      .status(500)
+      .json({ error: 'Erreur serveur', details: error.message });
   }
 }
