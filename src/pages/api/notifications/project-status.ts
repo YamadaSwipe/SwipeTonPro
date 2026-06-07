@@ -15,17 +15,17 @@ async function sendProjectStatusEmail(data: {
 
   try {
     const isValidation = data.action === 'validate';
-    
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         from: 'SwipeTonPro <contact@swipetonpro.fr>',
         to: [data.clientEmail],
-        subject: isValidation 
+        subject: isValidation
           ? `✅ Votre projet "${data.projectTitle}" a été validé !`
           : `❌ Votre projet "${data.projectTitle}" a été rejeté`,
         html: `
@@ -46,7 +46,7 @@ async function sendProjectStatusEmail(data: {
           <body>
             <div class="header">
               <h1>${isValidation ? '✅ Projet Validé !' : '❌ Projet Rejeté'}</h1>
-              <p>${isValidation ? 'Votre projet a été approuvé et est maintenant visible' : 'Votre projet n\'a pas été approuvé'}</p>
+              <p>${isValidation ? 'Votre projet a été approuvé et est maintenant visible' : "Votre projet n'a pas été approuvé"}</p>
             </div>
             
             <div class="content">
@@ -58,14 +58,25 @@ async function sendProjectStatusEmail(data: {
                 ${data.reason ? `<p><strong>Raison :</strong> ${data.reason}</p>` : ''}
               </div>
               
-              ${isValidation ? `
+              ${
+                isValidation
+                  ? `
                 <p>Félicitations ! Votre projet est maintenant visible sur notre plateforme et les professionnels peuvent commencer à y répondre.</p>
                 <a href="${process.env.NEXT_PUBLIC_SITE_URL}/projets/${data.projectId}" class="cta">Voir mon projet</a>
-              ` : `
+              `
+                  : `
                 <p>Nous sommes désolés, mais votre projet ne répond pas à nos critères de publication.</p>
                 <p>Vous pouvez modifier votre projet et le soumettre à nouveau.</p>
                 <a href="${process.env.NEXT_PUBLIC_SITE_URL}/projets/${data.projectId}/edit" class="cta">Modifier mon projet</a>
-              `}
+              `
+              }
+
+              <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Conseil important</h4>
+                <p style="margin: 0; color: #856404; font-size: 14px;">
+                  Conservez tous vos échanges et l'historique sur notre plateforme. En cas de litige, vous aurez un historique complet des communications qui servira de preuve.
+                </p>
+              </div>
             </div>
             
             <div class="footer">
@@ -84,7 +95,9 @@ async function sendProjectStatusEmail(data: {
       return false;
     }
 
-    console.log(`✅ Email de ${isValidation ? 'validation' : 'rejet'} envoyé à ${data.clientEmail}`);
+    console.log(
+      `✅ Email de ${isValidation ? 'validation' : 'rejet'} envoyé à ${data.clientEmail}`
+    );
     return true;
   } catch (error) {
     console.error('❌ Erreur envoi email notification:', error);
@@ -105,14 +118,15 @@ export default async function handler(
 
     // Validation des données
     if (!projectId || !projectTitle || !clientEmail || !action) {
-      return res.status(400).json({ 
-        error: 'Données manquantes: projectId, projectTitle, clientEmail, action sont requis' 
+      return res.status(400).json({
+        error:
+          'Données manquantes: projectId, projectTitle, clientEmail, action sont requis',
       });
     }
 
     if (!['validate', 'reject'].includes(action)) {
-      return res.status(400).json({ 
-        error: 'Action invalide. Actions possibles: validate, reject' 
+      return res.status(400).json({
+        error: 'Action invalide. Actions possibles: validate, reject',
       });
     }
 
@@ -131,9 +145,10 @@ export default async function handler(
       return res.status(200).json({
         success: true,
         message: 'Statut du projet mis à jour',
-        note: process.env.NODE_ENV === 'development' 
-          ? 'Email non envoyé (problème de configuration Resend)'
-          : 'Mise à jour effectuée',
+        note:
+          process.env.NODE_ENV === 'development'
+            ? 'Email non envoyé (problème de configuration Resend)'
+            : 'Mise à jour effectuée',
       });
     }
 
@@ -141,17 +156,17 @@ export default async function handler(
       success: true,
       message: `Email de ${action === 'validate' ? 'validation' : 'rejet'} envoyé avec succès`,
     });
-
   } catch (error) {
     console.error('❌ Erreur API notification projet:', error);
-    
+
     // En cas d'erreur serveur, retourner quand même un succès pour ne pas bloquer
     return res.status(200).json({
       success: true,
       message: 'Statut du projet mis à jour',
-      note: process.env.NODE_ENV === 'development' 
-        ? 'Erreur: ' + (error as Error).message
-        : 'Mise à jour effectuée',
+      note:
+        process.env.NODE_ENV === 'development'
+          ? 'Erreur: ' + (error as Error).message
+          : 'Mise à jour effectuée',
     });
   }
 }
