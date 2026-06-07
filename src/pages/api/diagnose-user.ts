@@ -36,7 +36,10 @@ export default async function handler(
         .json({ error: 'Erreur récupération utilisateurs' });
     }
 
-    const user = (users as any[])?.find((u: any) => u.email === email);
+    // Vérifier s'il y a des comptes dupliqués avec le même email
+    const matchingUsers =
+      (users as any[])?.filter((u: any) => u.email === email) || [];
+    const user = matchingUsers[0];
 
     if (!user) {
       return res.status(404).json({
@@ -44,6 +47,9 @@ export default async function handler(
         details: 'Aucun utilisateur avec cet email dans auth.users',
       });
     }
+
+    // Détecter les doublons
+    const hasDuplicates = matchingUsers.length > 1;
 
     console.log('✅ Utilisateur trouvé:', {
       id: user.id,
@@ -105,6 +111,16 @@ export default async function handler(
       profile: profile || null,
       can_generate_reset_link: !resetError,
       reset_link_error: resetError?.message || null,
+      has_duplicates: hasDuplicates,
+      duplicate_count: matchingUsers.length,
+      duplicate_accounts: hasDuplicates
+        ? matchingUsers.map((u: any) => ({
+            id: u.id,
+            email: u.email,
+            created_at: u.created_at,
+            last_sign_in_at: u.last_sign_in_at,
+          }))
+        : null,
     });
   } catch (error: any) {
     console.error('❌ Erreur diagnostic:', error);
