@@ -86,6 +86,13 @@ export default withAuth(async function handler(
                 </p>
               </div>
 
+              <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:16px;margin:0 0 28px;border-radius:4px;">
+                <h4 style="margin:0 0 10px 0;color:#856404;font-size:14px;font-weight:700;">⚠️ Conseil important</h4>
+                <p style="margin:0;color:#856404;font-size:13px;line-height:1.6;">
+                  Conservez tous vos échanges et l'historique sur notre plateforme. En cas de litige, vous aurez un historique complet des communications qui servira de preuve.
+                </p>
+              </div>
+
               <div style="text-align:center;">
                 <a href="${dashboardUrl}" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:white;padding:14px 36px;text-decoration:none;border-radius:8px;display:inline-block;font-weight:700;font-size:15px;">
                   Accéder à mon dashboard →

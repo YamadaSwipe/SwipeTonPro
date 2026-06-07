@@ -1,17 +1,23 @@
-import { SEO } from "@/components/SEO";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
-  Users, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  FileText, 
-  Shield, 
+import { SEO } from '@/components/SEO';
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Users,
+  CheckCircle,
+  XCircle,
+  Clock,
+  FileText,
+  Shield,
   AlertTriangle,
   AlertCircle,
   Eye,
@@ -20,14 +26,14 @@ import {
   Phone,
   Building2,
   Calendar,
-  Trash2
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+  Trash2,
+} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
-type Professional = Database["public"]["Tables"]["professionals"]["Row"];
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type Professional = Database['public']['Tables']['professionals']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface ProfessionalWithProfile extends Professional {
   profile: Profile;
@@ -36,7 +42,7 @@ interface ProfessionalWithProfile extends Professional {
 export default function AdminProfessionalsValidation() {
   const [professionals, setProfessionals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState('all');
   const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -48,42 +54,56 @@ export default function AdminProfessionalsValidation() {
 
   const getDocumentTypeLabel = (type: string) => {
     const types: { [key: string]: string } = {
-      'siret': 'SIRET',
-      'insurance': 'Assurance',
-      'certification': 'Certification',
-      'id': 'Pièce d\'identité',
-      'portfolio': 'Portfolio',
-      'other': 'Autre'
+      siret: 'SIRET',
+      insurance: 'Assurance',
+      certification: 'Certification',
+      id: "Pièce d'identité",
+      portfolio: 'Portfolio',
+      other: 'Autre',
     };
     return types[type] || type;
   };
 
   const getDocumentStatusBadge = (status: string) => {
     switch (status) {
-      case 'verified': return <Badge className="bg-green-600">Vérifié</Badge>;
-      case 'pending': return <Badge variant="outline" className="text-orange-600 border-orange-600">En attente</Badge>;
-      case 'rejected': return <Badge variant="destructive">Rejeté</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+      case 'verified':
+        return <Badge className="bg-green-600">Vérifié</Badge>;
+      case 'pending':
+        return (
+          <Badge
+            variant="outline"
+            className="text-orange-600 border-orange-600"
+          >
+            En attente
+          </Badge>
+        );
+      case 'rejected':
+        return <Badge variant="destructive">Rejeté</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const handleVerifyDocument = async (documentId: string, professionalId: string) => {
+  const handleVerifyDocument = async (
+    documentId: string,
+    professionalId: string
+  ) => {
     try {
       const { error } = await supabase
-        .from("documents")
-        .update({ 
-          status: "verified",
+        .from('documents')
+        .update({
+          status: 'verified',
           verified_at: new Date().toISOString(),
-          verified_by: (await supabase.auth.getUser()).data.user?.id
+          verified_by: (await supabase.auth.getUser()).data.user?.id,
         })
-        .eq("id", documentId);
+        .eq('id', documentId);
 
       if (error) throw error;
-      
+
       // Recharger les documents
       loadDocuments(professionalId);
     } catch (error) {
-      console.error("Erreur validation document:", error);
+      console.error('Erreur validation document:', error);
     }
   };
 
@@ -91,9 +111,9 @@ export default function AdminProfessionalsValidation() {
     try {
       // Supprimer de Supabase Storage
       const { data: doc } = await supabase
-        .from("documents")
-        .select("file_url")
-        .eq("id", documentId)
+        .from('documents')
+        .select('file_url')
+        .eq('id', documentId)
         .single();
 
       if (doc?.file_url) {
@@ -108,20 +128,23 @@ export default function AdminProfessionalsValidation() {
 
       // Supprimer de la table documents
       const { error } = await supabase
-        .from("documents")
+        .from('documents')
         .delete()
-        .eq("id", documentId);
+        .eq('id', documentId);
 
       if (error) throw error;
-      
+
       // Recharger les documents
       loadDocuments(selectedProfessional.id);
     } catch (error) {
-      console.error("Erreur suppression document:", error);
+      console.error('Erreur suppression document:', error);
     }
   };
 
-  const handleUploadDocument = async (event: React.ChangeEvent<HTMLInputElement>, documentType: string) => {
+  const handleUploadDocument = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    documentType: string
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !selectedProfessional) return;
 
@@ -131,7 +154,7 @@ export default function AdminProfessionalsValidation() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64Data = e.target?.result as string;
-        
+
         const response = await fetch('/api/upload-document', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -139,8 +162,8 @@ export default function AdminProfessionalsValidation() {
             professionalId: selectedProfessional.id,
             documentType,
             fileName: file.name,
-            fileData: base64Data
-          })
+            fileData: base64Data,
+          }),
         });
 
         if (response.ok) {
@@ -163,37 +186,37 @@ export default function AdminProfessionalsValidation() {
   const handleRejectDocument = async (documentId: string, reason: string) => {
     try {
       const { error } = await supabase
-        .from("documents")
-        .update({ 
-          status: "rejected",
+        .from('documents')
+        .update({
+          status: 'rejected',
           rejection_reason: reason,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq("id", documentId);
+        .eq('id', documentId);
 
       if (error) throw error;
-      
+
       // Recharger les documents
       if (selectedProfessional) {
         loadDocuments(selectedProfessional.id);
       }
     } catch (error) {
-      console.error("Erreur rejet document:", error);
+      console.error('Erreur rejet document:', error);
     }
   };
 
   const loadDocuments = async (professionalId: string) => {
     try {
       const { data, error } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("professional_id", professionalId)
-        .order("created_at", { ascending: false });
+        .from('documents')
+        .select('*')
+        .eq('professional_id', professionalId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
     } catch (error) {
-      console.error("Erreur chargement documents:", error);
+      console.error('Erreur chargement documents:', error);
       setDocuments([]);
     }
   };
@@ -201,11 +224,12 @@ export default function AdminProfessionalsValidation() {
   const loadProfessionals = async () => {
     setLoading(true);
     try {
-      console.log("Chargement professionnels pour statut:", activeTab);
-      
+      console.log('Chargement professionnels pour statut:', activeTab);
+
       let query = supabase
-        .from("professionals")
-        .select(`
+        .from('professionals')
+        .select(
+          `
           *,
           profile:profiles!professionals_user_id_fkey(
             id,
@@ -214,79 +238,75 @@ export default function AdminProfessionalsValidation() {
             phone,
             created_at
           )
-        `)
-        .order("created_at", { ascending: false });
+        `
+        )
+        .order('created_at', { ascending: false });
 
-      if (activeTab && activeTab !== "all" && activeTab !== undefined) {
+      if (activeTab && activeTab !== 'all' && activeTab !== undefined) {
         query = query.eq('status', activeTab);
       }
 
       const { data, error } = await query;
-      console.log("Résultat professionnels:", { data, error });
+      console.log('Résultat professionnels:', { data, error });
 
       if (error) {
-        console.error("Erreur chargement professionnels:", error);
+        console.error('Erreur chargement professionnels:', error);
         setProfessionals([]);
       } else if (!data) {
-        console.log("Aucune donnée retournée par Supabase");
+        console.log('Aucune donnée retournée par Supabase');
         setProfessionals([]);
       } else {
-        console.log("Professionnels chargés:", data.length);
+        console.log('Professionnels chargés:', data.length);
         setProfessionals(data);
       }
     } catch (error) {
-      console.error("Erreur inattendue:", error);
+      console.error('Erreur inattendue:', error);
       setProfessionals([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleValidate = async (professionalId: string, proEmail?: string, companyName?: string) => {
-    if (!window.confirm(`Approuver ${companyName || "ce professionnel"} ?`)) return;
+  const handleValidate = async (
+    professionalId: string,
+    proEmail?: string,
+    companyName?: string
+  ) => {
+    if (!window.confirm(`Approuver ${companyName || 'ce professionnel'} ?`))
+      return;
     try {
-      const { error } = await supabase
-        .from("professionals")
-        .update({ 
-          status: "verified",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", professionalId);
-
-      if (error) throw error;
-
-      await fetch('/api/notify-pro-status', {
+      const response = await fetch('/api/professionals/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           professionalId,
-          action: 'approve',
+          action: 'validate',
           proEmail,
           companyName,
         }),
       });
-      
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la validation');
+      }
+
       loadProfessionals();
     } catch (error) {
-      console.error("Erreur validation:", error);
+      console.error('Erreur validation:', error);
+      alert('Erreur lors de la validation: ' + (error as Error).message);
     }
   };
 
-  const handleSuspend = async (professionalId: string, reason: string, proEmail?: string, companyName?: string) => {
+  const handleSuspend = async (
+    professionalId: string,
+    reason: string,
+    proEmail?: string,
+    companyName?: string
+  ) => {
     try {
-      const { error } = await supabase
-        .from("professionals")
-        .update({ 
-          status: "suspended",
-          suspension_reason: reason,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", professionalId);
-
-      if (error) throw error;
-
-      // Email au pro avec motif
-      await fetch('/api/notify-pro-status', {
+      const response = await fetch('/api/professionals/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,28 +317,28 @@ export default function AdminProfessionalsValidation() {
           companyName,
         }),
       });
-      
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la suspension');
+      }
+
       loadProfessionals();
     } catch (error) {
-      console.error("Erreur suspension:", error);
+      console.error('Erreur suspension:', error);
+      alert('Erreur lors de la suspension: ' + (error as Error).message);
     }
   };
 
-  const handleReject = async (professionalId: string, reason: string, proEmail?: string, companyName?: string) => {
+  const handleReject = async (
+    professionalId: string,
+    reason: string,
+    proEmail?: string,
+    companyName?: string
+  ) => {
     try {
-      const { error } = await supabase
-        .from("professionals")
-        .update({ 
-          status: "rejected",
-          rejection_reason: reason,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", professionalId);
-
-      if (error) throw error;
-
-      // Email au pro avec motif
-      await fetch('/api/notify-pro-status', {
+      const response = await fetch('/api/professionals/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -329,30 +349,58 @@ export default function AdminProfessionalsValidation() {
           companyName,
         }),
       });
-      
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du rejet');
+      }
+
       loadProfessionals();
     } catch (error) {
-      console.error("Erreur rejet:", error);
+      console.error('Erreur rejet:', error);
+      alert('Erreur lors du rejet: ' + (error as Error).message);
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "approved": return <Badge className="bg-green-600">Approuvé</Badge>;
-      case "pending": return <Badge variant="outline" className="text-orange-600 border-orange-600">En attente</Badge>;
-      case "verified": return <Badge className="bg-blue-600">Vérifié</Badge>;
-      case "rejected": return <Badge variant="destructive">Rejeté</Badge>;
-      case "suspended": return <Badge variant="destructive">Suspendu</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+      case 'approved':
+        return <Badge className="bg-green-600">Approuvé</Badge>;
+      case 'pending':
+        return (
+          <Badge
+            variant="outline"
+            className="text-orange-600 border-orange-600"
+          >
+            En attente
+          </Badge>
+        );
+      case 'verified':
+        return <Badge className="bg-blue-600">Vérifié</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejeté</Badge>;
+      case 'suspended':
+        return <Badge variant="destructive">Suspendu</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   const getStats = () => {
-    const pending = professionals.filter(p => p.status === "pending").length;
-    const approved = professionals.filter(p => p.status === "approved").length;
-    const verified = professionals.filter(p => p.status === "verified").length;
-    const rejected = professionals.filter(p => p.status === "rejected").length;
-    const suspended = professionals.filter(p => p.status === "suspended").length;
+    const pending = professionals.filter((p) => p.status === 'pending').length;
+    const approved = professionals.filter(
+      (p) => p.status === 'approved'
+    ).length;
+    const verified = professionals.filter(
+      (p) => p.status === 'verified'
+    ).length;
+    const rejected = professionals.filter(
+      (p) => p.status === 'rejected'
+    ).length;
+    const suspended = professionals.filter(
+      (p) => p.status === 'suspended'
+    ).length;
     const total = professionals.length;
 
     return { pending, approved, verified, rejected, suspended, total };
@@ -361,21 +409,21 @@ export default function AdminProfessionalsValidation() {
   const stats = getStats();
 
   // Extraire nom et prénom du titulaire
-const getFullNameParts = (fullName: string | null | undefined) => {
-  if (!fullName) return { firstName: '', lastName: '' };
-  
-  const parts = fullName.trim().split(' ');
-  if (parts.length === 1) {
-    return { firstName: parts[0], lastName: '' };
-  } else {
-    return {
-      firstName: parts[0],
-      lastName: parts.slice(1).join(' ')
-    };
-  }
-};
+  const getFullNameParts = (fullName: string | null | undefined) => {
+    if (!fullName) return { firstName: '', lastName: '' };
 
-return (
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) {
+      return { firstName: parts[0], lastName: '' };
+    } else {
+      return {
+        firstName: parts[0],
+        lastName: parts.slice(1).join(' '),
+      };
+    }
+  };
+
+  return (
     <>
       <SEO title="Validation Professionnels - Admin" />
       <AdminLayout title="Validation Professionnels">
@@ -386,7 +434,9 @@ return (
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Total
+                    </p>
                     <p className="text-2xl font-bold">{stats.total}</p>
                   </div>
                   <Users className="h-8 w-8 text-muted-foreground" />
@@ -397,8 +447,12 @@ return (
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">En attente</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      En attente
+                    </p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {stats.pending}
+                    </p>
                   </div>
                   <Clock className="h-8 w-8 text-orange-600" />
                 </div>
@@ -408,8 +462,12 @@ return (
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Approuvés</p>
-                    <p className="text-2xl font-bold text-green-600">{stats.verified}</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Approuvés
+                    </p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {stats.verified}
+                    </p>
                   </div>
                   <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
@@ -419,8 +477,12 @@ return (
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Suspendus</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.suspended}</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Suspendus
+                    </p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {stats.suspended}
+                    </p>
                   </div>
                   <AlertCircle className="h-8 w-8 text-orange-600" />
                 </div>
@@ -430,8 +492,12 @@ return (
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Rejetés</p>
-                    <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Rejetés
+                    </p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {stats.rejected}
+                    </p>
                   </div>
                   <XCircle className="h-8 w-8 text-red-600" />
                 </div>
@@ -443,11 +509,21 @@ return (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="all">Tous ({stats.total})</TabsTrigger>
-              <TabsTrigger value="pending">En attente ({stats.pending})</TabsTrigger>
-              <TabsTrigger value="approved">Approuvés ({stats.approved})</TabsTrigger>
-              <TabsTrigger value="verified">Vérifiés ({stats.verified})</TabsTrigger>
-              <TabsTrigger value="suspended">Suspendus ({stats.suspended})</TabsTrigger>
-              <TabsTrigger value="rejected">Rejetés ({stats.rejected})</TabsTrigger>
+              <TabsTrigger value="pending">
+                En attente ({stats.pending})
+              </TabsTrigger>
+              <TabsTrigger value="approved">
+                Approuvés ({stats.approved})
+              </TabsTrigger>
+              <TabsTrigger value="verified">
+                Vérifiés ({stats.verified})
+              </TabsTrigger>
+              <TabsTrigger value="suspended">
+                Suspendus ({stats.suspended})
+              </TabsTrigger>
+              <TabsTrigger value="rejected">
+                Rejetés ({stats.rejected})
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value={activeTab} className="space-y-4">
@@ -468,11 +544,12 @@ return (
                           <div className="flex-1">
                             <div className="flex items-center gap-4 mb-4">
                               <h3 className="text-lg font-semibold">
-                                {professional.company_name || "Nom non renseigné"}
+                                {professional.company_name ||
+                                  'Nom non renseigné'}
                               </h3>
                               {getStatusBadge(professional.status)}
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
@@ -485,10 +562,13 @@ return (
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Phone className="w-4 h-4" />
-                                  <span>{professional.profile?.phone || "Non renseigné"}</span>
+                                  <span>
+                                    {professional.profile?.phone ||
+                                      'Non renseigné'}
+                                  </span>
                                 </div>
                               </div>
-                              
+
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                   <Building2 className="w-4 h-4" />
@@ -496,21 +576,29 @@ return (
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Calendar className="w-4 h-4" />
-                                  <span>Inscrit le {new Date(professional.created_at).toLocaleDateString()}</span>
+                                  <span>
+                                    Inscrit le{' '}
+                                    {new Date(
+                                      professional.created_at
+                                    ).toLocaleDateString()}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Shield className="w-4 h-4" />
-                                  <span>{professional.specialties?.join(", ") || "Aucune spécialité"}</span>
+                                  <span>
+                                    {professional.specialties?.join(', ') ||
+                                      'Aucune spécialité'}
+                                  </span>
                                 </div>
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => {
                                     setSelectedProfessional(professional);
@@ -523,45 +611,97 @@ return (
                               </DialogTrigger>
                               <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
-                                  <DialogTitle>Détails du professionnel</DialogTitle>
+                                  <DialogTitle>
+                                    Détails du professionnel
+                                  </DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-6">
                                   <div>
-                                    <h4 className="font-semibold mb-2">Informations entreprise</h4>
+                                    <h4 className="font-semibold mb-2">
+                                      Informations entreprise
+                                    </h4>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                       {(() => {
-                                        const nameParts = getFullNameParts(professional.profile?.full_name);
+                                        const nameParts = getFullNameParts(
+                                          professional.profile?.full_name
+                                        );
                                         return (
                                           <>
-                                            <div><strong>Nom titulaire:</strong> {nameParts.lastName || 'Non renseigné'}</div>
-                                            <div><strong>Prénom titulaire:</strong> {nameParts.firstName || 'Non renseigné'}</div>
-                                            <div><strong>Nom entreprise:</strong> {professional.company_name}</div>
-                                            <div><strong>SIRET:</strong> {professional.siret}</div>
-                                            <div><strong>Spécialités:</strong> {professional.specialties?.join(", ")}</div>
-                                            <div><strong>Description:</strong> {professional.description || "Non renseignée"}</div>
+                                            <div>
+                                              <strong>Nom titulaire:</strong>{' '}
+                                              {nameParts.lastName ||
+                                                'Non renseigné'}
+                                            </div>
+                                            <div>
+                                              <strong>Prénom titulaire:</strong>{' '}
+                                              {nameParts.firstName ||
+                                                'Non renseigné'}
+                                            </div>
+                                            <div>
+                                              <strong>Nom entreprise:</strong>{' '}
+                                              {professional.company_name}
+                                            </div>
+                                            <div>
+                                              <strong>SIRET:</strong>{' '}
+                                              {professional.siret}
+                                            </div>
+                                            <div>
+                                              <strong>Spécialités:</strong>{' '}
+                                              {professional.specialties?.join(
+                                                ', '
+                                              )}
+                                            </div>
+                                            <div>
+                                              <strong>Description:</strong>{' '}
+                                              {professional.description ||
+                                                'Non renseignée'}
+                                            </div>
                                           </>
                                         );
                                       })()}
                                     </div>
                                   </div>
-                                  
+
                                   <div>
-                                    <h4 className="font-semibold mb-2">Contact</h4>
+                                    <h4 className="font-semibold mb-2">
+                                      Contact
+                                    </h4>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div><strong>Email:</strong> {professional.profile?.email}</div>
-                                      <div><strong>Téléphone:</strong> {professional.profile?.phone || 'Non renseigné'}</div>
-                                      <div><strong>Inscrit le:</strong> {new Date(professional.profile?.created_at).toLocaleDateString()}</div>
-                                      <div><strong>Dernière mise à jour:</strong> {new Date(professional.updated_at).toLocaleDateString()}</div>
+                                      <div>
+                                        <strong>Email:</strong>{' '}
+                                        {professional.profile?.email}
+                                      </div>
+                                      <div>
+                                        <strong>Téléphone:</strong>{' '}
+                                        {professional.profile?.phone ||
+                                          'Non renseigné'}
+                                      </div>
+                                      <div>
+                                        <strong>Inscrit le:</strong>{' '}
+                                        {new Date(
+                                          professional.profile?.created_at
+                                        ).toLocaleDateString()}
+                                      </div>
+                                      <div>
+                                        <strong>Dernière mise à jour:</strong>{' '}
+                                        {new Date(
+                                          professional.updated_at
+                                        ).toLocaleDateString()}
+                                      </div>
                                     </div>
                                   </div>
 
                                   <div>
-                                    <h4 className="font-semibold mb-4">Documents et pièces jointes</h4>
-                                    
+                                    <h4 className="font-semibold mb-4">
+                                      Documents et pièces jointes
+                                    </h4>
+
                                     {/* Section Upload Admin */}
                                     <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                      <h5 className="font-medium text-blue-900 mb-3">📤 Ajouter des documents (Admin)</h5>
-                                      
+                                      <h5 className="font-medium text-blue-900 mb-3">
+                                        📤 Ajouter des documents (Admin)
+                                      </h5>
+
                                       {/* Sélecteur de type */}
                                       <div className="mb-4">
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -569,16 +709,32 @@ return (
                                         </label>
                                         <select
                                           value={uploadType}
-                                          onChange={(e) => setUploadType(e.target.value)}
+                                          onChange={(e) =>
+                                            setUploadType(e.target.value)
+                                          }
                                           className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         >
-                                          <option value="">Sélectionner un type...</option>
-                                          <option value="siret">KBIS / SIRET</option>
-                                          <option value="insurance">Assurance RC Pro</option>
-                                          <option value="certification">Certification (RGE, Qualibat, etc.)</option>
-                                          <option value="id">Pièce d'identité</option>
-                                          <option value="portfolio">Portfolio / Réalisations</option>
-                                          <option value="other">Autre document</option>
+                                          <option value="">
+                                            Sélectionner un type...
+                                          </option>
+                                          <option value="siret">
+                                            KBIS / SIRET
+                                          </option>
+                                          <option value="insurance">
+                                            Assurance RC Pro
+                                          </option>
+                                          <option value="certification">
+                                            Certification (RGE, Qualibat, etc.)
+                                          </option>
+                                          <option value="id">
+                                            Pièce d'identité
+                                          </option>
+                                          <option value="portfolio">
+                                            Portfolio / Réalisations
+                                          </option>
+                                          <option value="other">
+                                            Autre document
+                                          </option>
                                         </select>
                                       </div>
 
@@ -591,13 +747,18 @@ return (
                                           <input
                                             type="file"
                                             accept=".pdf,.jpg,.jpeg,.png"
-                                            onChange={(e) => handleUploadDocument(e, uploadType)}
+                                            onChange={(e) =>
+                                              handleUploadDocument(
+                                                e,
+                                                uploadType
+                                              )
+                                            }
                                             disabled={uploading}
                                             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                           />
                                         </div>
                                       )}
-                                      
+
                                       {uploading && (
                                         <div className="mt-2 text-sm text-blue-600">
                                           ⏳ Upload en cours...
@@ -609,8 +770,13 @@ return (
                                     {documents.length === 0 ? (
                                       <div className="text-center py-8 bg-gray-50 rounded-lg">
                                         <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                                        <p className="text-gray-600">Aucun document uploadé</p>
-                                        <p className="text-sm text-gray-500">Le professionnel n'a pas encore fourni de documents</p>
+                                        <p className="text-gray-600">
+                                          Aucun document uploadé
+                                        </p>
+                                        <p className="text-sm text-gray-500">
+                                          Le professionnel n'a pas encore fourni
+                                          de documents
+                                        </p>
                                       </div>
                                     ) : (
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -620,17 +786,46 @@ return (
                                               <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-2">
                                                   <FileText className="w-4 h-4" />
-                                                  <span className="font-medium">{doc.file_name}</span>
+                                                  <span className="font-medium">
+                                                    {doc.file_name}
+                                                  </span>
                                                 </div>
                                                 <div className="text-sm text-gray-600 space-y-1">
-                                                  <div><strong>Type:</strong> {getDocumentTypeLabel(doc.type)}</div>
-                                                  <div><strong>Statut:</strong> {getDocumentStatusBadge(doc.status)}</div>
-                                                  <div><strong>Uploadé le:</strong> {new Date(doc.created_at).toLocaleDateString()}</div>
+                                                  <div>
+                                                    <strong>Type:</strong>{' '}
+                                                    {getDocumentTypeLabel(
+                                                      doc.type
+                                                    )}
+                                                  </div>
+                                                  <div>
+                                                    <strong>Statut:</strong>{' '}
+                                                    {getDocumentStatusBadge(
+                                                      doc.status
+                                                    )}
+                                                  </div>
+                                                  <div>
+                                                    <strong>Uploadé le:</strong>{' '}
+                                                    {new Date(
+                                                      doc.created_at
+                                                    ).toLocaleDateString()}
+                                                  </div>
                                                   {doc.verified_at && (
-                                                    <div><strong>Vérifié le:</strong> {new Date(doc.verified_at).toLocaleDateString()}</div>
+                                                    <div>
+                                                      <strong>
+                                                        Vérifié le:
+                                                      </strong>{' '}
+                                                      {new Date(
+                                                        doc.verified_at
+                                                      ).toLocaleDateString()}
+                                                    </div>
                                                   )}
                                                   {doc.rejection_reason && (
-                                                    <div><strong>Motif rejet:</strong> {doc.rejection_reason}</div>
+                                                    <div>
+                                                      <strong>
+                                                        Motif rejet:
+                                                      </strong>{' '}
+                                                      {doc.rejection_reason}
+                                                    </div>
                                                   )}
                                                 </div>
                                               </div>
@@ -638,23 +833,43 @@ return (
                                                 <Button
                                                   variant="outline"
                                                   size="sm"
-                                                  onClick={() => window.open(doc.file_url, '_blank')}
+                                                  onClick={() =>
+                                                    window.open(
+                                                      doc.file_url,
+                                                      '_blank'
+                                                    )
+                                                  }
                                                 >
                                                   <Download className="w-4 h-4 mr-1" />
                                                   Voir
                                                 </Button>
-                                                
+
                                                 {/* Remplacer document */}
                                                 <div>
                                                   <input
                                                     type="file"
                                                     accept=".pdf,.jpg,.jpeg,.png"
                                                     onChange={(e) => {
-                                                      const file = e.target.files?.[0];
-                                                      if (file && confirm(`Remplacer "${doc.file_name}" par "${file.name}" ?`)) {
+                                                      const file =
+                                                        e.target.files?.[0];
+                                                      if (
+                                                        file &&
+                                                        confirm(
+                                                          `Remplacer "${doc.file_name}" par "${file.name}" ?`
+                                                        )
+                                                      ) {
                                                         // Supprimer l'ancien et uploader le nouveau
-                                                        handleDeleteDocument(doc.id);
-                                                        setTimeout(() => handleUploadDocument(e, doc.type), 500);
+                                                        handleDeleteDocument(
+                                                          doc.id
+                                                        );
+                                                        setTimeout(
+                                                          () =>
+                                                            handleUploadDocument(
+                                                              e,
+                                                              doc.type
+                                                            ),
+                                                          500
+                                                        );
                                                       }
                                                     }}
                                                     className="hidden"
@@ -667,27 +882,38 @@ return (
                                                     🔄 Remplacer
                                                   </label>
                                                 </div>
-                                                
+
                                                 {/* Supprimer document */}
                                                 <Button
                                                   variant="destructive"
                                                   size="sm"
                                                   onClick={() => {
-                                                    if (confirm(`Supprimer "${doc.file_name}" ?`)) {
-                                                      handleDeleteDocument(doc.id);
+                                                    if (
+                                                      confirm(
+                                                        `Supprimer "${doc.file_name}" ?`
+                                                      )
+                                                    ) {
+                                                      handleDeleteDocument(
+                                                        doc.id
+                                                      );
                                                     }
                                                   }}
                                                 >
                                                   <Trash2 className="w-4 h-4 mr-1" />
                                                   Supprimer
                                                 </Button>
-                                                
+
                                                 {doc.status === 'pending' && (
                                                   <>
                                                     <Button
                                                       size="sm"
                                                       className="bg-green-600 hover:bg-green-700"
-                                                      onClick={() => handleVerifyDocument(doc.id, professional.id)}
+                                                      onClick={() =>
+                                                        handleVerifyDocument(
+                                                          doc.id,
+                                                          professional.id
+                                                        )
+                                                      }
                                                     >
                                                       <CheckCircle className="w-4 h-4 mr-1" />
                                                       Valider
@@ -696,9 +922,18 @@ return (
                                                       variant="destructive"
                                                       size="sm"
                                                       onClick={() => {
-                                                        const reason = window.prompt("Motif du rejet du document :");
-                                                        if (reason && reason.trim()) {
-                                                          handleRejectDocument(doc.id, reason.trim());
+                                                        const reason =
+                                                          window.prompt(
+                                                            'Motif du rejet du document :'
+                                                          );
+                                                        if (
+                                                          reason &&
+                                                          reason.trim()
+                                                        ) {
+                                                          handleRejectDocument(
+                                                            doc.id,
+                                                            reason.trim()
+                                                          );
                                                         }
                                                       }}
                                                     >
@@ -717,22 +952,35 @@ return (
                                 </div>
                               </DialogContent>
                             </Dialog>
-                            
-                            {professional.status === "pending" && (
+
+                            {professional.status === 'pending' && (
                               <>
-                                <Button 
-                                  onClick={() => handleValidate(professional.id, professional.profile?.email, professional.company_name)}
+                                <Button
+                                  onClick={() =>
+                                    handleValidate(
+                                      professional.id,
+                                      professional.profile?.email,
+                                      professional.company_name
+                                    )
+                                  }
                                   size="sm"
                                   className="bg-green-600 hover:bg-green-700"
                                 >
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Valider
                                 </Button>
-                                <Button 
+                                <Button
                                   onClick={() => {
-                                    const reason = window.prompt("Motif du rejet (obligatoire) :");
+                                    const reason = window.prompt(
+                                      'Motif du rejet (obligatoire) :'
+                                    );
                                     if (reason && reason.trim()) {
-                                      handleReject(professional.id, reason.trim(), professional.profile?.email, professional.company_name);
+                                      handleReject(
+                                        professional.id,
+                                        reason.trim(),
+                                        professional.profile?.email,
+                                        professional.company_name
+                                      );
                                     }
                                   }}
                                   variant="destructive"
@@ -741,11 +989,18 @@ return (
                                   <XCircle className="w-4 h-4 mr-2" />
                                   Rejeter
                                 </Button>
-                                <Button 
+                                <Button
                                   onClick={() => {
-                                    const reason = window.prompt("Raison de la suspension (obligatoire) :");
+                                    const reason = window.prompt(
+                                      'Raison de la suspension (obligatoire) :'
+                                    );
                                     if (reason && reason.trim()) {
-                                      handleSuspend(professional.id, reason.trim(), professional.profile?.email, professional.company_name);
+                                      handleSuspend(
+                                        professional.id,
+                                        reason.trim(),
+                                        professional.profile?.email,
+                                        professional.company_name
+                                      );
                                     }
                                   }}
                                   variant="outline"
