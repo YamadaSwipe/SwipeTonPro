@@ -479,6 +479,17 @@ export default function AdminUsers() {
           successMessage = `${selectedUsers.length} utilisateur(s) suspendu(s)`;
           break;
         case 'delete':
+          // Récupérer les user_id auth avant suppression
+          const { data: profiles, error: fetchError } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .in('id', selectedUsers);
+
+          if (fetchError) {
+            console.error('Error fetching profiles:', fetchError);
+            throw fetchError;
+          }
+
           // Supprimer les profils
           const { error: deleteError } = await supabase
             .from('profiles')
@@ -486,6 +497,22 @@ export default function AdminUsers() {
             .in('id', selectedUsers);
 
           if (deleteError) throw deleteError;
+
+          // Supprimer les utilisateurs auth de Supabase
+          if (profiles && profiles.length > 0) {
+            for (const profile of profiles) {
+              if (profile.user_id) {
+                const { error: authError } =
+                  await supabase.auth.admin.deleteUser(profile.user_id);
+                if (authError) {
+                  console.warn(
+                    'Warning: Could not delete auth user:',
+                    authError
+                  );
+                }
+              }
+            }
+          }
 
           toast({
             title: 'Succès',
@@ -537,6 +564,18 @@ export default function AdminUsers() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
+      // Récupérer d'abord le profil pour obtenir l'user_id auth
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
       // Supprimer le profil (cascade supprimera les entrées liées)
       const { error } = await supabase
         .from('profiles')
@@ -544,6 +583,17 @@ export default function AdminUsers() {
         .eq('id', userId);
 
       if (error) throw error;
+
+      // Supprimer l'utilisateur auth de Supabase si user_id existe
+      if (profile?.user_id) {
+        const { error: authError } = await supabase.auth.admin.deleteUser(
+          profile.user_id
+        );
+        if (authError) {
+          console.warn('Warning: Could not delete auth user:', authError);
+          // On continue quand même car le profil est supprimé
+        }
+      }
 
       toast({
         title: 'Succès',
