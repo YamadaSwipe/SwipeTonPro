@@ -67,6 +67,8 @@ export default withAdminAuth(async function handler(
         reason || "Projet rejeté par l'administrateur";
     }
 
+    console.log('📝 Mise à jour projet:', { projectId, updateData });
+
     const { data: updatedProject, error: updateError } = await supabase
       .from('projects')
       .update(updateData)
@@ -78,8 +80,11 @@ export default withAdminAuth(async function handler(
       console.error('❌ Erreur mise à jour projet:', updateError);
       return res.status(500).json({
         error: 'Erreur lors de la mise à jour du projet',
+        details: updateError.message,
       });
     }
+
+    console.log('✅ Projet mis à jour:', updatedProject);
 
     // Envoyer une notification au client si son email est disponible
     if (project.client_email) {
