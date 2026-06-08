@@ -86,6 +86,8 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const { toast } = useToast();
   const permissions = usePermissions();
 
@@ -174,8 +176,8 @@ export default function AdminUsers() {
     }
   }
 
-  const filteredUsers = users.filter(
-    (user) =>
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
       user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -183,8 +185,14 @@ export default function AdminUsers() {
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.professional?.company_name
         ?.toLowerCase()
-        .includes(searchTerm.toLowerCase())
-  );
+        .includes(searchTerm.toLowerCase());
+
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesStatus =
+      statusFilter === 'all' || user.professional?.status === statusFilter;
+
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -451,6 +459,7 @@ export default function AdminUsers() {
     action:
       | 'activate'
       | 'suspend'
+      | 'block'
       | 'delete'
       | 'admin'
       | 'support'
@@ -466,88 +475,31 @@ export default function AdminUsers() {
     }
 
     try {
-      let updateData: any = {};
-      let successMessage = '';
+      const response = await fetch('/api/admin/account-actions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userIds: selectedUsers,
+          action,
+          reason:
+            action === 'suspend' || action === 'block'
+              ? 'Action administrative'
+              : undefined,
+        }),
+      });
 
-      switch (action) {
-        case 'activate':
-          updateData = { status: 'verified' };
-          successMessage = `${selectedUsers.length} utilisateur(s) activé(s)`;
-          break;
-        case 'suspend':
-          updateData = { status: 'suspended' };
-          successMessage = `${selectedUsers.length} utilisateur(s) suspendu(s)`;
-          break;
-        case 'delete':
-          // Récupérer les user_id auth avant suppression
-          const { data: profiles, error: fetchError } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .in('id', selectedUsers);
+      const data = await response.json();
 
-          if (fetchError) {
-            console.error('Error fetching profiles:', fetchError);
-            throw fetchError;
-          }
-
-          // Supprimer les profils
-          const { error: deleteError } = await supabase
-            .from('profiles')
-            .delete()
-            .in('id', selectedUsers);
-
-          if (deleteError) throw deleteError;
-
-          // Supprimer les utilisateurs auth de Supabase
-          if (profiles && profiles.length > 0) {
-            for (const profile of profiles) {
-              if (profile.user_id) {
-                const { error: authError } =
-                  await supabase.auth.admin.deleteUser(profile.user_id);
-                if (authError) {
-                  console.warn(
-                    'Warning: Could not delete auth user:',
-                    authError
-                  );
-                }
-              }
-            }
-          }
-
-          toast({
-            title: 'Succès',
-            description: `${selectedUsers.length} utilisateur(s) supprimé(s)`,
-          });
-          setSelectedUsers([]);
-          loadUsers();
-          return;
-        case 'admin':
-          updateData = { role: 'admin' };
-          successMessage = `${selectedUsers.length} utilisateur(s) promu(s) admin`;
-          break;
-        case 'support':
-          updateData = { role: 'support' };
-          successMessage = `${selectedUsers.length} utilisateur(s) promu(s) support`;
-          break;
-        case 'moderator':
-          updateData = { role: 'moderator' };
-          successMessage = `${selectedUsers.length} utilisateur(s) promu(s) modérateur`;
-          break;
+      if (!response.ok) {
+        throw new Error(data.error || "Erreur lors de l'action");
       }
 
-      if (Object.keys(updateData).length > 0) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .in('id', selectedUsers);
-
-        if (updateError) throw updateError;
-
-        toast({
-          title: 'Succès',
-          description: successMessage,
-        });
-      }
+      toast({
+        title: 'Succès',
+        description: data.message,
+      });
 
       setSelectedUsers([]);
       setSelectAll(false);
@@ -564,35 +516,21 @@ export default function AdminUsers() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      // Récupérer d'abord le profil pour obtenir l'user_id auth
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('id', userId)
-        .single();
+      const response = await fetch('/api/admin/account-actions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userIds: [userId],
+          action: 'delete',
+        }),
+      });
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        throw profileError;
-      }
+      const data = await response.json();
 
-      // Supprimer le profil (cascade supprimera les entrées liées)
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      // Supprimer l'utilisateur auth de Supabase si user_id existe
-      if (profile?.user_id) {
-        const { error: authError } = await supabase.auth.admin.deleteUser(
-          profile.user_id
-        );
-        if (authError) {
-          console.warn('Warning: Could not delete auth user:', authError);
-          // On continue quand même car le profil est supprimé
-        }
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la suppression');
       }
 
       toast({
@@ -615,20 +553,29 @@ export default function AdminUsers() {
 
   const handleSuspendUser = async (userId: string) => {
     try {
-      // Suspendre l'utilisateur
-      const { error } = await (supabase as any)
-        .from('profiles')
-        .update({ validation_status: 'suspended' })
-        .eq('id', userId);
+      const response = await fetch('/api/admin/account-actions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userIds: [userId],
+          action: 'suspend',
+          reason: 'Action administrative',
+        }),
+      });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la suspension');
+      }
 
       toast({
         title: 'Succès',
         description: 'Utilisateur suspendu avec succès',
       });
 
-      // Rafraîchir la liste
       setSelectedUsers([]);
       setSelectAll(false);
       loadUsers();
@@ -637,6 +584,44 @@ export default function AdminUsers() {
       toast({
         title: 'Erreur',
         description: error.message || "Impossible de suspendre l'utilisateur",
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleBlockUser = async (userId: string) => {
+    try {
+      const response = await fetch('/api/admin/account-actions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userIds: [userId],
+          action: 'block',
+          reason: "Violation des conditions d'utilisation",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du blocage');
+      }
+
+      toast({
+        title: 'Succès',
+        description: 'Utilisateur bloqué avec succès',
+      });
+
+      setSelectedUsers([]);
+      setSelectAll(false);
+      loadUsers();
+    } catch (error: any) {
+      console.error('Error blocking user:', error);
+      toast({
+        title: 'Erreur',
+        description: error.message || "Impossible de bloquer l'utilisateur",
         variant: 'destructive',
       });
     }
@@ -688,6 +673,32 @@ export default function AdminUsers() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Rôle" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les rôles</SelectItem>
+                <SelectItem value="client">Client</SelectItem>
+                <SelectItem value="professional">Professionnel</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="moderator">Modérateur</SelectItem>
+                <SelectItem value="support">Support</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                <SelectItem value="pending">En attente</SelectItem>
+                <SelectItem value="verified">Vérifié</SelectItem>
+                <SelectItem value="rejected">Rejeté</SelectItem>
+                <SelectItem value="suspended">Suspendu</SelectItem>
+              </SelectContent>
+            </Select>
             {selectedUsers.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
@@ -740,6 +751,12 @@ export default function AdminUsers() {
                         >
                           <Ban className="h-4 w-4 mr-2" />
                           Suspendre
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleBulkAction('block')}
+                        >
+                          <Ban className="h-4 w-4 mr-2" />
+                          Bloquer
                         </DropdownMenuItem>
                       </>
                     )}
@@ -1048,12 +1065,20 @@ export default function AdminUsers() {
                             </>
                           )}
                           {(permissions as any).canManageUsers && (
-                            <DropdownMenuItem
-                              onClick={() => handleSuspendUser(user.id)}
-                            >
-                              <Ban className="mr-2 h-4 w-4 text-red-600" />{' '}
-                              Suspendre
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => handleSuspendUser(user.id)}
+                              >
+                                <Ban className="mr-2 h-4 w-4 text-orange-600" />{' '}
+                                Suspendre
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleBlockUser(user.id)}
+                              >
+                                <Ban className="mr-2 h-4 w-4 text-red-600" />{' '}
+                                Bloquer
+                              </DropdownMenuItem>
+                            </>
                           )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
