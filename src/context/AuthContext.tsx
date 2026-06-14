@@ -471,13 +471,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           created_at: data.user.created_at,
         });
 
-        // Charger les données utilisateur ASYNCHRONEMENT sans bloquer
-        loadUserData(data.user.id).catch((error) => {
-          console.error(
-            '❌ AuthContext: Error loading user data in background:',
-            error
-          );
-        });
+        // Charger les données utilisateur SYNCHRONEMENT avant de retourner le succès
+        await loadUserData(data.user.id);
 
         return { success: true };
       }
