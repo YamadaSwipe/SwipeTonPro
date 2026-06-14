@@ -54,6 +54,8 @@ interface ProData {
     kbis: File | null;
     insurance: File | null;
     certifications: File[];
+    idCard: File | null;
+    proofOfAddress: File | null;
   };
   // Portfolio
   portfolio: {
@@ -118,7 +120,13 @@ export default function InscriptionProPage() {
     address: '',
     city: '',
     postal_code: '',
-    documents: { kbis: null, insurance: null, certifications: [] },
+    documents: {
+      kbis: null,
+      insurance: null,
+      certifications: [],
+      idCard: null,
+      proofOfAddress: null,
+    },
     portfolio: { photos: [], clientContacts: [] },
   });
 
@@ -266,7 +274,7 @@ export default function InscriptionProPage() {
           // Profil rejeté : reprendre à l'étape info pour modification
           setCurrentStep('info');
           // Charger les données existantes pour modification
-          const { data: existingData } = await (supabase as any)
+          const { data: existingData } = await supabase
             .from('professionals')
             .select('company_name, siret, specialties, description')
             .eq('user_id', user.id)
@@ -373,7 +381,7 @@ export default function InscriptionProPage() {
       }
 
       // Upsert — non bloquant si le trigger Supabase a déjà créé le profil
-      await (supabase as any).from('profiles').upsert(
+      const { error: upsertError } = await supabase.from('profiles').upsert(
         {
           id: authData.user.id,
           email: proData.email,
@@ -382,6 +390,11 @@ export default function InscriptionProPage() {
         },
         { onConflict: 'id' }
       );
+
+      if (upsertError) {
+        console.error('Erreur upsert profil:', upsertError);
+        // Ne pas bloquer le flux si l'upsert échoue
+      }
 
       setUserId(authData.user.id);
       setCurrentStep('info');
@@ -663,7 +676,13 @@ export default function InscriptionProPage() {
       address: '',
       city: '',
       postal_code: '',
-      documents: { kbis: null, insurance: null, certifications: [] },
+      documents: {
+        kbis: null,
+        insurance: null,
+        certifications: [],
+        idCard: null,
+        proofOfAddress: null,
+      },
       portfolio: { photos: [], clientContacts: [] },
     });
     setSiretStatus('idle');

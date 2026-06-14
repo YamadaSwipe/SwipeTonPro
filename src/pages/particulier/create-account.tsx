@@ -207,7 +207,7 @@ export default function CreateAccountPage() {
 
             if (!profile) {
               // Créer le profil manquant
-              const { error: profileError } = await (supabase as any)
+              const { error: profileError } = await supabase
                 .from('profiles')
                 .insert({
                   id: signInResult.user.id,
@@ -263,21 +263,39 @@ export default function CreateAccountPage() {
       }
 
       // Créer le profil utilisateur avec rôle client
-      const { error: profileError } = await (supabase as any)
-        .from('profiles')
-        .insert({
-          id: user.id,
-          email,
-          full_name: `${formData.firstName} ${formData.lastName}`,
-          phone: formData.phone,
-          address: formData.address,
-          city: formData.city,
-          postal_code: formData.postalCode,
-          role: 'client',
-        });
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: user.id,
+        email,
+        full_name: `${formData.firstName} ${formData.lastName}`,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        postal_code: formData.postalCode,
+        role: 'client',
+      });
 
       if (profileError) {
-        // Ne pas bloquer si le profil existe déjà
+        // Si le profil existe déjà, essayer de le mettre à jour
+        if (profileError.code === '23505') {
+          // Unique violation
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              full_name: `${formData.firstName} ${formData.lastName}`,
+              phone: formData.phone,
+              address: formData.address,
+              city: formData.city,
+              postal_code: formData.postalCode,
+              role: 'client',
+            })
+            .eq('id', user.id);
+
+          if (updateError) {
+            console.error('Erreur mise à jour profil:', updateError);
+          }
+        } else {
+          console.error('Erreur création profil:', profileError);
+        }
       }
 
       // Envoyer l'email de bienvenue personnalisé depuis l'admin
