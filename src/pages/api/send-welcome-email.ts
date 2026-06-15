@@ -152,4 +152,4 @@ export default async function handler(
     console.error('Erreur send-welcome-email:', error);
     return res.status(500).json({ message: 'Erreur serveur' });
   }
-});
+}
