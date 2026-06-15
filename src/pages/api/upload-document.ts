@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 // Créer le client avec les variables d'environnement
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -12,8 +11,8 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export default withAuth(async function handler(
-  req: AuthenticatedRequest,
+export default async function handler(
+  req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
@@ -132,4 +131,4 @@ export default withAuth(async function handler(
       stack: error instanceof Error ? error.stack : undefined,
     });
   }
-});
+}

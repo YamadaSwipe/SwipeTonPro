@@ -1,9 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { withAdminAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
-export default withAdminAuth(async function handler(
-  req: AuthenticatedRequest,
+export default async function handler(
+  req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
@@ -44,4 +43,4 @@ export default withAdminAuth(async function handler(
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
-});
+}

@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { sendEmailServerSide } from '@/lib/email';
 import { createClient } from '@supabase/supabase-js';
-import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,8 +19,8 @@ function replaceVariables(
   return result;
 }
 
-export default withAuth(async function handler(
-  req: AuthenticatedRequest,
+export default async function handler(
+  req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
