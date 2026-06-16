@@ -1,348 +1,347 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { projectService } from "@/services/projectService";
-import { authService } from "@/services/authService";
-import { SEO } from "@/components/SEO";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+/**
+ * @fileoverview Page de détail d'un projet pour le client
+ * @description Affiche les détails du projet avec le suivi des jalons
+ * @author Senior Architect
+ * @version 1.0.0
+ */
+
+import { SEO } from '@/components/SEO';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ClientGuard } from '@/components/auth/RoleGuard';
+import { useAuth } from '@/context/AuthContext';
+import { ProjectMilestonesTimeline } from '@/components/milestones/ProjectMilestonesTimeline';
+import { ArrowLeft, MapPin, Calendar, Euro, FileText, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  MapPin, 
-  DollarSign, 
-  Clock, 
-  Edit,
-  Star,
-  AlertTriangle,
-  Eye,
-  MessageSquare,
-  Trash2
-} from "lucide-react";
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  category: string;
+  city: string;
+  postal_code: string;
+  budget_min?: number;
+  budget_max?: number;
+  created_at: string;
+  client_id: string;
+  desired_start_date?: string;
+  desired_deadline?: string;
+}
+
+interface MatchedProfessional {
+  id: string;
+  user_id: string;
+  company_name: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+}
 
 export default function ProjectDetailPage() {
-  const [project, setProject] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
+  return (
+    <ClientGuard>
+      <ProjectDetailContent />
+    </ClientGuard>
+  );
+}
+
+function ProjectDetailContent() {
   const router = useRouter();
   const { id } = router.query;
+  const { user } = useAuth();
+
+  const [project, setProject] = useState<Project | null>(null);
+  const [professional, setProfessional] = useState<MatchedProfessional | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [escrowEnabled, setEscrowEnabled] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      loadProject();
-    }
-  }, [id]);
+    if (!id || !user) return;
+    loadProjectData();
+  }, [id, user]);
 
-  const loadProject = async () => {
+  const loadProjectData = async () => {
     try {
-      const session = await authService.getCurrentSession();
-      if (!session?.user?.id) {
-        router.push('/auth/login');
+      setLoading(true);
+      setError(null);
+
+      // Charger le projet
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', id)
+        .eq('client_id', user!.id)
+        .single();
+
+      if (projectError) {
+        console.error('Erreur chargement projet:', projectError);
+        setError('Projet non trouvé');
         return;
       }
 
-      const result = await projectService.getProjectById(id as string);
-      console.log('🔍 Projet détail brut:', result);
+      setProject(projectData);
       
-      if (result.error || !result.data) {
-        console.error('Erreur:', result.error);
-        setProject(null);
-      } else {
-        console.log('🔍 Projet chargé:', result.data);
-        console.log('🔍 AI Estimation:', result.data.ai_estimation);
-        setProject(result.data);
+      // Vérifier si le séquestre est activé
+      setEscrowEnabled(projectData.escrow_enabled || false);
+
+      // Charger le professionnel matché (s'il existe)
+      const { data: interestData } = await supabase
+        .from('project_interests')
+        .select(`
+          professional_id,
+          professionals (
+            id,
+            user_id,
+            company_name,
+            user:user_id (
+              full_name,
+              email,
+              phone
+            )
+          )
+        `)
+        .eq('project_id', id)
+        .eq('status', 'accepted')
+        .single();
+
+      if (interestData && interestData.professionals) {
+        const prof = interestData.professionals as any;
+        setProfessional({
+          id: prof.id,
+          user_id: prof.user_id,
+          company_name: prof.company_name,
+          full_name: prof.user?.full_name,
+          email: prof.user?.email,
+          phone: prof.user?.phone,
+        });
       }
-    } catch (error) {
-      console.error('Erreur:', error);
-      setProject(null);
+    } catch (err) {
+      console.error('Erreur chargement données:', err);
+      setError('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteProject = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible.')) {
-      return;
-    }
-
-    setDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', id as string);
-
-      if (error) throw error;
-
-      // Rediriger vers la liste des projets
-      router.push('/particulier/projects');
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-      alert('Erreur lors de la suppression du projet');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return <Badge variant="secondary">Brouillon</Badge>;
-      case 'published':
-        return <Badge variant="default">Publié</Badge>;
-      case 'cancelled':
-        return <Badge variant="destructive">Annulé</Badge>;
-      case 'featured':
-        return <Badge className="bg-yellow-100 text-yellow-800"><Star className="w-3 h-3 mr-1" /> Vedette</Badge>;
-      case 'urgent':
-        return <Badge className="bg-red-100 text-red-800"><AlertTriangle className="w-3 h-3 mr-1" /> Urgent</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const getValidationStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" /> En attente</Badge>;
-      case 'in_review':
-        return <Badge variant="default"><Eye className="w-3 h-3 mr-1" /> En cours</Badge>;
-      case 'approved':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Approuvé</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejeté</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
   if (loading) {
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement du projet...</p>
-          </div>
-        </div>
-      </ProtectedRoute>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
-  if (!project) {
+  if (error || !project) {
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-4">
-              <MessageSquare className="h-12 w-12 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Projet non trouvé</h3>
-            <p className="text-gray-600 mb-6">Le projet que vous recherchez n'existe pas.</p>
-            <Button onClick={() => router.push('/particulier/dashboard')}>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <p className="text-red-600 mb-4">{error || 'Projet non trouvé'}</p>
+            <Button onClick={() => router.push('/particulier/dashboard-enhanced')}>
               Retour au dashboard
             </Button>
-          </div>
-        </div>
-      </ProtectedRoute>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <SEO 
-        title={project.title}
-        description={`Détails du projet ${project.title} - SwipeTonPro`}
+    <>
+      <SEO
+        title={`${project.title} - Détails du projet`}
+        description={`Suivi de l'avancement de votre projet ${project.title}`}
       />
-      
+
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push('/particulier/dashboard')}
-                  className="flex items-center"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Retour
-                </Button>
-                <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* En-tête */}
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/particulier/dashboard-enhanced')}
+              className="mb-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour au dashboard
+            </Button>
+
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
+                <p className="text-gray-600 mt-2">{project.description}</p>
               </div>
-              <div className="flex items-center space-x-2">
-                {getStatusBadge(project.status)}
-                {getValidationStatusBadge(project.validation_status)}
-              </div>
+              <Badge variant="outline" className="text-lg px-4 py-2">
+                {project.status}
+              </Badge>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="grid gap-6">
-            {/* Main Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Informations du projet</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Description</h3>
-                    <p className="text-gray-600 whitespace-pre-wrap">{project.description}</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Colonne principale */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Timeline des jalons */}
+              <ProjectMilestonesTimeline
+                projectId={project.id}
+                projectClientId={project.client_id}
+                professionalUserId={professional?.user_id}
+                escrowEnabled={escrowEnabled}
+                onMilestoneUpdate={loadProjectData}
+              />
+            </div>
+
+            {/* Colonne latérale */}
+            <div className="space-y-6">
+              {/* Informations du projet */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations du projet</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start">
+                    <MapPin className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <span className="font-medium">Catégorie:</span>
-                      <p className="text-gray-600">{project.category}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Ville:</span>
-                      <p className="text-gray-600">{project.city}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Budget:</span>
-                      <p className="text-gray-600">
-                        {project.estimated_budget_min || project.budget_min}€ - {project.estimated_budget_max || project.budget_max}€
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Date de création:</span>
-                      <p className="text-gray-600">
-                        {new Date(project.created_at).toLocaleDateString()}
+                      <p className="text-sm font-medium text-gray-900">Localisation</p>
+                      <p className="text-sm text-gray-600">
+                        {project.city}, {project.postal_code}
                       </p>
                     </div>
                   </div>
 
-                  {/* Estimation IA */}
-                  {project.ai_analysis && (
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-2">🤖 Estimation IA</h4>
-                      <div className="text-blue-800">
-                        {typeof project.ai_analysis === 'string' ? (
-                          <p className="whitespace-pre-wrap">{project.ai_analysis}</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {project.ai_analysis.estimated_cost && (
-                              <p><strong>Coût estimé:</strong> {project.ai_analysis.estimated_cost}€</p>
-                            )}
-                            {project.ai_analysis.duration_days && (
-                              <p><strong>Durée estimée:</strong> {project.ai_analysis.duration_days} jours</p>
-                            )}
-                            {project.ai_analysis.complexity && (
-                              <p><strong>Complexité:</strong> {project.ai_analysis.complexity}</p>
-                            )}
-                            <pre className="whitespace-pre-wrap text-xs mt-2">
-                              {JSON.stringify(project.ai_analysis, null, 2)}
-                            </pre>
-                          </div>
+                  <div className="flex items-start">
+                    <FileText className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Catégorie</p>
+                      <p className="text-sm text-gray-600">{project.category}</p>
+                    </div>
+                  </div>
+
+                  {(project.budget_min || project.budget_max) && (
+                    <div className="flex items-start">
+                      <Euro className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Budget</p>
+                        <p className="text-sm text-gray-600">
+                          {project.budget_min && project.budget_max
+                            ? `${project.budget_min}€ - ${project.budget_max}€`
+                            : project.budget_min
+                            ? `À partir de ${project.budget_min}€`
+                            : `Jusqu'à ${project.budget_max}€`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-start">
+                    <Calendar className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Créé le</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(project.created_at).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {project.desired_start_date && (
+                    <div className="flex items-start">
+                      <Calendar className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Début souhaité</p>
+                        <p className="text-sm text-gray-600">
+                          {new Date(project.desired_start_date).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Professionnel matché */}
+              {professional && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Artisan assigné</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start">
+                      <User className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {professional.company_name}
+                        </p>
+                        {professional.full_name && (
+                          <p className="text-sm text-gray-600">{professional.full_name}</p>
                         )}
                       </div>
                     </div>
-                  )}
 
-                  {project.is_featured && (
-                    <div className="bg-yellow-50 p-4 rounded-lg">
-                      <div className="flex items-center">
-                        <Star className="h-5 w-5 text-yellow-500 mr-2" />
-                        <span className="text-yellow-800 font-medium">Ce projet est en vedette</span>
+                    {professional.email && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Email</p>
+                        <p className="text-sm text-gray-600">{professional.email}</p>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {project.is_urgent && (
-                    <div className="bg-red-50 p-4 rounded-lg">
-                      <div className="flex items-center">
-                        <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-                        <span className="text-red-800 font-medium">Ce projet est marqué comme urgent</span>
+                    {professional.phone && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Téléphone</p>
+                        <p className="text-sm text-gray-600">{professional.phone}</p>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    )}
 
-            {/* Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex space-x-4">
-                  {project.status === 'draft' && (
                     <Button
-                      onClick={() => router.push(`/particulier/new-project?edit=${project.id}`)}
-                      className="flex items-center"
+                      className="w-full"
+                      onClick={() => router.push(`/particulier/particulier-messages?project=${project.id}`)}
                     >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Modifier
+                      Envoyer un message
                     </Button>
-                  )}
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => window.print()}
-                    className="flex items-center"
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Imprimer
-                  </Button>
+                  </CardContent>
+                </Card>
+              )}
 
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteProject}
-                    disabled={deleting}
-                    className="flex items-center"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {deleting ? 'Suppression...' : 'Supprimer'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Status History */}
-            {(project.validated_at || project.featured_at || project.urgent_at) && (
+              {/* Actions rapides */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Historique du statut</CardTitle>
+                  <CardTitle>Actions</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {project.validated_at && (
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                        <span className="text-gray-600">
-                          Validé le {new Date(project.validated_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                    {project.featured_at && (
-                      <div className="flex items-center text-sm">
-                        <Star className="h-4 w-4 mr-2 text-yellow-400" />
-                        <span className="text-gray-600">
-                          Mis en vedette le {new Date(project.featured_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                    {project.urgent_at && (
-                      <div className="flex items-center text-sm">
-                        <AlertTriangle className="h-4 w-4 mr-2 text-red-400" />
-                        <span className="text-gray-600">
-                          Marqué urgent le {new Date(project.urgent_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                <CardContent className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => router.push(`/particulier/projects/${project.id}/edit`)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Modifier le projet
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => router.push('/particulier/particulier-messages')}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Voir les messages
+                  </Button>
                 </CardContent>
               </Card>
-            )}
+            </div>
           </div>
         </div>
       </div>
-    </ProtectedRoute>
+    </>
   );
 }

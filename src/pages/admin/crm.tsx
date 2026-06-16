@@ -43,11 +43,14 @@ import {
   BarChart3,
   PieChart,
   Activity,
+  Shield,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { leadQualificationService } from '@/services/leadQualificationService';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { useToast } from '@/hooks/use-toast';
+import { authService } from '@/services/authService';
 
 interface Lead {
   id: string;
@@ -80,6 +83,7 @@ interface Lead {
   project?: any;
   client?: any;
   professional?: any;
+  is_project_qualified?: boolean;
 }
 
 export default function AdminCRMPage() {
@@ -95,6 +99,7 @@ export default function AdminCRMPage() {
     assignedTo: 'all',
     dateRange: 'all',
   });
+  const { toast } = useToast();
 
   useEffect(() => {
     loadLeads();
@@ -118,6 +123,7 @@ export default function AdminCRMPage() {
           status,
           created_at,
           client_id,
+          is_project_qualified,
           client:profiles!projects_client_id_fkey(
             id,
             full_name,
@@ -211,6 +217,7 @@ export default function AdminCRMPage() {
             email: clientData?.email || '',
             phone: clientData?.phone || '',
           },
+          is_project_qualified: project.is_project_qualified || false,
         };
       });
 
@@ -376,6 +383,52 @@ export default function AdminCRMPage() {
     } catch (error) {
       console.error('Erreur mise à jour:', error);
       alert('Erreur lors de la mise à jour');
+    }
+  };
+
+  const handleQualifyProject = async (leadId: string, currentlyQualified: boolean) => {
+    try {
+      const session = await authService.getCurrentSession();
+      if (!session) {
+        toast({
+          title: '❌ Erreur',
+          description: 'Session expirée, veuillez vous reconnecter',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const response = await fetch('/api/admin/qualify-project', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          projectId: leadId,
+          qualify: !currentlyQualified,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la qualification');
+      }
+
+      toast({
+        title: '✅ Succès',
+        description: data.message,
+      });
+
+      loadLeads(); // Recharger la liste
+    } catch (error: any) {
+      console.error('Erreur qualification:', error);
+      toast({
+        title: '❌ Erreur',
+        description: error.message || 'Erreur lors de la qualification du projet',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -629,6 +682,36 @@ export default function AdminCRMPage() {
                           </td>
                           <td className="p-2">
                             <div className="flex gap-1">
+                              <Button
+                                variant={lead.is_project_qualified ? 'outline' : 'default'}
+                                size="sm"
+                                onClick={() =>
+                                  handleQualifyProject(lead.id, lead.is_project_qualified || false)
+                                }
+                                className={
+                                  lead.is_project_qualified
+                                    ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                                    : ''
+                                }
+                                title={
+                                  lead.is_project_qualified
+                                    ? 'Retirer la qualification'
+                                    : 'Qualifier ce projet'
+                                }
+                              >
+                                {lead.is_project_qualified ? (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Qualifié
+                                  </>
+                                ) : (
+                                  <>
+                                    <Shield className="w-4 h-4 mr-1" />
+                                    Qualifier
+                                  </>
+                                )}
+                              </Button>
+
                               <Button
                                 variant="outline"
                                 size="sm"

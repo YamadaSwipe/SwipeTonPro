@@ -262,40 +262,22 @@ export default function CreateAccountPage() {
         // L'utilisateur pourra se connecter manuellement si nécessaire
       }
 
-      // Créer le profil utilisateur avec rôle client
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: user.id,
-        email,
-        full_name: `${formData.firstName} ${formData.lastName}`,
-        phone: formData.phone,
-        address: formData.address,
-        city: formData.city,
-        postal_code: formData.postalCode,
-        role: 'client',
-      });
+      // Mettre à jour le profil créé automatiquement par le trigger
+      // Le trigger auto_create_profile_with_role crée déjà le profil avec le bon rôle
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: `${formData.firstName} ${formData.lastName}`,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          postal_code: formData.postalCode,
+        })
+        .eq('id', user.id);
 
       if (profileError) {
-        // Si le profil existe déjà, essayer de le mettre à jour
-        if (profileError.code === '23505') {
-          // Unique violation
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              full_name: `${formData.firstName} ${formData.lastName}`,
-              phone: formData.phone,
-              address: formData.address,
-              city: formData.city,
-              postal_code: formData.postalCode,
-              role: 'client',
-            })
-            .eq('id', user.id);
-
-          if (updateError) {
-            console.error('Erreur mise à jour profil:', updateError);
-          }
-        } else {
-          console.error('Erreur création profil:', profileError);
-        }
+        console.error('Erreur mise à jour profil:', profileError);
+        // Ne pas bloquer si la mise à jour échoue
       }
 
       // Envoyer l'email de bienvenue personnalisé depuis l'admin

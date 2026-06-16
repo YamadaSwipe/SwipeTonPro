@@ -27,9 +27,7 @@ import GoogleAuthButton from '@/components/GoogleAuthButton';
 
 type InscriptionStep =
   | 'auth'
-  | 'info'
   | 'documents'
-  | 'portfolio'
   | 'validation';
 type SiretStatus = 'idle' | 'checking' | 'valid' | 'invalid' | 'error';
 
@@ -78,18 +76,14 @@ const SPECIALITES = [
 ];
 
 const STEP_LABELS: Record<InscriptionStep, string> = {
-  auth: 'Création du compte',
-  info: 'Informations entreprise',
-  documents: 'Documents',
-  portfolio: 'Portfolio',
+  auth: 'Compte & Entreprise',
+  documents: 'Documents obligatoires',
   validation: 'Confirmation',
 };
 
 const STEP_ORDER: InscriptionStep[] = [
   'auth',
-  'info',
   'documents',
-  'portfolio',
   'validation',
 ];
 
@@ -271,8 +265,8 @@ export default function InscriptionProPage() {
           router.replace('/professionnel/validation-en-cours');
           return;
         } else if (proProfile?.status === 'rejected') {
-          // Profil rejeté : reprendre à l'étape info pour modification
-          setCurrentStep('info');
+          // Profil rejeté : reprendre à l'étape auth pour modification
+          setCurrentStep('auth');
           // Charger les données existantes pour modification
           const { data: existingData } = await supabase
             .from('professionals')
@@ -292,7 +286,7 @@ export default function InscriptionProPage() {
         } else if (proProfile?.id) {
           setCurrentStep('documents');
         } else {
-          setCurrentStep('info');
+          setCurrentStep('auth');
         }
       } catch (err) {
         console.error('Erreur vérification auth:', err);
@@ -397,7 +391,7 @@ export default function InscriptionProPage() {
       }
 
       setUserId(authData.user.id);
-      setCurrentStep('info');
+      setCurrentStep('documents');
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la création du compte');
     } finally {

@@ -1,16 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { withAdminAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 /**
  * API pour configurer le SMTP Supabase automatiquement
  * Cette API utilise l'API Management de Supabase pour configurer le SMTP OVH
+ * SÉCURISÉ: Accessible uniquement aux administrateurs
  */
-export default async function handler(
-  req: NextApiRequest,
+export default withAdminAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
-  // Sécurité : Cette route ne devrait être accessible qu'aux admins
-  // Pour une première configuration, on peut l'appeler manuellement
-  
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -29,6 +28,14 @@ export default async function handler(
     // Extraire le project ref depuis l'URL
     const projectRef = supabaseUrl.replace("https://", "").split(".")[0];
 
+    // Validation du mot de passe SMTP
+    if (!process.env.SMTP_PASSWORD) {
+      return res.status(500).json({ 
+        error: "Configuration manquante",
+        details: "SMTP_PASSWORD doit être configuré dans les variables d'environnement" 
+      });
+    }
+
     // Configuration SMTP OVH
     const smtpConfig = {
       enable_smtp: true,
@@ -36,7 +43,7 @@ export default async function handler(
       smtp_host: "ssl0.ovh.net",
       smtp_port: 465,
       smtp_user: "noreply@swipetonpro.fr",
-      smtp_pass: process.env.SMTP_PASSWORD || "Swipe@Ton@Pro123@",
+      smtp_pass: process.env.SMTP_PASSWORD,
       smtp_sender_name: "SwipeTonPro",
       smtp_max_frequency: 1
     };
@@ -87,4 +94,4 @@ export default async function handler(
       suggestion: "Contactez le support ou configurez manuellement via le dashboard Supabase"
     });
   }
-}
+});

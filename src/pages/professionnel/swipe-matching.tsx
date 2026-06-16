@@ -79,11 +79,22 @@ export default function SwipeMatchingPage() {
         return;
       }
 
+      // Récupérer l'historique des swipes pour exclure les projets déjà vus
+      const { data: swipeHistory } = await (supabase as any)
+        .from('swipe_history')
+        .select('target_id')
+        .eq('swiper_id', pro.id)
+        .eq('target_type', 'project');
+
+      const swipedProjectIds = new Set(
+        swipeHistory?.map((s: any) => s.target_id) || []
+      );
+
       // Filtrer et scorer les projets
       const scoredProjects = availableProjects
         .filter((project: Project) => {
-          // Exclure les projets déjà intéressés
-          return true; // TODO: Vérifier dans project_interests
+          // Exclure les projets déjà swipés (like, dislike, maybe)
+          return !swipedProjectIds.has(project.id);
         })
         .map((project: Project) => {
           let score = 0;
@@ -159,6 +170,23 @@ export default function SwipeMatchingPage() {
 
         if (!pro) return;
 
+        // Enregistrer le swipe dans l'historique
+        const swipeAction =
+          direction === 'up' ? 'like' : direction === 'right' ? 'maybe' : 'dislike';
+
+        await (supabase as any).from('swipe_history').insert({
+          swiper_id: pro.id,
+          swiper_type: 'professional',
+          target_id: currentProject.id,
+          target_type: 'project',
+          action: swipeAction,
+          matching_score: (currentProject as any).matchingScore,
+          swipe_context: {
+            timestamp: new Date().toISOString(),
+            device: 'web',
+          },
+        });
+
         if (direction === 'up') {
           // Intéressé - créer une candidature
           const { error } = await (supabase as any)
@@ -185,14 +213,18 @@ export default function SwipeMatchingPage() {
             });
           }
         } else if (direction === 'right') {
-          // Peut-être plus tard - sauvegarder pour plus tard
-          // TODO: Implémenter la fonctionnalité "plus tard"
+          // Peut-être plus tard - sauvegardé dans swipe_history
           toast({
             title: '📝 Sauvegardé',
             description: 'Projet conservé pour plus tard',
           });
+        } else {
+          // Passé - enregistré dans swipe_history
+          toast({
+            title: '👋 Projet passé',
+            description: 'Vous ne le reverrez plus',
+          });
         }
-        // direction === 'left' = passer, aucune action nécessaire
 
         // Passer au projet suivant
         setCurrentIndex((prev) => prev + 1);

@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { sendEmailServerSide } from '@/lib/email';
+import { 
+  getMatchConfirmedProfessionalEmail, 
+  getMatchConfirmedClientEmail 
+} from '@/lib/qualificationEmailTemplates';
 import { createClient } from '@supabase/supabase-js';
 import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
@@ -257,14 +261,14 @@ export default withAuth(async function handler(
     const pricePaidDisplay = pricePaid ? `${pricePaid} €` : 'Voir admin';
 
     const results = await Promise.allSettled([
-      // Email au professionnel
+      // Email au professionnel - NOUVEAU TEMPLATE AVEC SÉQUESTRE
       sendEmailServerSide({
         to: proProfile.email,
-        subject: `🎉 Match confirmé — ${project.title}`,
-        html: templateMatchPro({
+        subject: `🎉 Match confirmé — ${project.title} — Action requise`,
+        html: getMatchConfirmedProfessionalEmail({
           proName: proProfile.full_name || 'Professionnel',
           projectTitle: project.title,
-          projectCity: project.city || '',
+          clientName: clientProfile.full_name || 'Client',
           projectBudget: budgetDisplay,
           pricePaid: pricePaidDisplay,
           dashboardUrl: `${BASE_URL}/professionnel/dashboard`,
@@ -272,11 +276,11 @@ export default withAuth(async function handler(
         fromType: 'noreply',
       }),
 
-      // Email au particulier
+      // Email au particulier - NOUVEAU TEMPLATE AVEC RÉASSURANCE
       sendEmailServerSide({
         to: clientProfile.email,
         subject: `🤝 Votre professionnel est confirmé — ${project.title}`,
-        html: templateMatchClient({
+        html: getMatchConfirmedClientEmail({
           clientName: clientProfile.full_name || 'Client',
           proName: proProfile.full_name || 'Votre professionnel',
           projectTitle: project.title,

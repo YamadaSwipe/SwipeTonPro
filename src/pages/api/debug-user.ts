@@ -1,15 +1,21 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { withAdminAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(
-  req: NextApiRequest,
+export default withAdminAuth(async function handler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
+  // SÉCURITÉ: Désactiver en production
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
@@ -65,4 +71,4 @@ export default async function handler(
       message: error.message,
     });
   }
-}
+});

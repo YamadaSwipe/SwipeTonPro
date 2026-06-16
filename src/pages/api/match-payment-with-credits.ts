@@ -200,49 +200,40 @@ export default withAuth(async function handler(
 
     // CAS 1: Paiement par crédits
     if (paymentMethod === 'credits') {
-      // Vérifier le solde de crédits
-      const { data: pro, error: proError } = await supabaseAdmin
-        .from('professionals')
-        .select('credits_balance, user_id')
-        .eq('id', professionalId)
-        .single();
-
-      if (proError || !pro) {
-        return res.status(404).json({ error: 'Professional not found' });
-      }
-
-      const currentBalance = pro.credits_balance || 0;
       const requiredCredits = Math.ceil(priceInEuros / 5); // 1 crédit = ~5€
 
-      if (currentBalance < requiredCredits) {
-        return res.status(400).json({
-          error: 'Insufficient credits',
-          currentBalance,
-          requiredCredits,
-          shortfall: requiredCredits - currentBalance,
+      // ✅ Utiliser la fonction atomique pour éviter les race conditions
+      const { data: spendResult, error: spendError } = await supabaseAdmin.rpc(
+        'spend_credits',
+        {
+          p_professional_id: professionalId,
+          p_amount: requiredCredits,
+          p_description: `Mise en relation projet: ${project.title}`,
+          p_reference_type: 'match',
+          p_reference_id: projectId,
+        }
+      );
+
+      if (spendError) {
+        console.error('Error calling spend_credits:', spendError);
+        return res.status(500).json({ 
+          error: 'Failed to spend credits',
+          details: spendError.message 
         });
       }
 
-      // Déduire les crédits
-      const newBalance = currentBalance - requiredCredits;
+      // Vérifier le résultat
+      if (!spendResult || !spendResult.success) {
+        return res.status(400).json({
+          error: spendResult?.error || 'Insufficient credits',
+          error_code: spendResult?.error_code,
+          currentBalance: spendResult?.current_balance,
+          requiredCredits: spendResult?.required || requiredCredits,
+          shortfall: spendResult?.shortfall,
+        });
+      }
 
-      const { error: updateError } = await supabaseAdmin
-        .from('professionals')
-        .update({ credits_balance: newBalance })
-        .eq('id', professionalId);
-
-      if (updateError) throw updateError;
-
-      // Créer la transaction de crédits
-      await supabaseAdmin.from('credit_transactions').insert({
-        professional_id: professionalId,
-        type: 'usage',
-        amount: -requiredCredits,
-        balance_after: newBalance,
-        description: `Mise en relation projet: ${project.title}`,
-        reference_type: 'match',
-        reference_id: projectId,
-      });
+      const newBalance = spendResult.new_balance;
 
       // Créer le match payment
       const { data: matchPayment, error: matchError } = await supabaseAdmin

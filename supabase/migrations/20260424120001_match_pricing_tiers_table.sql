@@ -81,11 +81,14 @@ COMMENT ON TABLE match_pricing_tiers IS
 
 INSERT INTO match_pricing_tiers (key, label, description, budget_min, budget_max, credits_cost, price_cents, sort_order, is_active)
 VALUES 
-  ('small', 'Petit projet', 'Projets jusqu a 1000 euros d estimation', 0, 100000, 1, 500, 1, true),
-  ('medium', 'Projet moyen', 'Projets de 1000 a 5000 euros d estimation', 100000, 500000, 2, 1000, 2, true),
-  ('large', 'Gros projet', 'Projets de 5000 a 15000 euros d estimation', 500000, 1500000, 3, 1500, 3, true),
-  ('xlarge', 'Tres gros projet', 'Projets de 15000 a 50000 euros d estimation', 1500000, 5000000, 5, 2500, 4, true),
-  ('enterprise', 'Projet exceptionnel', 'Projets > 50000 euros d estimation', 5000000, NULL, 10, 5000, 5, true)
+  ('tier_1', 'Petit projet', 'Projets jusqu a 1000 euros d estimation', 0, 100000, 4, 1900, 1, true),
+  ('tier_2', 'Projet standard', 'Projets de 1000 a 2000 euros d estimation', 100000, 200000, 8, 3900, 2, true),
+  ('tier_3', 'Projet moyen', 'Projets de 2000 a 5000 euros d estimation', 200000, 500000, 14, 6900, 3, true),
+  ('tier_4', 'Gros projet', 'Projets de 5000 a 10000 euros d estimation', 500000, 1000000, 26, 12900, 4, true),
+  ('tier_5', 'Tres gros projet', 'Projets de 10000 a 15000 euros d estimation', 1000000, 1500000, 40, 19900, 5, true),
+  ('tier_6', 'Projet important', 'Projets de 15000 a 25000 euros d estimation', 1500000, 2500000, 50, 25000, 6, true),
+  ('tier_7', 'Projet majeur', 'Projets de 25000 a 50000 euros d estimation', 2500000, 5000000, 70, 34900, 7, true),
+  ('tier_8', 'Projet exceptionnel', 'Projets > 50000 euros d estimation', 5000000, NULL, 120, 59900, 8, true)
 ON CONFLICT (key) DO NOTHING;
 
 -- =====================================================

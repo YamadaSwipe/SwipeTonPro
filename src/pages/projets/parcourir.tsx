@@ -23,7 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { projectService } from '@/services/projectService';
 import { WORK_TYPES, FRENCH_CITIES } from '@/lib/constants/work-types';
 import type { Database } from '@/integrations/supabase/types';
@@ -49,6 +49,8 @@ export default function ProjectsBrowsePage() {
     lng: number;
   } | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const projectsPerPage = 12;
 
   // Load active projects
   useEffect(() => {
@@ -205,6 +207,7 @@ export default function ProjectsBrowsePage() {
     }
 
     setFilteredProjects(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [
     searchQuery,
     filterCity,
@@ -216,6 +219,15 @@ export default function ProjectsBrowsePage() {
     projects,
     userLocation,
   ]);
+
+  // Pagination logic
+  const paginatedProjects = useMemo(() => {
+    const startIndex = (currentPage - 1) * projectsPerPage;
+    const endIndex = startIndex + projectsPerPage;
+    return filteredProjects.slice(startIndex, endIndex);
+  }, [filteredProjects, currentPage, projectsPerPage]);
+
+  const totalPages = Math.ceil(filteredProjects.length / projectsPerPage);
 
   const calculateDistance = (
     lat1: number,
@@ -293,6 +305,7 @@ export default function ProjectsBrowsePage() {
               {filteredProjects.length} projet
               {filteredProjects.length !== 1 ? 's' : ''} trouvé
               {filteredProjects.length !== 1 ? 's' : ''}
+              {totalPages > 1 && ` • Page ${currentPage} sur ${totalPages}`}
             </p>
           </div>
 
@@ -525,8 +538,9 @@ export default function ProjectsBrowsePage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((project) => (
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedProjects.map((project) => (
                 <Card
                   key={project.id}
                   className="border-border/50 hover:border-primary/50 transition-all hover:shadow-lg hover:-translate-y-1 group"
@@ -675,7 +689,54 @@ export default function ProjectsBrowsePage() {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex justify-center items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Précédent
+                  </Button>
+                  
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? 'default' : 'outline'}
+                            onClick={() => setCurrentPage(page)}
+                            className="w-10"
+                          >
+                            {page}
+                          </Button>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} className="px-2">...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Suivant
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>

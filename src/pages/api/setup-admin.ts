@@ -1,5 +1,6 @@
 // API pour créer le vrai compte admin
 // À exécuter une seule fois pour initialiser l'admin
+// SÉCURISÉ: Désactivé en production pour éviter les abus
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
@@ -13,6 +14,11 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // SÉCURITÉ: Désactiver en production
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

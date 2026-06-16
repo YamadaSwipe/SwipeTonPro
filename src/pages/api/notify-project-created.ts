@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { sendEmailServerSide } from '@/lib/email';
+import { getProjectPublishedClientEmail } from '@/lib/qualificationEmailTemplates';
 import { createClient } from '@supabase/supabase-js';
 import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
 
@@ -186,6 +187,18 @@ export default withAuth(async function handler(
       .single();
 
     const results = await Promise.allSettled([
+      // Email au particulier - RÉASSURANCE SÉCURITÉ
+      sendEmailServerSide({
+        to: client.email,
+        subject: `✅ Votre projet "${project.title}" est en ligne`,
+        html: getProjectPublishedClientEmail({
+          clientName: client.full_name || 'Client',
+          projectTitle: project.title,
+          projectUrl: `${BASE_URL}/particulier/dashboard`,
+        }),
+        fromType: 'noreply',
+      }),
+
       // Email Support
       sendEmailServerSide({
         to: 'support@swipetonpro.fr',
@@ -232,7 +245,7 @@ export default withAuth(async function handler(
     const sent = results.filter((r) => r.status === 'fulfilled').length;
 
     return res.status(200).json({
-      message: `${sent}/2 emails envoyés, lead créé dans le CRM`,
+      message: `${sent}/3 emails envoyés (client + support + team), lead créé dans le CRM`,
       sent,
     });
   } catch (error) {

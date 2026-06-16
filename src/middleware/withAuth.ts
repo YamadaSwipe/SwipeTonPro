@@ -1,6 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import { errorResponse } from '@/utils/apiResponse';
+
+// Create admin client for role checking (bypasses RLS)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 interface AuthenticatedRequest extends NextApiRequest {
   user?: {
@@ -54,8 +61,8 @@ export function withAuth(handler: ApiHandler): ApiHandler {
         return;
       }
 
-      // Récupérer le profil utilisateur pour le rôle
-      const { data: profile } = await supabase
+      // Récupérer le profil utilisateur pour le rôle (avec admin client pour bypass RLS)
+      const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('role')
         .eq('id', user.id)
@@ -119,12 +126,40 @@ export function withOptionalAuth(handler: ApiHandler): ApiHandler {
 }
 
 /**
- * Middleware avec vérification de rôle admin
+ * Middleware avec vérification de rôle admin/staff
+ * Accepte: admin, super_admin, support, moderator
  */
 export function withAdminAuth(handler: ApiHandler): ApiHandler {
   return withAuth(async (req: AuthenticatedRequest, res: NextApiResponse) => {
-    if (req.user?.role !== 'admin') {
-      errorResponse(res, 'Accès réservé aux administrateurs', 403, 'FORBIDDEN');
+    const allowedRoles = ['admin', 'super_admin', 'support', 'moderator'];
+    
+    if (!req.user?.role || !allowedRoles.includes(req.user.role)) {
+      errorResponse(
+        res, 
+        'Accès réservé aux administrateurs, modérateurs et support', 
+        403, 
+        'FORBIDDEN'
+      );
+      return;
+    }
+
+    return await handler(req, res);
+  });
+}
+
+/**
+ * Middleware strict pour super_admin uniquement
+ * À utiliser pour les opérations critiques (suppression, configuration système)
+ */
+export function withSuperAdminAuth(handler: ApiHandler): ApiHandler {
+  return withAuth(async (req: AuthenticatedRequest, res: NextApiResponse) => {
+    if (req.user?.role !== 'super_admin') {
+      errorResponse(
+        res, 
+        'Accès réservé aux super administrateurs uniquement', 
+        403, 
+        'FORBIDDEN'
+      );
       return;
     }
 

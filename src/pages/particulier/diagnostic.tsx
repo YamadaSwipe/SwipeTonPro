@@ -18,9 +18,10 @@ import {
   Euro,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { authService } from '@/services/authService';
 import { projectService } from '@/services/projectService';
+import { useAutosave } from '@/hooks/useAutosave';
 import {
   generateEstimationWithFallback,
   type AIEstimation,
@@ -28,9 +29,9 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getAISettings } from '@/services/platformService';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 import { notificationService } from '@/services/notificationService';
 import { supabase } from '@/integrations/supabase/client';
+import { PhotoUploadZone } from '@/components/ui/PhotoUploadZone';
 
 type DiagnosticStep =
   | 'contact'
@@ -135,10 +136,43 @@ export default function DiagnosticPage() {
     mode: string;
     creditsRemaining: number;
   } | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // Fonction de sauvegarde automatique dans localStorage
+  const saveToLocalStorage = useCallback((data: ProjectData) => {
+    try {
+      localStorage.setItem('diagnostic_draft', JSON.stringify(data));
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Erreur sauvegarde localStorage:', error);
+    }
+  }, []);
+
+  // Hook de sauvegarde automatique
+  useAutosave({
+    data: projectData,
+    onSave: saveToLocalStorage,
+    interval: 30000, // 30 secondes
+    enabled: currentStep !== 'validation', // Désactiver sur la page de validation
+  });
 
   // Charger les paramètres IA et vérifier l'authentification au montage
   useEffect(() => {
     async function initializeDiagnostic() {
+      // Charger le brouillon depuis localStorage
+      try {
+        const savedDraft = localStorage.getItem('diagnostic_draft');
+        if (savedDraft) {
+          const draft = JSON.parse(savedDraft);
+          // Ne charger que si les données ne sont pas vides
+          if (draft.description || draft.workType) {
+            setProjectData(draft);
+            console.log('✅ Brouillon chargé depuis localStorage');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur chargement brouillon:', error);
+      }
       // Vérifier si l'utilisateur est connecté
       const session = await authService.getCurrentSession();
       if (!session || !session.user) {
@@ -160,15 +194,21 @@ export default function DiagnosticPage() {
 
       if (profile) {
         const names = profile.full_name?.split(' ') || ['', ''];
-        setProjectData((prev) => ({
-          ...prev,
-          firstName: names[0] || '',
-          lastName: names[1] || '',
-          email: profile.email || '',
-          phone: profile.phone || '',
-          city: profile.city || '',
-          postal_code: profile.postal_code || '',
-        }));
+        setProjectData((prev) => {
+          // Ne pas écraser les données du brouillon si elles existent
+          const savedDraft = localStorage.getItem('diagnostic_draft');
+          const hasDraft = savedDraft && JSON.parse(savedDraft).description;
+          
+          return {
+            ...prev,
+            firstName: hasDraft ? prev.firstName : (names[0] || ''),
+            lastName: hasDraft ? prev.lastName : (names[1] || ''),
+            email: hasDraft ? prev.email : (profile.email || ''),
+            phone: hasDraft ? prev.phone : (profile.phone || ''),
+            city: hasDraft ? prev.city : (profile.city || ''),
+            postal_code: hasDraft ? prev.postal_code : (profile.postal_code || ''),
+          };
+        });
       }
     }
 
@@ -181,19 +221,11 @@ export default function DiagnosticPage() {
     handleNext();
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setProjectData({
-        ...projectData,
-        photos: [...projectData.photos, ...files],
-      });
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    const newPhotos = projectData.photos.filter((_, i) => i !== index);
-    setProjectData({ ...projectData, photos: newPhotos });
+  const handlePhotosChange = (newPhotos: File[]) => {
+    setProjectData({
+      ...projectData,
+      photos: newPhotos,
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -392,6 +424,9 @@ export default function DiagnosticPage() {
         }
       }
 
+      // Nettoyer le brouillon localStorage
+      localStorage.removeItem('diagnostic_draft');
+
       // Afficher un message de succès
       alert(
         '✅ Projet publié avec succès!\n\nVotre projet est maintenant en attente de validation par nos modérateurs.\nVous recevrez un email de confirmation sur votre adresse: ' +
@@ -444,8 +479,15 @@ export default function DiagnosticPage() {
                 <ArrowLeft className="w-5 h-5" />
                 <span className="font-semibold">Retour</span>
               </Link>
-              <div className="font-mono text-sm font-semibold text-primary">
-                Étape {getStepNumber()}/5
+              <div className="flex items-center gap-4">
+                {lastSaved && currentStep !== 'validation' && (
+                  <span className="text-xs text-text-muted">
+                    💾 Sauvegardé {new Date(lastSaved).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+                <div className="font-mono text-sm font-semibold text-primary">
+                  Étape {getStepNumber()}/5
+                </div>
               </div>
             </div>
 
@@ -873,54 +915,12 @@ export default function DiagnosticPage() {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Upload Zone */}
-                  <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                      id="photo-upload"
-                    />
-                    <label htmlFor="photo-upload" className="cursor-pointer">
-                      <Upload className="w-12 h-12 text-text-muted mx-auto mb-4" />
-                      <p className="font-semibold mb-2">
-                        Cliquez pour ajouter des photos
-                      </p>
-                      <p className="text-sm text-text-secondary">
-                        Format: JPG, PNG - Maximum 10 photos
-                      </p>
-                    </label>
-                  </div>
-
-                  {/* Photos Preview */}
-                  {projectData.photos.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      {projectData.photos.map((file, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square rounded-lg overflow-hidden border-2 border-success group"
-                        >
-                          <Image
-                            src={URL.createObjectURL(file)}
-                            alt={`Photo ${index + 1}`}
-                            width={500}
-                            height={300}
-                          />
-                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-success flex items-center justify-center">
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          </div>
-                          <button
-                            onClick={() => removePhoto(index)}
-                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-semibold"
-                          >
-                            Supprimer
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Upload Zone avec Drag & Drop */}
+                  <PhotoUploadZone
+                    photos={projectData.photos}
+                    onPhotosChange={handlePhotosChange}
+                    maxPhotos={10}
+                  />
 
                   <Alert>
                     <Sparkles className="h-4 w-4" />
