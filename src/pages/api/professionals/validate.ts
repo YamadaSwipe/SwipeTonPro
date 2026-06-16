@@ -58,16 +58,16 @@ export default withAdminAuth(async function handler(
     if (action === 'validate') {
       updateData.status = 'verified';
       updateData.verified_at = new Date().toISOString();
-      updateData.verified_by = 'admin';
+      updateData.verified_by = req.user?.id || 'admin';
     } else if (action === 'reject') {
       updateData.status = 'rejected';
       updateData.rejected_at = new Date().toISOString();
-      updateData.rejected_by = 'admin';
+      updateData.rejected_by = req.user?.id || 'admin';
       updateData.rejection_reason = reason || "Professionnel rejeté par l'administrateur";
     } else if (action === 'suspend') {
       updateData.status = 'suspended';
       updateData.suspended_at = new Date().toISOString();
-      updateData.suspended_by = 'admin';
+      updateData.suspended_by = req.user?.id || 'admin';
       updateData.suspension_reason = reason || "Professionnel suspendu par l'administrateur";
     }
 

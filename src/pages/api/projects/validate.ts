@@ -56,13 +56,15 @@ export default withAdminAuth(async function handler(
     };
 
     if (action === 'validate') {
-      updateData.status = 'validated';
+      updateData.status = 'published'; // Changer de 'validated' à 'published'
+      updateData.validation_status = 'validated'; // Ajouter validation_status
       updateData.validated_at = new Date().toISOString();
-      updateData.validated_by = 'admin';
+      updateData.validated_by = req.user?.id || 'admin';
     } else if (action === 'reject') {
       updateData.status = 'rejected';
+      updateData.validation_status = 'rejected'; // Ajouter validation_status
       updateData.rejected_at = new Date().toISOString();
-      updateData.rejected_by = 'admin';
+      updateData.rejected_by = req.user?.id || 'admin';
       updateData.rejection_reason =
         reason || "Projet rejeté par l'administrateur";
     }

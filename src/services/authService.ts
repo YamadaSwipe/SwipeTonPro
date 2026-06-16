@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { getWelcomeEmailHtml } from '@/lib/welcomeEmailTemplate';
 
@@ -291,37 +291,18 @@ export const authService = {
   },
 };
 
+/**
+ * Hook d'authentification alternatif (DEPRECATED)
+ * ⚠️ ATTENTION: Utiliser AuthContext.useAuth() à la place
+ * Ce hook est conservé pour compatibilité mais peut causer des boucles infinies
+ */
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserMetadata | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
-    });
-  }, [fetchProfile, setLoading, setProfile, setUser]); // Added missing dependencies
-
-  async function fetchProfile(userId: string) {
+  // ✅ Mémoriser fetchProfile pour éviter les boucles infinies
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       // Try fetching professional profile first
       // Note: Avoid select("*") with JSONB columns to prevent 406 errors
@@ -361,7 +342,60 @@ export function useAuth() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []); // ✅ Pas de dépendances pour éviter les re-créations
+
+  useEffect(() => {
+    let mounted = true;
+    let subscription: any = null;
+
+    const initAuth = async () => {
+      try {
+        // Check active session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+
+        // Listen for changes
+        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(
+          async (_event, session) => {
+            if (!mounted) return;
+
+            setUser(session?.user ?? null);
+            if (session?.user) {
+              await fetchProfile(session.user.id);
+            } else {
+              setProfile(null);
+              setLoading(false);
+            }
+          }
+        );
+
+        subscription = sub;
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initAuth();
+
+    // Cleanup
+    return () => {
+      mounted = false;
+      if (subscription?.unsubscribe) {
+        subscription.unsubscribe();
+      }
+    };
+  }, [fetchProfile]); // ✅ Seulement fetchProfile qui est mémorisé
 
   return { user, profile, loading };
 }

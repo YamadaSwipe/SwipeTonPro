@@ -94,7 +94,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
         </div>
 
         {/* Navigation principale */}
-        <nav className="p-4 space-y-2 pb-28">
+        <nav className="p-4 space-y-2 pb-24">
           <div className="mb-4">
             <p className="text-xs text-slate-400 font-semibold mb-2 px-4">
               PRINCIPAL

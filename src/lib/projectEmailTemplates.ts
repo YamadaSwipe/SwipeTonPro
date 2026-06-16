@@ -93,9 +93,21 @@ export function getProjectApprovedNotificationHtml(projectTitle: string, project
               <a href="${projectUrl}" class="cta-button">Voir mon projet</a>
             </p>
             
-            <p style="color: #666; font-size: 14px;">
-              <strong>📋 Prochaines étapes :</strong> Vous recevrez des propositions de professionnels intéressés par votre projet. N'hésitez pas à les contacter pour discuter de vos besoins spécifiques.
-            </p>
+            <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #3b82f6;">📝 Prochaines étapes</h3>
+              <ol style="margin: 0; padding-left: 20px; color: #666; font-size: 14px;">
+                <li>Vous recevrez des propositions de professionnels intéressés par votre projet</li>
+                <li>Consultez les profils et échangez avec eux via la messagerie de la plateforme</li>
+                <li>Choisissez le professionnel qui correspond le mieux à vos besoins</li>
+                <li><strong>L'équipe SwipeTonPro pourra vous contacter</strong> pour qualifier les informations de votre profil et de votre projet</li>
+              </ol>
+            </div>
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p style="margin: 0; color: #92400e; font-size: 14px;">
+                <strong>🔒 Conseil de sécurité :</strong> Refusez tout contact direct en dehors de la plateforme. Utilisez toujours SwipeTonPro pour tous vos échanges de messages et paiements. Cela garantit votre sécurité, conserve un historique complet de vos communications et protège vos paiements via notre système de séquestre sécurisé.
+              </p>
+            </div>
             
             <div class="footer">
               <p>SwipeTonPro - Plateforme de mise en relation BTP</p>
@@ -277,7 +289,14 @@ export function getAccountConfirmationEmailHtml(firstName: string, email: string
                 <li>Complétez votre première estimation</li>
                 <li>Publiez votre projet</li>
                 <li>Recevez des propositions de professionnels</li>
+                <li><strong>L'équipe SwipeTonPro pourra vous contacter</strong> pour qualifier les informations de votre profil et de votre projet</li>
               </ol>
+            </div>
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p style="margin: 0; color: #92400e; font-size: 14px;">
+                <strong>🔒 Conseil de sécurité :</strong> Refusez tout contact direct en dehors de la plateforme. Utilisez toujours SwipeTonPro pour tous vos échanges de messages et paiements. Cela garantit votre sécurité, conserve un historique complet de vos communications et protège vos paiements via notre système de séquestre sécurisé.
+              </p>
             </div>
             
             <p style="color: #666; font-size: 14px; margin-top: 20px;">
