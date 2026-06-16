@@ -58,29 +58,28 @@ export class OptimizedGeoService {
     projectId: string,
     options: GeoSearchOptions = {}
   ): Promise<{
-    professionals: ProfessionalWithDistance[];
+    professionals: any[];
     error: Error | null;
   }> {
     const { radiusKm = 50, limit = 20 } = options;
 
     try {
       const { data, error } = await this.supabase.rpc(
-        'find_nearby_professionals',
+        'get_matching_professionals',
         {
           p_project_id: projectId,
-          p_max_distance_km: radiusKm,
           p_limit: limit,
         }
       );
 
       if (error) {
-        console.error('❌ Erreur find_nearby_professionals:', error);
+        console.error('❌ Erreur get_matching_professionals:', error);
         return { professionals: [], error };
       }
 
       return { professionals: data || [], error: null };
     } catch (err) {
-      console.error('❌ Exception find_nearby_professionals:', err);
+      console.error('❌ Exception get_matching_professionals:', err);
       return { professionals: [], error: err as Error };
     }
   }
@@ -92,26 +91,25 @@ export class OptimizedGeoService {
     professionalId: string,
     options: GeoSearchOptions = {}
   ): Promise<{
-    projects: ProjectWithDistance[];
+    projects: any[];
     error: Error | null;
   }> {
     const { radiusKm = 50, limit = 20 } = options;
 
     try {
-      const { data, error } = await this.supabase.rpc('find_nearby_projects', {
+      const { data, error } = await this.supabase.rpc('get_matching_projects', {
         p_professional_id: professionalId,
-        p_max_distance_km: radiusKm,
         p_limit: limit,
       });
 
       if (error) {
-        console.error('❌ Erreur find_nearby_projects:', error);
+        console.error('❌ Erreur get_matching_projects:', error);
         return { projects: [], error };
       }
 
       return { projects: data || [], error: null };
     } catch (err) {
-      console.error('❌ Exception find_nearby_projects:', err);
+      console.error('❌ Exception get_matching_projects:', err);
       return { projects: [], error: err as Error };
     }
   }
@@ -130,20 +128,55 @@ export class OptimizedGeoService {
     const { radiusKm = 30 } = options;
 
     try {
-      const { data, error } = await this.supabase.rpc('search_by_postal_code', {
-        p_postal_code: postalCode,
-        p_radius_km: radiusKm,
-        p_search_type: type,
-      });
+      // Fonction RPC non disponible, utiliser recherche directe
+      console.warn('⚠️ search_by_postal_code RPC non disponible, utilisation de la recherche directe');
+      
+      // Recherche basique par code postal
+      if (type === 'professionals') {
+        const { data, error } = await this.supabase
+          .from('professionals')
+          .select(`
+            id,
+            user_id,
+            company_name,
+            specialties,
+            experience_years,
+            rating_average,
+            coverage_radius,
+            profiles!inner(
+              id,
+              full_name,
+              city,
+              postal_code,
+              latitude,
+              longitude
+            )
+          `)
+          .eq('status', 'verified')
+          .ilike('profiles.postal_code', `${postalCode.substring(0, 2)}%`);
 
-      if (error) {
-        console.error('❌ Erreur search_by_postal_code:', error);
-        return { results: [], error };
+        if (error) {
+          console.error('❌ Erreur recherche professionnels:', error);
+          return { results: [], error };
+        }
+
+        return { results: data || [], error: null };
+      } else {
+        const { data, error } = await this.supabase
+          .from('projects')
+          .select('id, title, category, city, postal_code, latitude, longitude, estimated_budget_min, estimated_budget_max')
+          .eq('status', 'published')
+          .ilike('postal_code', `${postalCode.substring(0, 2)}%`);
+
+        if (error) {
+          console.error('❌ Erreur recherche projets:', error);
+          return { results: [], error };
+        }
+
+        return { results: data || [], error: null };
       }
-
-      return { results: data || [], error: null };
     } catch (err) {
-      console.error('❌ Exception search_by_postal_code:', err);
+      console.error('❌ Exception searchByPostalCode:', err);
       return { results: [], error: err as Error };
     }
   }

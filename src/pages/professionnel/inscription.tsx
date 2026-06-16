@@ -27,7 +27,9 @@ import GoogleAuthButton from '@/components/GoogleAuthButton';
 
 type InscriptionStep =
   | 'auth'
+  | 'info'
   | 'documents'
+  | 'portfolio'
   | 'validation';
 type SiretStatus = 'idle' | 'checking' | 'valid' | 'invalid' | 'error';
 
@@ -77,13 +79,17 @@ const SPECIALITES = [
 
 const STEP_LABELS: Record<InscriptionStep, string> = {
   auth: 'Compte & Entreprise',
+  info: 'Informations entreprise',
   documents: 'Documents obligatoires',
+  portfolio: 'Portfolio',
   validation: 'Confirmation',
 };
 
 const STEP_ORDER: InscriptionStep[] = [
   'auth',
+  'info',
   'documents',
+  'portfolio',
   'validation',
 ];
 

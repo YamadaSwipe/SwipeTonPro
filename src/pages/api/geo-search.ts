@@ -51,14 +51,13 @@ export default async function handler(
 
     // Cas 1: Rechercher les professionnels à proximité d'un projet
     if (type === 'professionals' && projectId) {
-      const { data, error } = await supabase.rpc('find_nearby_professionals', {
+      const { data, error } = await supabase.rpc('get_matching_professionals', {
         p_project_id: projectId,
-        p_max_distance_km: radiusKm,
         p_limit: limit,
       });
 
       if (error) {
-        console.error('❌ Erreur find_nearby_professionals:', error);
+        console.error('❌ Erreur get_matching_professionals:', error);
         return res.status(500).json({
           success: false,
           error: 'Erreur lors de la recherche des professionnels',
@@ -74,40 +73,16 @@ export default async function handler(
 
     // Cas 2: Rechercher les projets à proximité d'un professionnel
     if (type === 'projects' && professionalId) {
-      const { data, error } = await supabase.rpc('find_nearby_projects', {
+      const { data, error } = await supabase.rpc('get_matching_projects', {
         p_professional_id: professionalId,
-        p_max_distance_km: radiusKm,
         p_limit: limit,
       });
 
       if (error) {
-        console.error('❌ Erreur find_nearby_projects:', error);
+        console.error('❌ Erreur get_matching_projects:', error);
         return res.status(500).json({
           success: false,
           error: 'Erreur lors de la recherche des projets',
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        data: data || [],
-        count: data?.length || 0,
-      });
-    }
-
-    // Cas 3: Recherche par code postal
-    if (postalCode) {
-      const { data, error } = await supabase.rpc('search_by_postal_code', {
-        p_postal_code: postalCode,
-        p_radius_km: radiusKm,
-        p_search_type: type,
-      });
-
-      if (error) {
-        console.error('❌ Erreur search_by_postal_code:', error);
-        return res.status(500).json({
-          success: false,
-          error: 'Erreur lors de la recherche par code postal',
         });
       }
 
