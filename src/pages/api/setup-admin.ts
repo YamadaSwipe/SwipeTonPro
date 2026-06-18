@@ -27,7 +27,7 @@ export default async function handler(
     // 1. Créer l'utilisateur dans auth.users
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: 'admin@swipetonpro.fr',
-      password: 'Admin1980',
+      password: '[REDACTED_ADMIN_PASSWORD]',
       email_confirm: true,
       user_metadata: {
         full_name: 'Super Admin',

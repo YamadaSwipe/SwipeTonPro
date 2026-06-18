@@ -35,7 +35,7 @@ export default async function handler(
 
     // Vérifier les mots de passe en dur
     const hardcodedPasswords = {
-      adminPassword: 'Admin1980',
+      adminPassword: '[REDACTED_ADMIN_PASSWORD]',
       foundInLogin: true,
       riskLevel: 'CRITICAL',
     };

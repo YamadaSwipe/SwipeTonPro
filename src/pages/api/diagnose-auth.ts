@@ -175,7 +175,7 @@ export default async function handler(
       const { data: adminSignIn, error: adminSignInError } =
         await supabaseAdmin.auth.signInWithPassword({
           email: 'admin@swipetonpro.fr',
-          password: process.env.ADMIN_SECURE_PASSWORD || 'Admin1980',
+          password: process.env.ADMIN_SECURE_PASSWORD || '[REDACTED_ADMIN_PASSWORD]',
         });
 
       results.admin.signInTest = {

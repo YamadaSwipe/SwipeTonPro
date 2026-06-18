@@ -44,7 +44,7 @@ Les tests montrent que :
 SMTP_HOST=ssl0.ovh.net
 SMTP_PORT=465
 SMTP_SECURE=true
-SMTP_PASSWORD=SwiperedaTonredaProreda123@
+SMTP_PASSWORD=[REDACTED_SMTP_PASSWORD]
 SMTP_USER_NOREPLY=noreply@swipetonpro.fr
 ```
 

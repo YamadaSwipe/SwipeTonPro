@@ -168,7 +168,7 @@ SELECT
   email,
   'Utilisez ce mot de passe: ' || 
   CASE 
-    WHEN email = 'admin@swipetonpro.fr' THEN 'Admin1980'
+    WHEN email = 'admin@swipetonpro.fr' THEN '[REDACTED_ADMIN_PASSWORD]'
     WHEN email = 'sotbirida@gmail.com' THEN 'Votre mot de passe actuel'
     WHEN email = 'sotbirida@yahoo.fr' THEN 'Le nouveau mot de passe après réinitialisation'
   END as instruction

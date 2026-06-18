@@ -134,7 +134,7 @@ Vérifiez que votre `.env.local` contient bien :
 SMTP_HOST=ssl0.ovh.net
 SMTP_PORT=465
 SMTP_SECURE=true
-SMTP_PASSWORD=SwiperedaTonredaProreda123@
+SMTP_PASSWORD=[REDACTED_SMTP_PASSWORD]
 
 # Adresses email expéditeurs
 SMTP_USER_NOREPLY=noreply@swipetonpro.fr

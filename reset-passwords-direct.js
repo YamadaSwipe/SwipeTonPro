@@ -6,8 +6,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = 'https://qhuvnpmqlucpjdslnfui.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFodXZucG1xbHVjcGpkc2xuZnVpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTk0MzUyNiwiZXhwIjoyMDg3NTE5NTI2fQ.zDQ__686pU54lbHRi73FsLOd4dD2wv1NFGqC1e2e38c';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFodXZucG1xbHVjcGpkc2xuZnVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NDM1MjYsImV4cCI6MjA4NzUxOTUyNn0.KZIdHPyxjArRY5RLHBeAm_CzU-zOPM97fj1XKR9SRbw';
+const supabaseServiceKey = '[REDACTED_SUPABASE_SERVICE_ROLE_KEY]';
+const supabaseAnonKey = '[REDACTED_SUPABASE_ANON_KEY]';
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {

@@ -42,4 +42,26 @@ next-env.d.ts
 # firebase
 firebase-service-account.json
 
+# Secrets et fichiers sensibles
+.env
+.env.local
+.env*.local
+.env.development
+.env.production
+.env.test
+*.pem
+*.key
+*.p12
+secrets/
+credentials/
+
+# Fichiers de backup
+*.backup
+*.bak
+*~
+
+# Logs sensibles
+*.log
+logs/
+
 .vercel

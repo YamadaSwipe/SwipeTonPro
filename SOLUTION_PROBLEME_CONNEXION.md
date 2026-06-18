@@ -67,7 +67,7 @@ async function resetPassword(email, newPassword) {
 }
 
 // Réinitialiser les mots de passe
-resetPassword('admin@swipetonpro.fr', 'Admin1980');
+resetPassword('admin@swipetonpro.fr', '[REDACTED_ADMIN_PASSWORD]');
 resetPassword('sotbirida@gmail.com', 'VotreNouveauMotDePasse123!');
 resetPassword('sotbirida@yahoo.fr', 'VotreNouveauMotDePasse123!');
 ```

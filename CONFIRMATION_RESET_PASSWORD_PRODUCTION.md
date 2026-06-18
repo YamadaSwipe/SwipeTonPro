@@ -272,7 +272,7 @@ await sendResetEmailViaSMTP(email, resetLink);
 ```bash
 SMTP_HOST=ssl0.ovh.net
 SMTP_PORT=465
-SMTP_PASSWORD=SwiperedaTonredaProreda123@
+SMTP_PASSWORD=[REDACTED_SMTP_PASSWORD]
 SMTP_USER=noreply@swipetonpro.fr
 NEXT_PUBLIC_SUPABASE_URL=https://qhuvnpmqlucpjdslnfui.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
