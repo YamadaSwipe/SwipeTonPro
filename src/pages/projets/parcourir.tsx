@@ -681,7 +681,7 @@ export default function ProjectsBrowsePage() {
                     <Button
                       className="w-full mt-4"
                       onClick={() =>
-                        (window.location.href = `/professionnel?projectId=${project.id}`)
+                        (window.location.href = `/projets/${project.id}`)
                       }
                     >
                       Voir détails

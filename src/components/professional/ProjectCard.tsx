@@ -239,7 +239,11 @@ export function ProjectCard({
 
       <CardFooter className="pt-2">
         <div className="flex gap-2 w-full">
-          <Button variant="outline" className="flex-1">
+          <Button 
+            variant="outline" 
+            className="flex-1"
+            onClick={() => window.location.href = `/projets/${project.id}`}
+          >
             Détails
           </Button>
           {!project.has_bid && (

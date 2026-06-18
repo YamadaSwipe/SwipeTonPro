@@ -16,11 +16,11 @@ let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 function getTransporter() {
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'ssl0.ovh.net',
+      host: process.env.SMTP_HOST || 'smtp.resend.com',
       port: parseInt(process.env.SMTP_PORT || '465'),
       secure: true,
       auth: {
-        user: emailConfig.noreply,
+        user: process.env.SMTP_USER || 'resend',
         pass: process.env.SMTP_PASSWORD || '',
       },
     });
@@ -66,14 +66,13 @@ export async function sendEmailServerSide({
     return { success: false, error: 'SMTP configuration manquante' };
   }
 
-  // Pour OVH, il est préférable de réinitialiser l'auth pour correspondre à l'adresse 'from'
-  // si le serveur exige que l'utilisateur authentifié corresponde à l'expéditeur.
+  // Pour Resend, utiliser l'authentification avec "resend" comme username et la clé API comme password
   const specificTransporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'ssl0.ovh.net',
+    host: process.env.SMTP_HOST || 'smtp.resend.com',
     port: parseInt(process.env.SMTP_PORT || '465'),
     secure: true,
     auth: {
-      user: fromAddress,
+      user: process.env.SMTP_USER || 'resend',
       pass: process.env.SMTP_PASSWORD || '',
     },
   });

@@ -21,8 +21,6 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import GoogleAuthButton from '@/components/GoogleAuthButton';
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type InscriptionStep =
@@ -888,21 +886,6 @@ export default function InscriptionProPage() {
                   {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                   Créer mon compte
                 </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Ou s'inscrire avec
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <GoogleAuthButton mode="signup" userType="professional" />
-                </div>
 
                 <p className="text-center text-sm text-text-secondary">
                   Déjà inscrit ?{' '}

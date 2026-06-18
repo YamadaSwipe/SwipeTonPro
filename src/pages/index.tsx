@@ -908,11 +908,13 @@ export default function Home() {
 
                         {/* Bouton action */}
                         <div className="mt-3">
-                          <Link href={`/projets/${project.id}`}>
-                            <Button size="sm" className="w-full text-xs">
-                              Voir les détails
-                            </Button>
-                          </Link>
+                          <Button 
+                            size="sm" 
+                            className="w-full text-xs"
+                            onClick={() => window.location.href = `/projets/${project.id}`}
+                          >
+                            Voir les détails
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
