@@ -45,39 +45,49 @@ export async function sendEmailServerSide({
   fromType = 'noreply',
   replyTo,
 }: SendEmailOptions) {
-  const fromAddress = emailConfig[fromType];
-
-  if (!fromAddress) {
-    throw new Error(`Invalid email type: ${fromType}`);
-  }
-
-  // Vérifier les variables d'environnement SMTP
-  console.log('🔧 Configuration SMTP:', {
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    user: fromAddress,
-    hasPassword: !!process.env.SMTP_PASSWORD,
-  });
-
-  if (!process.env.SMTP_PASSWORD) {
-    console.error(
-      "❌ SMTP_PASSWORD non défini dans les variables d'environnement"
-    );
-    return { success: false, error: 'SMTP configuration manquante' };
-  }
-
-  // Pour Resend, utiliser l'authentification avec "resend" comme username et la clé API comme password
-  const specificTransporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.resend.com',
-    port: parseInt(process.env.SMTP_PORT || '465'),
-    secure: true,
-    auth: {
-      user: process.env.SMTP_USER || 'resend',
-      pass: process.env.SMTP_PASSWORD || '',
-    },
-  });
-
   try {
+    const fromAddress = emailConfig[fromType as EmailType];
+
+    if (!fromAddress) {
+      throw new Error(`Invalid email type: ${fromType}`);
+    }
+
+    // Vérifier les variables d'environnement SMTP
+    console.log('🔧 Configuration SMTP:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: fromAddress,
+      hasPassword: !!process.env.SMTP_PASSWORD,
+    });
+
+    if (!process.env.SMTP_PASSWORD) {
+      console.error(
+        "❌ SMTP_PASSWORD non défini dans les variables d'environnement"
+      );
+      return { success: false, error: 'SMTP configuration manquante' };
+    }
+
+    if (!process.env.SMTP_HOST) {
+      console.error(
+        "❌ SMTP_HOST non défini dans les variables d'environnement"
+      );
+      return { success: false, error: 'SMTP configuration manquante' };
+    }
+
+    // Pour OVH, utiliser l'adresse email complète comme username
+    const specificTransporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '465'),
+      secure: true,
+      auth: {
+        user: fromAddress, // Utiliser l'adresse email complète pour OVH
+        pass: process.env.SMTP_PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: true,
+      },
+    });
+
     const mailOptions = {
       from: `"SwipeTonPro" <${fromAddress}>`,
       to,
@@ -97,16 +107,16 @@ export async function sendEmailServerSide({
       `✅ Email envoyé avec succès de ${fromAddress}: ${info.messageId}`
     );
     return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error(`❌ Erreur envoi email depuis ${fromAddress}:`, error);
+  } catch (error: any) {
+    console.error(`❌ Erreur envoi email:`, error);
     console.error("Détails de l'erreur:", {
-      message: error.message,
-      code: error.code,
-      command: error.command,
-      responseCode: error.responseCode,
-      response: error.response,
+      message: error?.message,
+      code: error?.code,
+      command: error?.command,
+      responseCode: error?.responseCode,
+      response: error?.response,
     });
-    return { success: false, error };
+    return { success: false, error: error?.message || 'Erreur inconnue' };
   }
 }
 

@@ -37,7 +37,7 @@ function getHostBaseUrl(req: NextApiRequest): string {
 }
 
 function getRedirectUrl(req: NextApiRequest): string {
-  return `${getHostBaseUrl(req)}/auth/reset-password`;
+  return `${getHostBaseUrl(req)}/auth/verify-reset`;
 }
 
 function isUserNotFoundError(error: any): boolean {
@@ -317,10 +317,17 @@ export default async function handler(
     });
   } catch (error: any) {
     console.error('❌ Erreur serveur dans reset-password:', error);
-    console.error('❌ Stack:', error.stack);
+    console.error('❌ Message:', error?.message);
+    console.error('❌ Stack:', error?.stack);
+    
+    // Retourner une erreur plus détaillée pour le debugging
     return res.status(500).json({
-      error: 'Erreur serveur lors de la réinitialisation',
-      details: process.env.NODE_ENV === 'development' ? error?.message : undefined,
+      error: 'Erreur lors de l\'envoi du mail de réinitialisation',
+      details: process.env.NODE_ENV === 'development' ? {
+        message: error?.message,
+        type: error?.name,
+        code: error?.code,
+      } : undefined,
     });
   }
 }
