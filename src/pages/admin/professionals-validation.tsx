@@ -47,6 +47,7 @@ export default function AdminProfessionalsValidation() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadType, setUploadType] = useState<string>('');
+  const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     loadProfessionals();
@@ -365,6 +366,26 @@ export default function AdminProfessionalsValidation() {
     }
   };
 
+  const handleStatusChange = async (
+    professionalId: string,
+    newStatus: string
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('professionals')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', professionalId);
+
+      if (error) throw error;
+
+      setStatusDropdown(null);
+      loadProfessionals();
+    } catch (error) {
+      console.error('Erreur changement de statut:', error);
+      alert('Une erreur est survenue lors du changement de statut');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -550,6 +571,46 @@ export default function AdminProfessionalsValidation() {
                                   'Nom non renseigné'}
                               </h3>
                               {getStatusBadge(professional.status)}
+                              <div className="relative">
+                                <button
+                                  onClick={() =>
+                                    setStatusDropdown(
+                                      statusDropdown === professional.id
+                                        ? null
+                                        : professional.id
+                                    )
+                                  }
+                                  className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100"
+                                >
+                                  Changer statut
+                                </button>
+                                {statusDropdown === professional.id && (
+                                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-[120px]">
+                                    {[
+                                      'pending',
+                                      'verified',
+                                      'suspended',
+                                      'rejected',
+                                    ].map((status) => (
+                                      <button
+                                        key={status}
+                                        onClick={() =>
+                                          handleStatusChange(
+                                            professional.id,
+                                            status
+                                          )
+                                        }
+                                        className="block w-full text-left px-3 py-1 text-sm hover:bg-gray-100"
+                                      >
+                                        {status === 'pending' && 'En attente'}
+                                        {status === 'verified' && 'Vérifié'}
+                                        {status === 'suspended' && 'Suspendu'}
+                                        {status === 'rejected' && 'Refusé'}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

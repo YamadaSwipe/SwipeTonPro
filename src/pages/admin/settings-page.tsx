@@ -255,17 +255,20 @@ export default function AdminSettingsPage() {
     );
 
     try {
-      const { error } = await (supabase as any).from('app_settings').upsert({
-        setting_key: featureId,
-        setting_value: {
-          enabled,
-          config: currentConfig,
+      const { error } = await (supabase as any).from('app_settings').upsert(
+        {
+          setting_key: featureId,
+          setting_value: {
+            enabled,
+            config: currentConfig,
+          },
+          description: currentSetting?.description,
+          category: 'features',
+          is_editable: true,
+          updated_at: new Date().toISOString(),
         },
-        description: currentSetting?.description,
-        category: 'features',
-        is_editable: true,
-        updated_at: new Date().toISOString(),
-      });
+        { onConflict: 'setting_key' }
+      );
 
       if (
         error &&
@@ -299,17 +302,20 @@ export default function AdminSettingsPage() {
     );
 
     try {
-      const { error } = await (supabase as any).from('app_settings').upsert({
-        setting_key: featureId,
-        setting_value: {
-          enabled: currentEnabled,
-          config,
+      const { error } = await (supabase as any).from('app_settings').upsert(
+        {
+          setting_key: featureId,
+          setting_value: {
+            enabled: currentEnabled,
+            config,
+          },
+          description: currentSetting?.description,
+          category: 'features',
+          is_editable: true,
+          updated_at: new Date().toISOString(),
         },
-        description: currentSetting?.description,
-        category: 'features',
-        is_editable: true,
-        updated_at: new Date().toISOString(),
-      });
+        { onConflict: 'setting_key' }
+      );
 
       if (
         error &&
@@ -341,7 +347,7 @@ export default function AdminSettingsPage() {
 
       const { error } = await (supabase as any)
         .from('app_settings')
-        .upsert(upsertData);
+        .upsert(upsertData, { onConflict: 'setting_key' });
 
       if (
         error &&

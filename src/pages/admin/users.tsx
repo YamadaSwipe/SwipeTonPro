@@ -99,6 +99,7 @@ export default function AdminUsers() {
   // États pour la multi-sélection
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [roleDropdown, setRoleDropdown] = useState<string | null>(null);
 
   // Formulaire création utilisateur
   const [newUser, setNewUser] = useState({
@@ -682,6 +683,23 @@ export default function AdminUsers() {
     setEditUserDialog(true);
   };
 
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setRoleDropdown(null);
+      loadUsers();
+    } catch (error) {
+      console.error('Erreur changement de rôle:', error);
+      alert('Une erreur est survenue lors du changement de rôle');
+    }
+  };
+
   return (
     <>
       <SEO title="Gestion Utilisateurs - Admin" />
@@ -1035,7 +1053,35 @@ export default function AdminUsers() {
                             '-'}
                       </div>
                     </TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>
+                      <div className="relative">
+                        <div
+                          onClick={() =>
+                            setRoleDropdown(
+                              roleDropdown === user.id ? null : user.id
+                            )
+                          }
+                          className="cursor-pointer"
+                        >
+                          {getRoleBadge(user.role)}
+                        </div>
+                        {roleDropdown === user.id && (
+                          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-[140px]">
+                            {['client', 'professional', 'admin'].map((role) => (
+                              <button
+                                key={role}
+                                onClick={() => handleRoleChange(user.id, role)}
+                                className="block w-full text-left px-3 py-1 text-sm hover:bg-gray-100"
+                              >
+                                {role === 'client' && 'Client'}
+                                {role === 'professional' && 'Professionnel'}
+                                {role === 'admin' && 'Admin'}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {getStatusBadge(user.professional?.status)}
                     </TableCell>
