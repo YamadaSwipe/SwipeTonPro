@@ -37,7 +37,7 @@ function getHostBaseUrl(req: NextApiRequest): string {
 }
 
 function getRedirectUrl(req: NextApiRequest): string {
-  return `${getHostBaseUrl(req)}/auth/verify-reset`;
+  return `${getHostBaseUrl(req)}/auth/reset-password`;
 }
 
 function isUserNotFoundError(error: any): boolean {
@@ -221,14 +221,16 @@ async function sendResetEmailViaSMTP(
     });
 
     if (result.success) {
-      console.log('✅ Email de réinitialisation envoyé avec succès via SMTP OVH');
+      console.log(
+        '✅ Email de réinitialisation envoyé avec succès via SMTP OVH'
+      );
       return true;
     } else {
-      console.error('❌ Échec de l\'envoi via SMTP OVH:', result.error);
+      console.error("❌ Échec de l'envoi via SMTP OVH:", result.error);
       return false;
     }
   } catch (error: any) {
-    console.error('❌ Erreur lors de l\'envoi via SMTP:', error);
+    console.error("❌ Erreur lors de l'envoi via SMTP:", error);
     console.error('❌ Détails:', error.message);
     return false;
   }
@@ -268,7 +270,7 @@ export default async function handler(
   // Validation basique de l'email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: 'Format d\'email invalide' });
+    return res.status(400).json({ error: "Format d'email invalide" });
   }
 
   try {
@@ -280,7 +282,7 @@ export default async function handler(
     if (!process.env.SMTP_HOST || !process.env.SMTP_PASSWORD) {
       console.error('❌ Configuration SMTP manquante');
       return res.status(500).json({
-        error: 'Configuration email manquante. Contactez l\'administrateur.',
+        error: "Configuration email manquante. Contactez l'administrateur.",
       });
     }
 
@@ -288,7 +290,7 @@ export default async function handler(
 
     // Générer le lien de récupération via Supabase Admin
     const resetLink = await generateRecoveryLink(email, redirectUrl);
-    
+
     if (!resetLink) {
       // Utilisateur non trouvé - on retourne quand même un succès pour la sécurité
       console.log('⚠️ Utilisateur non trouvé, mais on retourne un succès');
@@ -303,9 +305,10 @@ export default async function handler(
     const sent = await sendResetEmailViaSMTP(email, resetLink);
 
     if (!sent) {
-      console.error('❌ Échec de l\'envoi de l\'email');
+      console.error("❌ Échec de l'envoi de l'email");
       return res.status(500).json({
-        error: 'Erreur lors de l\'envoi de l\'email de réinitialisation. Veuillez réessayer.',
+        error:
+          "Erreur lors de l'envoi de l'email de réinitialisation. Veuillez réessayer.",
       });
     }
 
@@ -319,15 +322,18 @@ export default async function handler(
     console.error('❌ Erreur serveur dans reset-password:', error);
     console.error('❌ Message:', error?.message);
     console.error('❌ Stack:', error?.stack);
-    
+
     // Retourner une erreur plus détaillée pour le debugging
     return res.status(500).json({
-      error: 'Erreur lors de l\'envoi du mail de réinitialisation',
-      details: process.env.NODE_ENV === 'development' ? {
-        message: error?.message,
-        type: error?.name,
-        code: error?.code,
-      } : undefined,
+      error: "Erreur lors de l'envoi du mail de réinitialisation",
+      details:
+        process.env.NODE_ENV === 'development'
+          ? {
+              message: error?.message,
+              type: error?.name,
+              code: error?.code,
+            }
+          : undefined,
     });
   }
 }
