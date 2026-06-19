@@ -90,23 +90,12 @@ export const useAuth = () => {
       loading: false,
       initialized: false,
       login: async (_email: string, _password: string) => {
-        console.warn('useAuth: login appelé côté serveur - non supporté');
         return { success: false, error: 'Server-side rendering not supported' };
       },
-      logout: async () => {
-        console.warn('useAuth: logout appelé côté serveur - non supporté');
-      },
-      refreshUser: async () => {
-        console.warn('useAuth: refreshUser appelé côté serveur - non supporté');
-      },
-      hasRole: (_requiredRole: string) => {
-        console.warn('useAuth: hasRole appelé côté serveur - retourne false');
-        return false;
-      },
-      isOwner: (_resourceUserId: string) => {
-        console.warn('useAuth: isOwner appelé côté serveur - retourne false');
-        return false;
-      },
+      logout: async () => {},
+      refreshUser: async () => {},
+      hasRole: (_requiredRole: string) => false,
+      isOwner: (_resourceUserId: string) => false,
     } as AuthContextType;
   }
   if (context === undefined) {
@@ -123,8 +112,6 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const router = useRouter();
 
-  console.log('🚀 AuthProvider: Initialisation du provider...');
-
   // Guards pour éviter les initialisations multiples
   const isInitialized = useRef(false);
   const isLoadingUserRef = useRef(false);
@@ -140,41 +127,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
-  console.log('📊 AuthProvider: États initiaux', {
-    loading,
-    initialized,
-    hasUser: !!user,
-  });
-
   /**
    * Charger les données complètes de l'utilisateur
    */
   const loadUserData = async (userId: string) => {
     // Empêcher les appels dupliqués
     if (isLoadingUserData.current) {
-      console.log('⚠️ loadUserData already in progress, skipping');
       return;
     }
 
     isLoadingUserData.current = true;
-    console.log('🔄 LOAD USER DATA ONCE for:', userId);
 
     try {
       // 1. Charger le profil de base
-      console.log('🔍 Loading profile for user_id:', userId);
       let { data: profileData, error: profileError } = (await (supabase as any)
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle()) as any;
 
-      console.log('🔍 Profile query result:', {
-        profileData: !!profileData,
-        error: profileError,
-      });
-
       if (!profileData) {
-        console.warn('⚠️ AuthContext: No profile found for user:', userId);
         // Pas d'erreur, juste pas de profil
       } else if (profileError && profileError.code !== 'PGRST116') {
         console.error('❌ AuthContext: Profile error:', profileError);
@@ -184,10 +156,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // 2. Charger les données professionnelles SEULEMENT si le rôle est 'professional'
       let professionalData = null;
       if (profileData?.role === 'professional') {
-        console.log(
-          '🔍 AuthContext: Loading professional data for user:',
-          userId
-        );
         const { data: profData } = (await (supabase as any)
           .from('professionals')
           .select('*')
@@ -195,45 +163,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .maybeSingle()) as any;
 
         professionalData = profData;
-        console.log('✅ AuthContext: Professional data loaded:', profData);
-      } else {
-        console.log(
-          'ℹ️ AuthContext: User is not professional, skipping professional data load'
-        );
       }
 
       // 3. Utiliser le rôle du profil déjà chargé (PLUS DE REQUÊTES)
       const userRole = profileData?.role || 'client'; // Par défaut = client
 
-      console.log('✅ AuthContext: Role determined from profile:', {
-        userId,
-        role: userRole,
-        profileRole: profileData?.role,
-      });
-
       // 4. Mettre à jour les états (ATOMIC) - SÉCURITÉ CRITIQUE
-      console.log('🔒 AUTH SECURITY CHECK:', {
-        userId,
-        email: user?.email,
-        profileRole: profileData?.role,
-        finalRole: userRole,
-        hasProfile: !!profileData,
-        hasProfessional: !!professionalData,
-        profileId: profileData?.id,
-        professionalId: professionalData?.id,
-        timestamp: new Date().toISOString(),
-      });
 
       setProfile(profileData);
       setProfessional(professionalData);
       setRole(userRole);
-
-      console.log('✅ AuthContext: User data loaded:', {
-        user: userId,
-        role: userRole,
-        hasProfile: !!profileData,
-        hasProfessional: !!professionalData,
-      });
     } catch (error) {
       console.error('❌ AuthContext: Error loading user data:', error);
       // En cas d'erreur, on garde l'utilisateur mais sans profil
@@ -252,33 +191,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeAuth = async () => {
       // Guard pour éviter l'initialisation multiple
       if (isInitialized.current) {
-        console.log('⚠️ AuthContext: Already initialized, skipping...');
         return;
       }
 
-      console.log('🚀 INIT AUTH ONCE');
       isInitialized.current = true;
 
-      // Test de connexion Supabase
-      console.log('🔧 Test de connexion Supabase...');
-      console.log('🔗 URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-      console.log(
-        '🔑 Anon Key:',
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ Présent' : '❌ Manquant'
-      );
-
       try {
-        console.log('🚀 AuthContext: Initializing authentication...');
-
         // 1. Récupérer la session Supabase - sans retry bloquant
         const result = await supabase.auth.getSession();
         const session = result.data.session;
         const sessionError = result.error;
-
-        console.log('📊 Session result:', {
-          session: !!session,
-          error: !!sessionError,
-        });
 
         if (sessionError && !session) {
           console.error('❌ AuthContext: Session error:', sessionError);
@@ -288,10 +210,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         if (session?.user) {
-          console.log(
-            '✅ AuthContext: Session found for user:',
-            session.user.email
-          );
           setUser({
             id: session.user.id,
             email: session.user.email,
@@ -300,28 +218,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           // 2. Charger les données complètes
           await loadUserData(session.user.id);
-        } else {
-          console.log('ℹ️ AuthContext: No Supabase session found');
         }
       } catch (error) {
         console.error('❌ AuthContext: Initialization error:', error);
       } finally {
         setLoading(false);
         setInitialized(true);
-        console.log('✅ AuthContext: Initialisation terminée');
       }
     };
 
     // Timeout de sécurité pour éviter le blocage - réduit pour meilleure UX
     const timeout = setTimeout(() => {
       if (!initialized) {
-        console.warn(
-          "⏰ AuthContext: Timeout d'initialisation (3s), forçage..."
-        );
         setLoading(false);
         setInitialized(true);
       }
-    }, 3000); // 3 secondes au lieu de 10
+    }, 1500); // 1.5 secondes
 
     initializeAuth();
 
@@ -336,14 +248,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       const result = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth event:', event);
-
         // Guard pour éviter les conflits pendant l'initialisation
         if (!isInitialized.current) return;
 
         try {
           if (event === 'SIGNED_IN' && session?.user) {
-            console.log('✅ AuthContext: User signed in:', session.user.email);
             setUser({
               id: session.user.id,
               email: session.user.email,
@@ -351,7 +260,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             });
             await loadUserData(session.user.id);
           } else if (event === 'SIGNED_OUT') {
-            console.log('✅ AuthContext: User signed out');
             await resetAuthState();
           }
         } catch (error) {
@@ -389,42 +297,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     if (!user) return; // Guard pour éviter les logs avant que user soit disponible
 
-    console.log('🔒 AUTH SECURITY DEBUG:', {
-      userId: user?.id,
-      email: user?.email,
-      role: profile?.role,
-      initialized,
-      loading,
-      profileId: profile?.id,
-      professionalId: professional?.id,
-      // VALIDATIONS DE SÉCURITÉ
-      hasProfile: !!profile,
-      hasConsistentRole: profile?.role === role,
-      timestamp: new Date().toISOString(),
-    });
-
     // 🚨 ALERTE SÉCURITÉ si mélange détecté
     if (profile && professional && profile.role !== 'professional') {
       console.error(
-        '🚨 SÉCURITÉ CRITIQUE: Particulier avec données professionnelles!',
-        {
-          userId: user?.id,
-          email: user?.email,
-          profileRole: profile.role,
-          hasProfessionalData: !!professional,
-        }
+        '🚨 SÉCURITÉ CRITIQUE: Particulier avec données professionnelles!'
       );
     }
 
     if (profile && profile.role === 'professional' && !professional) {
       console.error(
-        '🚨 SÉCURITÉ CRITIQUE: Professionnel sans données professionnelles!',
-        {
-          userId: user?.id,
-          email: user?.email,
-          profileRole: profile.role,
-          hasProfessionalData: !!professional,
-        }
+        '🚨 SÉCURITÉ CRITIQUE: Professionnel sans données professionnelles!'
       );
     }
   }, [user, profile, professional, role, initialized, loading]);
@@ -437,8 +319,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('🔐 AuthContext: Attempting login for:', email);
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -450,7 +330,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (data.user) {
-        console.log('✅ AuthContext: Login successful:', data.user.email);
         setUser({
           id: data.user.id,
           email: data.user.email,
@@ -475,8 +354,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const logout = async (): Promise<void> => {
     try {
-      console.log('🚪 AuthContext: Logging out user...');
-
       // Essayer de déconnexion avec retry en cas de lock
       let retryCount = 0;
       const maxRetries = 3;
@@ -488,7 +365,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           error = signOutError;
 
           if (!error) {
-            console.log('✅ AuthContext: Logout successful');
             await resetAuthState();
             router.push('/auth/login');
             return;
@@ -499,9 +375,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             error.message?.includes('lock') ||
             error.message?.includes('stole')
           ) {
-            console.warn(
-              `⚠️ AuthContext: Lock detected, retry ${retryCount + 1}/${maxRetries}`
-            );
             retryCount++;
             await new Promise((resolve) =>
               setTimeout(resolve, 500 * retryCount)
@@ -517,9 +390,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             e instanceof Error &&
             (e.message?.includes('lock') || e.message?.includes('stole'))
           ) {
-            console.warn(
-              `⚠️ AuthContext: Lock exception, retry ${retryCount + 1}/${maxRetries}`
-            );
             retryCount++;
             await new Promise((resolve) =>
               setTimeout(resolve, 500 * retryCount)
@@ -535,7 +405,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Forcer la réinitialisation même en cas d'erreur
-      console.log('🔄 AuthContext: Forcing auth state reset due to errors');
       await resetAuthState();
       router.push('/auth/login');
     } catch (error) {
@@ -549,15 +418,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * Réinitialiser l'état d'authentification
    */
   const resetAuthState = async (): Promise<void> => {
-    console.log('🔄 AuthContext: Resetting auth state...');
-
     setUser(null);
     setProfile(null);
     setProfessional(null);
     setRole(null);
     setLoading(false);
-
-    console.log('✅ AuthContext: Auth state reset complete');
   };
 
   /**
@@ -565,11 +430,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const refreshUser = async (): Promise<void> => {
     if (!user) {
-      console.warn('⚠️ AuthContext: Cannot refresh user - no user logged in');
       return;
     }
 
-    console.log('🔄 AuthContext: Refreshing user data...');
     await loadUserData(user.id);
   };
 
