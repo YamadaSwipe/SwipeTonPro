@@ -20,6 +20,11 @@ interface PageSEO {
   lastUpdated: string;
 }
 
+interface Location {
+  city: string;
+  postal_code: string;
+}
+
 export const seoService = {
   /**
    * Générer les métadonnées SEO pour une page de projet
@@ -401,7 +406,7 @@ export const seoService = {
       });
 
       // Pages de localisation
-      uniqueLocations.forEach((location) => {
+      uniqueLocations.forEach((location: Location) => {
         const citySlug = location.city.toLowerCase().replace(/\s+/g, '-');
         sitemap += `
   <url>
