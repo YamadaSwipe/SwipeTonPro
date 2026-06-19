@@ -165,27 +165,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       let { data: profileData, error: profileError } = (await (supabase as any)
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .maybeSingle()) as any;
 
       console.log('🔍 Profile query result:', {
         profileData: !!profileData,
         error: profileError,
       });
-
-      // Fallback: chercher par email si user_id échoue (ID non synchronisé)
-      if (!profileData && user?.email) {
-        console.log('🔍 Fallback: searching by email:', user.email);
-        const { data: byEmail } = (await (supabase as any)
-          .from('profiles')
-          .select('*')
-          .eq('email', user.email)
-          .maybeSingle()) as any;
-        if (byEmail) {
-          profileData = byEmail;
-          console.log('✅ Profile found by email');
-        }
-      }
 
       if (!profileData) {
         console.warn('⚠️ AuthContext: No profile found for user:', userId);
@@ -205,7 +191,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { data: profData } = (await (supabase as any)
           .from('professionals')
           .select('*')
-          .eq('user_id', userId)
+          .eq('id', userId)
           .maybeSingle()) as any;
 
         professionalData = profData;

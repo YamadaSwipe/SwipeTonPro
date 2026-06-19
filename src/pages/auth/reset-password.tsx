@@ -27,74 +27,39 @@ export default function ResetPasswordPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const checkResetSession = async () => {
-      try {
-        console.log('🔍 Vérification de la session de récupération...');
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔍 Auth state change:', event);
 
-        let validated = false;
-
-        if (typeof (supabase.auth as any).getSessionFromUrl === 'function') {
-          const { data: urlData, error: urlError } = await (
-            supabase.auth as any
-          ).getSessionFromUrl({
-            storeSession: true,
-          });
-
-          if (urlError) {
-            console.warn('⚠️ getSessionFromUrl error:', urlError);
-          } else if (urlData?.session?.user) {
-            console.log(
-              '✅ Session créée via getSessionFromUrl:',
-              urlData.session.user.email
-            );
-            validated = true;
-          }
-        }
-
-        if (!validated) {
-          const { data: sessionData, error: sessionError } =
-            await supabase.auth.getSession();
-
-          if (sessionError) {
-            console.error('❌ Erreur session:', sessionError);
-          } else if (sessionData?.session?.user) {
-            console.log(
-              '✅ Session existante trouvée:',
-              sessionData.session.user.email
-            );
-            validated = true;
-          }
-        }
-
-        if (validated) {
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('✅ Password recovery event detected');
+        setTokenValid(true);
+        setIsValidating(false);
+      } else if (event === 'SIGNED_IN' && tokenValid) {
+        console.log('✅ User signed in with valid token');
+        setIsValidating(false);
+      } else if (event === 'INITIAL_SESSION') {
+        // Check if we have a session (user clicked the reset link)
+        if (session?.user) {
+          console.log('✅ Initial session found:', session.user.email);
           setTokenValid(true);
+          setIsValidating(false);
         } else {
+          console.log('⚠️ No session found');
           setErrorMessage(
             'Ce lien de réinitialisation est invalide ou a expiré. Demandez un nouveau lien.'
           );
           setTokenValid(false);
+          setIsValidating(false);
         }
-
-        if (window.location.hash) {
-          window.history.replaceState(
-            null,
-            '',
-            window.location.pathname + window.location.search
-          );
-        }
-      } catch (error) {
-        console.error('❌ Erreur vérification:', error);
-        setErrorMessage(
-          'Erreur lors de la validation du lien. Veuillez demander un nouveau lien.'
-        );
-        setTokenValid(false);
-      } finally {
-        setIsValidating(false);
       }
-    };
+    });
 
-    checkResetSession();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [tokenValid]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

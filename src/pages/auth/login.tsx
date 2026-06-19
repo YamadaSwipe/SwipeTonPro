@@ -40,11 +40,6 @@ import {
   EyeOff,
 } from 'lucide-react';
 export default function LoginPage() {
-  // Protection SSR
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
   const router = useRouter();
   const { login, role } = useAuth();
   const [email, setEmail] = useState('');
@@ -53,6 +48,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [loginSuccess, setLoginSuccess] = useState(false);
+
+  // Protection SSR - must be after all hooks
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
   // Redirection automatique après connexion réussie
   useEffect(() => {
