@@ -17,6 +17,7 @@ import {
   ChevronUp,
   User,
   Loader2,
+  MoreVertical,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,6 +100,7 @@ export default function AdminProjectsPage() {
     clientEmail?: string;
     title: string;
   } | null>(null);
+  const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
 
@@ -240,6 +242,33 @@ export default function AdminProjectsPage() {
     setInfoMessage('');
   };
 
+  const handleStatusChange = async (
+    projectId: string,
+    newStatus: ProjectStatus
+  ) => {
+    setActionLoading(projectId);
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          status: newStatus,
+          validation_status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      setStatusDropdown(null);
+      await loadProjects(true);
+    } catch (err) {
+      console.error('Erreur changement de statut:', err);
+      alert('Une erreur est survenue lors du changement de statut');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // ── Helpers UI ──────────────────────────────────────────────────────────
 
   const statusBadge = (status: string) => {
@@ -266,6 +295,30 @@ export default function AdminProjectsPage() {
         return (
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
             Infos demandées
+          </span>
+        );
+      case 'draft':
+        return (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-500/15 text-gray-400 border border-gray-500/30">
+            Brouillon
+          </span>
+        );
+      case 'in_progress':
+        return (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">
+            En cours
+          </span>
+        );
+      case 'completed':
+        return (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">
+            Terminé
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
+            Annulé
           </span>
         );
       default:
@@ -582,36 +635,83 @@ export default function AdminProjectsPage() {
                           )}
 
                         {/* Actions secondaires (hors pending) */}
-                        {project.status !== 'pending' && (
-                          <div className="flex gap-2 pt-2">
-                            {project.status === 'info_needed' && (
-                              <button
-                                onClick={() => handleValidate(project)}
-                                disabled={isActioning}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all text-xs font-medium"
-                              >
-                                <CheckCircle className="h-3 w-3" /> Valider
-                                quand même
-                              </button>
-                            )}
-                            {(project.status === 'info_needed' ||
-                              project.status === 'published') && (
-                              <button
-                                onClick={() =>
-                                  setRejectModal({
-                                    id: project.id,
-                                    clientEmail: project.client?.email,
-                                    title: project.title,
-                                  })
-                                }
-                                disabled={isActioning}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-all text-xs font-medium"
-                              >
-                                <XCircle className="h-3 w-3" /> Refuser
-                              </button>
+                        <div className="flex gap-2 pt-2">
+                          {/* Status change dropdown */}
+                          <div className="relative">
+                            <button
+                              onClick={() =>
+                                setStatusDropdown(
+                                  statusDropdown === project.id
+                                    ? null
+                                    : project.id
+                                )
+                              }
+                              disabled={isActioning}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-all text-xs font-medium disabled:opacity-50"
+                            >
+                              <MoreVertical className="h-3 w-3" />
+                              Changer statut
+                            </button>
+                            {statusDropdown === project.id && (
+                              <div className="absolute top-full left-0 mt-2 bg-gray-800 border border-white/10 rounded-lg shadow-xl z-10 min-w-[180px]">
+                                <div className="p-1 space-y-1">
+                                  {(
+                                    [
+                                      'draft',
+                                      'pending',
+                                      'published',
+                                      'in_progress',
+                                      'completed',
+                                      'cancelled',
+                                    ] as ProjectStatus[]
+                                  ).map((status) => (
+                                    <button
+                                      key={status}
+                                      onClick={() =>
+                                        handleStatusChange(project.id, status)
+                                      }
+                                      disabled={isActioning}
+                                      className="w-full text-left px-3 py-2 rounded-md text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
+                                    >
+                                      {status === 'draft' && 'Brouillon'}
+                                      {status === 'pending' && 'En attente'}
+                                      {status === 'published' && 'Validé'}
+                                      {status === 'in_progress' && 'En cours'}
+                                      {status === 'completed' && 'Terminé'}
+                                      {status === 'cancelled' && 'Annulé'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                             )}
                           </div>
-                        )}
+                          {project.status === 'info_needed' && (
+                            <button
+                              onClick={() => handleValidate(project)}
+                              disabled={isActioning}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition-all text-xs font-medium"
+                            >
+                              <CheckCircle className="h-3 w-3" /> Valider quand
+                              même
+                            </button>
+                          )}
+                          {(project.status === 'info_needed' ||
+                            project.status === 'published') && (
+                            <button
+                              onClick={() =>
+                                setRejectModal({
+                                  id: project.id,
+                                  clientEmail: project.client?.email,
+                                  title: project.title,
+                                })
+                              }
+                              disabled={isActioning}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-all text-xs font-medium"
+                            >
+                              <XCircle className="h-3 w-3" /> Refuser
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

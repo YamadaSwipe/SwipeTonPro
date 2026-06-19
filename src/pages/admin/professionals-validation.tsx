@@ -77,8 +77,10 @@ export default function AdminProfessionalsValidation() {
             En attente
           </Badge>
         );
+      case 'suspended':
+        return <Badge variant="destructive">Suspendu</Badge>;
       case 'rejected':
-        return <Badge variant="destructive">Rejeté</Badge>;
+        return <Badge variant="destructive">Refusé</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
