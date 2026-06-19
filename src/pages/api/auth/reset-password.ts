@@ -37,7 +37,7 @@ function getHostBaseUrl(req: NextApiRequest): string {
 }
 
 function getRedirectUrl(req: NextApiRequest): string {
-  return `${getHostBaseUrl(req)}/auth/reset-password`;
+  return 'https://www.swipetonpro.fr/auth/reset-password';
 }
 
 function isUserNotFoundError(error: any): boolean {
