@@ -78,8 +78,6 @@ export default function AdminProfessionalsValidation() {
             En attente
           </Badge>
         );
-      case 'suspended':
-        return <Badge variant="destructive">Suspendu</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Refusé</Badge>;
       default:
@@ -527,28 +525,13 @@ export default function AdminProfessionalsValidation() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
-                      Suspendus
-                    </p>
-                    <p className="text-2xl font-bold text-orange-600">
-                      {stats.suspended}
-                    </p>
-                  </div>
-                  <AlertCircle className="h-8 w-8 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
                       Rejetés
                     </p>
-                    <p className="text-2xl font-bold text-red-600">
+                    <p className="text-2xl font-bold text-orange-600">
                       {stats.rejected}
                     </p>
                   </div>
-                  <XCircle className="h-8 w-8 text-red-600" />
+                  <AlertCircle className="h-8 w-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
