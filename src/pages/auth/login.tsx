@@ -63,7 +63,9 @@ export default function LoginPage() {
         ? '/admin/dashboard'
         : role === 'professional'
           ? '/professionnel/dashboard'
-          : '/particulier/dashboard';
+          : role === 'client'
+            ? '/particulier/dashboard'
+            : '/particulier/dashboard';
 
     router.push(destination);
   }, [loginSuccess, role, router]);

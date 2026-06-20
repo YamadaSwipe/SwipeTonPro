@@ -657,13 +657,12 @@ export default function AdminProjectsPage() {
                                 <div className="p-1 space-y-1">
                                   {(
                                     [
+                                      'draft',
                                       'pending',
-                                      'in_review',
-                                      'approved',
-                                      'rejected',
                                       'published',
-                                      'featured',
-                                      'urgent',
+                                      'in_progress',
+                                      'completed',
+                                      'cancelled',
                                     ] as ProjectStatus[]
                                   ).map((status) => (
                                     <button
@@ -674,20 +673,18 @@ export default function AdminProjectsPage() {
                                       disabled={isActioning}
                                       className="w-full text-left px-3 py-2 rounded-md text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
                                     >
+                                      {(status as string) === 'draft' &&
+                                        'Brouillon'}
                                       {(status as string) === 'pending' &&
                                         'En attente'}
-                                      {(status as string) === 'in_review' &&
-                                        'En revue'}
-                                      {(status as string) === 'approved' &&
-                                        'Approuvé'}
-                                      {(status as string) === 'rejected' &&
-                                        'Refusé'}
                                       {(status as string) === 'published' &&
                                         'Publié'}
-                                      {(status as string) === 'featured' &&
-                                        'En vedette'}
-                                      {(status as string) === 'urgent' &&
-                                        'Urgent'}
+                                      {(status as string) === 'in_progress' &&
+                                        'En cours'}
+                                      {(status as string) === 'completed' &&
+                                        'Terminé'}
+                                      {(status as string) === 'cancelled' &&
+                                        'Annulé'}
                                     </button>
                                   ))}
                                 </div>
