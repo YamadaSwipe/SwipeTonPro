@@ -159,7 +159,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { data: profData } = (await (supabase as any)
           .from('professionals')
           .select('*')
-          .eq('id', userId)
+          .eq('user_id', userId)
           .maybeSingle()) as any;
 
         professionalData = profData;

@@ -604,9 +604,6 @@ export default function AdminProfessionalsValidation() {
                                       'in_review',
                                       'approved',
                                       'rejected',
-                                      'published',
-                                      'featured',
-                                      'urgent',
                                     ].map((status) => (
                                       <button
                                         key={status}
@@ -622,9 +619,6 @@ export default function AdminProfessionalsValidation() {
                                         {status === 'in_review' && 'En revue'}
                                         {status === 'approved' && 'Approuvé'}
                                         {status === 'rejected' && 'Refusé'}
-                                        {status === 'published' && 'Publié'}
-                                        {status === 'featured' && 'En vedette'}
-                                        {status === 'urgent' && 'Urgent'}
                                       </button>
                                     ))}
                                   </div>
