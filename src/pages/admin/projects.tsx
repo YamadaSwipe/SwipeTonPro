@@ -653,7 +653,7 @@ export default function AdminProjectsPage() {
                               Changer statut
                             </button>
                             {statusDropdown === project.id && (
-                              <div className="absolute top-full left-0 mt-2 bg-gray-800 border border-white/10 rounded-lg shadow-xl z-10 min-w-[180px]">
+                              <div className="absolute bottom-full left-0 mb-1 bg-gray-800 border border-white/10 rounded-lg shadow-xl z-10 min-w-[180px]">
                                 <div className="p-1 space-y-1">
                                   {(
                                     [
