@@ -57,7 +57,7 @@ export const commissionService = {
       name: 'Bronze',
       minLeads: 0,
       maxLeads: 10,
-      commissionRate: 0.10, // 10%
+      commissionRate: 0.1, // 10%
       baseCommission: 5, // 5€ par lead
       bonusThreshold: 5,
       bonusRate: 0.02, // 2% bonus
@@ -87,7 +87,7 @@ export const commissionService = {
       name: 'Platine',
       minLeads: 51,
       maxLeads: Infinity,
-      commissionRate: 0.20, // 20%
+      commissionRate: 0.2, // 20%
       baseCommission: 15, // 15€ par lead
       bonusThreshold: 40,
       bonusRate: 0.08, // 8% bonus
@@ -110,13 +110,7 @@ export const commissionService = {
 
       const { data: soldLeads, error } = await (supabase as any)
         .from('lead_purchases')
-        .select(`
-          purchase_price,
-          leads_for_sale!inner(
-            qualification_score,
-            project_details
-          )
-        `)
+        .select('purchase_price')
         .eq('buyer_id', userId)
         .gte('purchased_at', startDate.toISOString())
         .lte('purchased_at', endDate.toISOString())
@@ -132,7 +126,8 @@ export const commissionService = {
       if (error) throw error;
 
       const totalLeads = soldLeads?.length || 0;
-      const totalRevenue = soldLeads?.reduce((sum, lead) => sum + lead.purchase_price, 0) || 0;
+      const totalRevenue =
+        soldLeads?.reduce((sum, lead) => sum + lead.purchase_price, 0) || 0;
 
       // Déterminer le tier
       const tier = this.getCommissionTier(totalLeads);
@@ -141,13 +136,18 @@ export const commissionService = {
       const baseCommission = totalLeads * tier.baseCommission;
 
       // Calculer le bonus de tier
-      const tierBonus = totalLeads > tier.bonusThreshold 
-        ? totalRevenue * tier.bonusRate 
-        : 0;
+      const tierBonus =
+        totalLeads > tier.bonusThreshold ? totalRevenue * tier.bonusRate : 0;
 
       // Calculer les bonus de performance
-      const performance = await this.calculatePerformanceMetrics(userId, period);
-      const performanceBonus = this.calculatePerformanceBonus(performance, totalRevenue);
+      const performance = await this.calculatePerformanceMetrics(
+        userId,
+        period
+      );
+      const performanceBonus = this.calculatePerformanceBonus(
+        performance,
+        totalRevenue
+      );
 
       // Commission totale
       const totalCommission = baseCommission + tierBonus + performanceBonus;
@@ -174,7 +174,10 @@ export const commissionService = {
    */
   getCommissionTier(leadsCount: number): CommissionTier {
     for (const [key, tier] of Object.entries(this.commissionTiers)) {
-      if (leadsCount >= (tier as any).minLeads && leadsCount <= (tier as any).maxLeads) {
+      if (
+        leadsCount >= (tier as any).minLeads &&
+        leadsCount <= (tier as any).maxLeads
+      ) {
         return tier as CommissionTier;
       }
     }
@@ -294,7 +297,10 @@ export const commissionService = {
       // Calculer la commission
       const commission = await this.calculateCommission(userId, period);
       if (!commission) {
-        return { success: false, error: 'Impossible de calculer la commission' };
+        return {
+          success: false,
+          error: 'Impossible de calculer la commission',
+        };
       }
 
       // Vérifier si une demande existe déjà
@@ -306,7 +312,10 @@ export const commissionService = {
         .single();
 
       if (existingPayout) {
-        return { success: false, error: 'Une demande de paiement existe déjà pour cette période' };
+        return {
+          success: false,
+          error: 'Une demande de paiement existe déjà pour cette période',
+        };
       }
 
       // Créer la demande de paiement
@@ -468,14 +477,14 @@ export const commissionService = {
       }
 
       const { data, error } = await query;
-      
+
       // Si la table n'existe pas, retourner des données mock
       if (error?.code === 'PGRST116' || error?.status === 404) {
         return this.generateMockPayoutRequests(userId);
       }
-      
+
       if (error) throw error;
-      
+
       return data || [];
     } catch (error) {
       console.error('Erreur demandes paiement:', error);
@@ -488,16 +497,24 @@ export const commissionService = {
    * Générer des demandes de paiement fictives pour les tests/démo
    */
   generateMockPayoutRequests(userId?: string): CommissionPayout[] {
-    const statuses: Array<'pending' | 'approved' | 'paid'> = ['pending', 'approved', 'paid'];
+    const statuses: Array<'pending' | 'approved' | 'paid'> = [
+      'pending',
+      'approved',
+      'paid',
+    ];
     const mockPayouts: CommissionPayout[] = [];
-    
+
     const baseDate = new Date();
     for (let i = 0; i < 3; i++) {
-      const date = new Date(baseDate.getFullYear(), baseDate.getMonth() - i, 15);
+      const date = new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth() - i,
+        15
+      );
       const period = date.toISOString().slice(0, 7);
       const amount = 500 + Math.random() * 1500;
       const status = statuses[i % statuses.length];
-      
+
       mockPayouts.push({
         id: `payout-${userId}-${period}`,
         userId: userId || 'demo-user',
@@ -511,11 +528,19 @@ export const commissionService = {
           bankName: 'Demo Banque',
           accountHolder: userId ? `Utilisateur ${userId}` : 'Demo User',
         },
-        ...(status === 'paid' && { paidAt: new Date(date.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString() }),
-        ...(status === 'approved' && { approvedAt: new Date(date.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString() }),
+        ...(status === 'paid' && {
+          paidAt: new Date(
+            date.getTime() + 7 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+        }),
+        ...(status === 'approved' && {
+          approvedAt: new Date(
+            date.getTime() + 2 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+        }),
       });
     }
-    
+
     return mockPayouts;
   },
 
@@ -526,19 +551,22 @@ export const commissionService = {
     try {
       // Historique des commissions
       const commissionHistory = await this.getCommissionHistory(userId, 6);
-      
+
       // Demandes de paiement
       const payoutRequests = await this.getPayoutRequests(userId);
 
       // Statistiques actuelles
       const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
-      const currentCommission = await this.calculateCommission(userId, currentPeriod);
+      const currentCommission = await this.calculateCommission(
+        userId,
+        currentPeriod
+      );
 
       // Projections
       const projections = this.calculateProjections(commissionHistory);
 
       // Tier actuel
-      const currentTier = currentCommission 
+      const currentTier = currentCommission
         ? this.getCommissionTier(currentCommission.totalLeads)
         : this.commissionTiers.bronze;
 
@@ -553,13 +581,23 @@ export const commissionService = {
         currentTier,
         nextTier,
         summary: {
-          totalEarned: commissionHistory.reduce((sum, c) => sum + c.totalCommission, 0),
-          totalLeads: commissionHistory.reduce((sum, c) => sum + c.totalLeads, 0),
-          averageCommission: commissionHistory.length > 0 
-            ? commissionHistory.reduce((sum, c) => sum + c.totalCommission, 0) / commissionHistory.length 
-            : 0,
+          totalEarned: commissionHistory.reduce(
+            (sum, c) => sum + c.totalCommission,
+            0
+          ),
+          totalLeads: commissionHistory.reduce(
+            (sum, c) => sum + c.totalLeads,
+            0
+          ),
+          averageCommission:
+            commissionHistory.length > 0
+              ? commissionHistory.reduce(
+                  (sum, c) => sum + c.totalCommission,
+                  0
+                ) / commissionHistory.length
+              : 0,
           pendingPayouts: payoutRequests
-            .filter(p => p.status === 'pending' || p.status === 'approved')
+            .filter((p) => p.status === 'pending' || p.status === 'approved')
             .reduce((sum, p) => sum + p.amount, 0),
         },
       };
@@ -583,7 +621,9 @@ export const commissionService = {
 
     // Calculer la tendance mensuelle
     const recentMonths = history.slice(3); // 3 derniers mois
-    const monthlyTrend = this.calculateTrend(recentMonths.map(h => h.totalCommission));
+    const monthlyTrend = this.calculateTrend(
+      recentMonths.map((h) => h.totalCommission)
+    );
 
     // Projeter le mois suivant
     const lastMonth = history[0]?.totalCommission || 0;
@@ -612,7 +652,7 @@ export const commissionService = {
     const sumXX = values.reduce((sum, _, i) => sum + i * i, 0);
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    
+
     return slope;
   },
 
@@ -622,11 +662,11 @@ export const commissionService = {
   getNextTier(currentTier: CommissionTier): CommissionTier | null {
     const tiers = Object.values(this.commissionTiers);
     const currentIndex = tiers.findIndex((t: any) => t.id === currentTier.id);
-    
+
     if (currentIndex < tiers.length - 1) {
       return tiers[currentIndex + 1] as CommissionTier;
     }
-    
+
     return null; // Déjà au tier maximum
   },
 
@@ -636,34 +676,37 @@ export const commissionService = {
   generatePeriods(count: number): string[] {
     const periods: string[] = [];
     const now = new Date();
-    
+
     for (let i = 0; i < count; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       periods.push(date.toISOString().slice(0, 7)); // YYYY-MM
     }
-    
+
     return periods;
   },
 
   /**
    * Générer une commission fictive pour les tests/démo
    */
-  generateMockCommission(userId: string, period: string): CommissionCalculation {
+  generateMockCommission(
+    userId: string,
+    period: string
+  ): CommissionCalculation {
     // Générer des données réalistes basées sur la période
     const [year, month] = period.split('-').map(Number);
     const monthFactor = (month % 3) + 1; // Varie entre 1-3
     const yearFactor = (year % 3) + 1; // Varie entre 1-3
-    
-    const totalLeads = Math.floor(Math.random() * 30) + 5 + (monthFactor * 2);
+
+    const totalLeads = Math.floor(Math.random() * 30) + 5 + monthFactor * 2;
     const leadPrice = 50 + Math.random() * 150;
     const totalRevenue = totalLeads * leadPrice;
-    
+
     const tier = this.getCommissionTier(totalLeads);
     const baseCommission = totalLeads * tier.baseCommission;
-    const tierBonus = totalLeads > tier.bonusThreshold 
-      ? totalRevenue * tier.bonusRate 
-      : 0;
-    const performanceBonus = (totalRevenue * 0.02) + (Math.random() * totalRevenue * 0.03);
+    const tierBonus =
+      totalLeads > tier.bonusThreshold ? totalRevenue * tier.bonusRate : 0;
+    const performanceBonus =
+      totalRevenue * 0.02 + Math.random() * totalRevenue * 0.03;
     const totalCommission = baseCommission + tierBonus + performanceBonus;
 
     return {
@@ -685,7 +728,7 @@ export const commissionService = {
   async exportCommissionsCSV(userId: string): Promise<string> {
     try {
       const history = await this.getCommissionHistory(userId, 24);
-      
+
       const headers = [
         'Période',
         'Leads vendus',
@@ -698,7 +741,7 @@ export const commissionService = {
         'Taux de commission',
       ];
 
-      const rows = history.map(commission => [
+      const rows = history.map((commission) => [
         commission.period,
         commission.totalLeads,
         commission.totalRevenue.toFixed(2),
@@ -710,7 +753,7 @@ export const commissionService = {
         `${(commission.tier.commissionRate * 100).toFixed(1)}%`,
       ]);
 
-      return [headers, ...rows].map(row => row.join(',')).join('\n');
+      return [headers, ...rows].map((row) => row.join(',')).join('\n');
     } catch (error) {
       console.error('Erreur export CSV:', error);
       return '';
@@ -744,20 +787,26 @@ export const commissionService = {
 
       if (error) throw error;
 
-      const totalCommissions = data?.reduce((sum, record) => sum + record.total_commission, 0) || 0;
-      const totalLeads = data?.reduce((sum, record) => sum + record.total_leads, 0) || 0;
-      const averageCommission = data?.length > 0 ? totalCommissions / data.length : 0;
+      const totalCommissions =
+        data?.reduce((sum, record) => sum + record.total_commission, 0) || 0;
+      const totalLeads =
+        data?.reduce((sum, record) => sum + record.total_leads, 0) || 0;
+      const averageCommission =
+        data?.length > 0 ? totalCommissions / data.length : 0;
 
       // Répartition par tier
-      const tierDistribution = Object.keys(this.commissionTiers).map(tierId => {
-        const tier = this.commissionTiers[tierId];
-        const count = data?.filter(record => record.tier_id === tierId).length || 0;
-        return {
-          tier: tier.name,
-          count,
-          percentage: data?.length > 0 ? (count / data.length) * 100 : 0,
-        };
-      });
+      const tierDistribution = Object.keys(this.commissionTiers).map(
+        (tierId) => {
+          const tier = this.commissionTiers[tierId];
+          const count =
+            data?.filter((record) => record.tier_id === tierId).length || 0;
+          return {
+            tier: tier.name,
+            count,
+            percentage: data?.length > 0 ? (count / data.length) * 100 : 0,
+          };
+        }
+      );
 
       return {
         totalCommissions,
@@ -765,7 +814,7 @@ export const commissionService = {
         averageCommission,
         tierDistribution,
         monthlyTrend: this.calculateTrend(
-          data?.slice(0, 12).map(d => d.total_commission) || []
+          data?.slice(0, 12).map((d) => d.total_commission) || []
         ),
       };
     } catch (error) {
