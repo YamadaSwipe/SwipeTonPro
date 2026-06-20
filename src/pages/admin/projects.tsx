@@ -674,13 +674,20 @@ export default function AdminProjectsPage() {
                                       disabled={isActioning}
                                       className="w-full text-left px-3 py-2 rounded-md text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
                                     >
-                                      {status === 'pending' && 'En attente'}
-                                      {status === 'in_review' && 'En revue'}
-                                      {status === 'approved' && 'Approuvé'}
-                                      {status === 'rejected' && 'Refusé'}
-                                      {status === 'published' && 'Publié'}
-                                      {status === 'featured' && 'En vedette'}
-                                      {status === 'urgent' && 'Urgent'}
+                                      {(status as string) === 'pending' &&
+                                        'En attente'}
+                                      {(status as string) === 'in_review' &&
+                                        'En revue'}
+                                      {(status as string) === 'approved' &&
+                                        'Approuvé'}
+                                      {(status as string) === 'rejected' &&
+                                        'Refusé'}
+                                      {(status as string) === 'published' &&
+                                        'Publié'}
+                                      {(status as string) === 'featured' &&
+                                        'En vedette'}
+                                      {(status as string) === 'urgent' &&
+                                        'Urgent'}
                                     </button>
                                   ))}
                                 </div>
