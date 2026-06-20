@@ -515,7 +515,7 @@ export default function AdminProfessionalsValidation() {
                       Approuvés
                     </p>
                     <p className="text-2xl font-bold text-green-600">
-                      {stats.verified}
+                      {stats.approved}
                     </p>
                   </div>
                   <CheckCircle className="h-8 w-8 text-green-600" />
