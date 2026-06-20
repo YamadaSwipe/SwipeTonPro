@@ -397,8 +397,8 @@ export default function AdminProfessionalsValidation() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-600">Approuvé</Badge>;
+      case 'verified':
+        return <Badge className="bg-green-600">Vérifié</Badge>;
       case 'pending':
         return (
           <Badge
@@ -408,8 +408,6 @@ export default function AdminProfessionalsValidation() {
             En attente
           </Badge>
         );
-      case 'verified':
-        return <Badge className="bg-blue-600">Vérifié</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Rejeté</Badge>;
       case 'suspended':
@@ -421,9 +419,6 @@ export default function AdminProfessionalsValidation() {
 
   const getStats = () => {
     const pending = professionals.filter((p) => p.status === 'pending').length;
-    const approved = professionals.filter(
-      (p) => p.status === 'approved'
-    ).length;
     const verified = professionals.filter(
       (p) => p.status === 'verified'
     ).length;
@@ -435,7 +430,7 @@ export default function AdminProfessionalsValidation() {
     ).length;
     const total = professionals.length;
 
-    return { pending, approved, verified, rejected, suspended, total };
+    return { pending, verified, rejected, suspended, total };
   };
 
   const stats = getStats();
@@ -543,9 +538,6 @@ export default function AdminProfessionalsValidation() {
               <TabsTrigger value="all">Tous ({stats.total})</TabsTrigger>
               <TabsTrigger value="pending">
                 En attente ({stats.pending})
-              </TabsTrigger>
-              <TabsTrigger value="approved">
-                Approuvés ({stats.approved})
               </TabsTrigger>
               <TabsTrigger value="verified">
                 Vérifiés ({stats.verified})

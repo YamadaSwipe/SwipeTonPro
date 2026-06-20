@@ -239,7 +239,30 @@ function ParticulierDashboardContent() {
     };
 
     loadUserData();
-  }, []);
+
+    // Set up realtime subscription for projects
+    const subscription = supabase
+      .channel('projects-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          // Reload projects when changes occur
+          loadUserData();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user?.id]);
 
   // Optimiser les handlers avec useCallback
   const handleLogout = useCallback(async () => {

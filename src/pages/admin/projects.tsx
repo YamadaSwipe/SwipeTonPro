@@ -657,12 +657,13 @@ export default function AdminProjectsPage() {
                                 <div className="p-1 space-y-1">
                                   {(
                                     [
-                                      'draft',
                                       'pending',
+                                      'in_review',
+                                      'approved',
+                                      'rejected',
                                       'published',
-                                      'in_progress',
-                                      'completed',
-                                      'cancelled',
+                                      'featured',
+                                      'urgent',
                                     ] as ProjectStatus[]
                                   ).map((status) => (
                                     <button
@@ -673,12 +674,13 @@ export default function AdminProjectsPage() {
                                       disabled={isActioning}
                                       className="w-full text-left px-3 py-2 rounded-md text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
                                     >
-                                      {status === 'draft' && 'Brouillon'}
                                       {status === 'pending' && 'En attente'}
-                                      {status === 'published' && 'Validé'}
-                                      {status === 'in_progress' && 'En cours'}
-                                      {status === 'completed' && 'Terminé'}
-                                      {status === 'cancelled' && 'Annulé'}
+                                      {status === 'in_review' && 'En revue'}
+                                      {status === 'approved' && 'Approuvé'}
+                                      {status === 'rejected' && 'Refusé'}
+                                      {status === 'published' && 'Publié'}
+                                      {status === 'featured' && 'En vedette'}
+                                      {status === 'urgent' && 'Urgent'}
                                     </button>
                                   ))}
                                 </div>
