@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { AdminGuard } from '@/components/auth/RoleGuard';
@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  TrendingUp, 
-  DollarSign, 
-  Users, 
+import {
+  TrendingUp,
+  DollarSign,
+  Users,
   Target,
   Calendar,
   Download,
@@ -21,7 +21,7 @@ import {
   ChevronDown,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { commissionService } from '@/services/commissionService';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,9 +57,7 @@ function CommissionDashboardContent() {
     );
   }
 
-  return (
-    <CommissionDashboardInner />
-  );
+  return <CommissionDashboardInner />;
 }
 
 function CommissionDashboardInner() {
@@ -73,7 +71,9 @@ function CommissionDashboardInner() {
 
   const loadDashboard = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const data = await commissionService.getCommissionDashboard(user.id);
@@ -87,11 +87,13 @@ function CommissionDashboardInner() {
 
   const handleExportCSV = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const csv = await commissionService.exportCommissionsCSV(user.id);
-      
+
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -182,9 +184,11 @@ function CommissionDashboardInner() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Revenu Total</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Revenu Total
+                  </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    €{dashboard.summary.totalEarned.toFixed(2)}
+                    €{(dashboard.summary?.totalEarned || 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-green-500 p-3 rounded-lg text-white">
@@ -198,9 +202,11 @@ function CommissionDashboardInner() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Leads Vendus</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Leads Vendus
+                  </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {dashboard.summary.totalLeads}
+                    {dashboard.summary?.totalLeads || 0}
                   </p>
                 </div>
                 <div className="bg-blue-500 p-3 rounded-lg text-white">
@@ -214,9 +220,11 @@ function CommissionDashboardInner() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Commission Moyenne</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Commission Moyenne
+                  </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    €{dashboard.summary.averageCommission.toFixed(2)}
+                    €{(dashboard.summary?.averageCommission || 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-purple-500 p-3 rounded-lg text-white">
@@ -230,9 +238,11 @@ function CommissionDashboardInner() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Paiements en Attente</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Paiements en Attente
+                  </p>
                   <p className="text-2xl font-bold text-gray-900">
-                    €{dashboard.summary.pendingPayouts.toFixed(2)}
+                    €{(dashboard.summary?.pendingPayouts || 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-orange-500 p-3 rounded-lg text-white">
@@ -256,44 +266,61 @@ function CommissionDashboardInner() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Leads vendus</span>
                     <Badge variant="outline">
-                      {dashboard.currentPeriod.totalLeads}
+                      {dashboard.currentPeriod.totalLeads || 0}
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Revenu généré</span>
                     <span className="font-medium">
-                      €{dashboard.currentPeriod.totalRevenue.toFixed(2)}
+                      €{(dashboard.currentPeriod.totalRevenue || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Commission totale</span>
+                    <span className="text-sm text-gray-600">
+                      Commission totale
+                    </span>
                     <span className="font-bold text-green-600">
-                      €{dashboard.currentPeriod.totalCommission.toFixed(2)}
+                      €
+                      {(dashboard.currentPeriod.totalCommission || 0).toFixed(
+                        2
+                      )}
                     </span>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Commission base</span>
+                      <span className="text-sm text-gray-600">
+                        Commission base
+                      </span>
                       <span className="text-sm">
-                        €{dashboard.currentPeriod.baseCommission.toFixed(2)}
+                        €
+                        {(dashboard.currentPeriod.baseCommission || 0).toFixed(
+                          2
+                        )}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Bonus tier</span>
                       <span className="text-sm text-green-600">
-                        +€{dashboard.currentPeriod.tierBonus.toFixed(2)}
+                        +€{(dashboard.currentPeriod.tierBonus || 0).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Bonus performance</span>
+                      <span className="text-sm text-gray-600">
+                        Bonus performance
+                      </span>
                       <span className="text-sm text-green-600">
-                        +€{dashboard.currentPeriod.performanceBonus.toFixed(2)}
+                        +€
+                        {(
+                          dashboard.currentPeriod.performanceBonus || 0
+                        ).toFixed(2)}
                       </span>
                     </div>
                   </div>
                 </>
               ) : (
-                <p className="text-gray-500">Aucune donnée pour la période actuelle</p>
+                <p className="text-gray-500">
+                  Aucune donnée pour la période actuelle
+                </p>
               )}
             </CardContent>
           </Card>
@@ -304,22 +331,29 @@ function CommissionDashboardInner() {
               <CardTitle>Votre Tier</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className={`p-4 rounded-lg border ${getTierColor(dashboard.currentTier.id)}`}>
+              <div
+                className={`p-4 rounded-lg border ${getTierColor(dashboard.currentTier?.id || 'bronze')}`}
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold">{dashboard.currentTier.name}</h3>
+                  <h3 className="text-lg font-bold">
+                    {dashboard.currentTier?.name || 'Bronze'}
+                  </h3>
                   <Award className="w-6 h-6" />
                 </div>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span>Taux de commission:</span>
                     <span className="font-medium">
-                      {(dashboard.currentTier.commissionRate * 100).toFixed(1)}%
+                      {(
+                        (dashboard.currentTier?.commissionRate || 0) * 100
+                      ).toFixed(1)}
+                      %
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Commission par lead:</span>
                     <span className="font-medium">
-                      €{dashboard.currentTier.baseCommission}
+                      €{dashboard.currentTier?.baseCommission || 5}
                     </span>
                   </div>
                 </div>
@@ -334,11 +368,20 @@ function CommissionDashboardInner() {
                   <div className="flex justify-between items-center text-sm">
                     <span>Leads manquants:</span>
                     <Badge variant="outline">
-                      {dashboard.nextTier.minLeads - dashboard.currentPeriod.totalLeads} leads
+                      {dashboard.nextTier.minLeads -
+                        (dashboard.currentPeriod?.totalLeads || 0)}{' '}
+                      leads
                     </Badge>
                   </div>
-                  <Progress 
-                    value={(dashboard.currentPeriod.totalLeads / dashboard.nextTier.minLeads) * 100}
+                  <Progress
+                    value={
+                      dashboard.currentPeriod?.totalLeads &&
+                      dashboard.nextTier.minLeads
+                        ? (dashboard.currentPeriod.totalLeads /
+                            dashboard.nextTier.minLeads) *
+                          100
+                        : 0
+                    }
                     className="h-2"
                   />
                 </div>
@@ -362,29 +405,47 @@ function CommissionDashboardInner() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {dashboard.commissionHistory.map((commission, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">{commission.period}</span>
-                          <Badge className={getTierColor(commission.tier.id)}>
-                            {commission.tier.name}
-                          </Badge>
+                  {(dashboard.commissionHistory || []).map(
+                    (commission, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">
+                              {commission.period}
+                            </span>
+                            <Badge
+                              className={getTierColor(
+                                commission.tier?.id || 'bronze'
+                              )}
+                            >
+                              {commission.tier?.name || 'Bronze'}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            {commission.totalLeads || 0} leads • €
+                            {(commission.totalRevenue || 0).toFixed(2)} revenu
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          {commission.totalLeads} leads • €{commission.totalRevenue.toFixed(2)} revenu
+                        <div className="text-right">
+                          <div className="font-bold text-green-600">
+                            €{(commission.totalCommission || 0).toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            +€{(commission.tierBonus || 0).toFixed(2)} bonus
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-green-600">
-                          €{commission.totalCommission.toFixed(2)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          +€{commission.tierBonus.toFixed(2)} bonus
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
+                  {(!dashboard.commissionHistory ||
+                    dashboard.commissionHistory.length === 0) && (
+                    <p className="text-gray-500 text-center py-4">
+                      Aucune donnée d'historique
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -397,8 +458,11 @@ function CommissionDashboardInner() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {dashboard.payoutRequests.map((payout, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                  {(dashboard.payoutRequests || []).map((payout, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
                           <span className="font-medium">{payout.period}</span>
@@ -410,7 +474,8 @@ function CommissionDashboardInner() {
                           </Badge>
                         </div>
                         <div className="text-sm text-gray-600 mt-1">
-                          Créée le {new Date(payout.createdAt).toLocaleDateString()}
+                          Créée le{' '}
+                          {new Date(payout.createdAt).toLocaleDateString()}
                         </div>
                         {payout.rejectedReason && (
                           <div className="text-sm text-red-600 mt-1">
@@ -420,16 +485,23 @@ function CommissionDashboardInner() {
                       </div>
                       <div className="text-right">
                         <div className="font-bold">
-                          €{payout.amount.toFixed(2)}
+                          €{(payout.amount || 0).toFixed(2)}
                         </div>
                         {payout.paidAt && (
                           <div className="text-xs text-green-600">
-                            Payé le {new Date(payout.paidAt).toLocaleDateString()}
+                            Payé le{' '}
+                            {new Date(payout.paidAt).toLocaleDateString()}
                           </div>
                         )}
                       </div>
                     </div>
                   ))}
+                  {(!dashboard.payoutRequests ||
+                    dashboard.payoutRequests.length === 0) && (
+                    <p className="text-gray-500 text-center py-4">
+                      Aucune demande de paiement
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -443,30 +515,45 @@ function CommissionDashboardInner() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Tendance mensuelle</span>
+                    <span className="text-sm text-gray-600">
+                      Tendance mensuelle
+                    </span>
                     <div className="flex items-center">
-                      {dashboard.projections.monthlyTrend >= 0 ? (
+                      {(dashboard.projections?.monthlyTrend || 0) >= 0 ? (
                         <ChevronUp className="w-4 h-4 text-green-500 mr-1" />
                       ) : (
                         <ChevronDown className="w-4 h-4 text-red-500 mr-1" />
                       )}
-                      <span className={`font-medium ${
-                        dashboard.projections.monthlyTrend >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {Math.abs(dashboard.projections.monthlyTrend * 100).toFixed(1)}%
+                      <span
+                        className={`font-medium ${
+                          (dashboard.projections?.monthlyTrend || 0) >= 0
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {Math.abs(
+                          (dashboard.projections?.monthlyTrend || 0) * 100
+                        ).toFixed(1)}
+                        %
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Prochain mois</span>
                     <span className="font-bold">
-                      €{dashboard.projections.projectedMonthly.toFixed(2)}
+                      €
+                      {(dashboard.projections?.projectedMonthly || 0).toFixed(
+                        2
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Projection annuelle</span>
+                    <span className="text-sm text-gray-600">
+                      Projection annuelle
+                    </span>
                     <span className="font-bold text-green-600">
-                      €{dashboard.projections.projectedYearly.toFixed(2)}
+                      €
+                      {(dashboard.projections?.projectedYearly || 0).toFixed(2)}
                     </span>
                   </div>
                 </CardContent>
@@ -479,23 +566,31 @@ function CommissionDashboardInner() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Tier suivant</span>
+                      <span className="text-sm text-gray-600">
+                        Tier suivant
+                      </span>
                       <Badge variant="outline">
                         {dashboard.nextTier?.name || 'Maximum'}
                       </Badge>
                     </div>
                     {dashboard.nextTier && (
-                      <Progress 
-                        value={(dashboard.currentPeriod.totalLeads / dashboard.nextTier.minLeads) * 100}
+                      <Progress
+                        value={
+                          dashboard.currentPeriod?.totalLeads &&
+                          dashboard.nextTier.minLeads
+                            ? (dashboard.currentPeriod.totalLeads /
+                                dashboard.nextTier.minLeads) *
+                              100
+                            : 0
+                        }
                         className="h-2"
                       />
                     )}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {dashboard.nextTier 
-                      ? `${dashboard.nextTier.minLeads - dashboard.currentPeriod.totalLeads} leads manquants pour le tier ${dashboard.nextTier.name}`
-                      : 'Vous avez atteint le tier maximum!'
-                    }
+                    {dashboard.nextTier
+                      ? `${dashboard.nextTier.minLeads - (dashboard.currentPeriod?.totalLeads || 0)} leads manquants pour le tier ${dashboard.nextTier.name}`
+                      : 'Vous avez atteint le tier maximum!'}
                   </div>
                 </CardContent>
               </Card>

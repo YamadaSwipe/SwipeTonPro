@@ -260,6 +260,8 @@ export default function AdminProfessionalsValidation() {
         setProfessionals([]);
       } else {
         console.log('Professionnels chargés:', data.length);
+        console.log('Premier professionnel id:', data[0]?.id);
+        console.log('Premier professionnel user_id:', data[0]?.user_id);
         setProfessionals(data);
       }
     } catch (error) {
@@ -371,10 +373,17 @@ export default function AdminProfessionalsValidation() {
     newStatus: string
   ) => {
     try {
-      const { error } = await supabase
+      console.log('handleStatusChange called with:', {
+        professionalId,
+        newStatus,
+      });
+      const { data, error } = await supabase
         .from('professionals')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', professionalId);
+        .eq('id', professionalId)
+        .select();
+
+      console.log('Supabase response:', { data, error });
 
       if (error) throw error;
 
