@@ -229,72 +229,80 @@ export default withAuth(async function handler(
 
     // Le statut est déjà mis à jour par l'admin panel
     // Cet endpoint ne fait qu'envoyer les notifications
-    const emailsToSend = [];
+    let sent = 0;
 
-    if (action === 'validate') {
-      // Email au particulier — projet validé
-      emailsToSend.push(
-        sendEmailServerSide({
-          to: client.email,
-          subject: `✅ Votre projet "${project.title}" est en ligne !`,
-          html: templateValidated({
-            clientName: client.full_name || 'Client',
-            projectTitle: project.title,
-            city: project.city || '',
-            dashboardUrl: `${BASE_URL}/particulier/projects`,
-          }),
-          fromType: 'noreply',
-        })
-      );
+    try {
+      const emailsToSend = [];
 
-      // Email au support — confirmation
-      emailsToSend.push(
-        sendEmailServerSide({
-          to: 'support@qwipetonpro.fr',
-          subject: `[VALIDÉ] ${project.title}`,
-          html: templateSupportValidated({
-            projectTitle: project.title,
-            projectId,
-            clientEmail: client.email,
-            validatedBy: validatedBy || 'Admin',
-          }),
-          fromType: 'noreply',
-        })
-      );
-    } else if (action === 'info_needed') {
-      // Email au particulier — informations complémentaires demandées
-      emailsToSend.push(
-        sendEmailServerSide({
-          to: client.email,
-          subject: `ℹ️ Complément d'information demandé pour "${project.title}"`,
-          html: templateInfoNeeded({
-            clientName: client.full_name || 'Client',
-            projectTitle: project.title,
-            reason,
-            dashboardUrl: `${BASE_URL}/particulier/projects`,
-          }),
-          fromType: 'noreply',
-        })
-      );
-    } else {
-      // Email au particulier — projet refusé avec motif
-      emailsToSend.push(
-        sendEmailServerSide({
-          to: client.email,
-          subject: `📋 Mise à jour de votre projet "${project.title}"`,
-          html: templateRejected({
-            clientName: client.full_name || 'Client',
-            projectTitle: project.title,
-            reason,
-            dashboardUrl: `${BASE_URL}/particulier/projects`,
-          }),
-          fromType: 'noreply',
-        })
-      );
+      if (action === 'validate') {
+        // Email au particulier — projet validé
+        emailsToSend.push(
+          sendEmailServerSide({
+            to: client.email,
+            subject: `✅ Votre projet "${project.title}" est en ligne !`,
+            html: templateValidated({
+              clientName: client.full_name || 'Client',
+              projectTitle: project.title,
+              city: project.city || '',
+              dashboardUrl: `${BASE_URL}/particulier/projects`,
+            }),
+            fromType: 'noreply',
+          })
+        );
+
+        // Email au support — confirmation
+        emailsToSend.push(
+          sendEmailServerSide({
+            to: 'support@qwipetonpro.fr',
+            subject: `[VALIDÉ] ${project.title}`,
+            html: templateSupportValidated({
+              projectTitle: project.title,
+              projectId,
+              clientEmail: client.email,
+              validatedBy: validatedBy || 'Admin',
+            }),
+            fromType: 'noreply',
+          })
+        );
+      } else if (action === 'info_needed') {
+        // Email au particulier — informations complémentaires demandées
+        emailsToSend.push(
+          sendEmailServerSide({
+            to: client.email,
+            subject: `ℹ️ Complément d'information demandé pour "${project.title}"`,
+            html: templateInfoNeeded({
+              clientName: client.full_name || 'Client',
+              projectTitle: project.title,
+              reason,
+              dashboardUrl: `${BASE_URL}/particulier/projects`,
+            }),
+            fromType: 'noreply',
+          })
+        );
+      } else {
+        // Email au particulier — projet refusé avec motif
+        emailsToSend.push(
+          sendEmailServerSide({
+            to: client.email,
+            subject: `📋 Mise à jour de votre projet "${project.title}"`,
+            html: templateRejected({
+              clientName: client.full_name || 'Client',
+              projectTitle: project.title,
+              reason,
+              dashboardUrl: `${BASE_URL}/particulier/projects`,
+            }),
+            fromType: 'noreply',
+          })
+        );
+      }
+
+      const results = await Promise.allSettled(emailsToSend);
+      sent = results.filter((r) => r.status === 'fulfilled').length;
+    } catch (emailError) {
+      // Si l'envoi d'email échoue (Resend non configuré, clé API manquante, etc.),
+      // on log l'erreur mais on ne bloque pas le changement de statut
+      console.error('Erreur envoi email (non bloquant):', emailError);
     }
-
-    const results = await Promise.allSettled(emailsToSend);
-    const sent = results.filter((r) => r.status === 'fulfilled').length;
 
     return res.status(200).json({
       message: `Projet ${action === 'validate' ? 'validé' : action === 'reject' ? 'refusé' : "en attente d'infos"} — ${sent} email(s) envoyé(s)`,
@@ -302,6 +310,10 @@ export default withAuth(async function handler(
     });
   } catch (error) {
     console.error('Erreur notification statut projet:', error);
-    return res.status(500).json({ message: 'Erreur serveur', error });
+    // Même en cas d'erreur, on retourne 200 pour ne pas bloquer le changement de statut
+    return res.status(200).json({
+      message: 'Projet mis à jour (erreur notification)',
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+    });
   }
 });

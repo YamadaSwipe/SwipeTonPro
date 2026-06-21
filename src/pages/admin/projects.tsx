@@ -101,9 +101,6 @@ export default function AdminProjectsPage() {
     title: string;
   } | null>(null);
   const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
-  const [validationDropdown, setValidationDropdown] = useState<string | null>(
-    null
-  );
   const [rejectReason, setRejectReason] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
 
@@ -266,34 +263,6 @@ export default function AdminProjectsPage() {
     } catch (err) {
       console.error('Erreur changement de statut:', err);
       alert('Une erreur est survenue lors du changement de statut');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleValidationStatusChange = async (
-    projectId: string,
-    newValidationStatus: string
-  ) => {
-    setActionLoading(projectId);
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          validation_status: newValidationStatus,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      setValidationDropdown(null);
-      await loadProjects(true);
-    } catch (err) {
-      console.error('Erreur changement de statut de validation:', err);
-      alert(
-        'Une erreur est survenue lors du changement de statut de validation'
-      );
     } finally {
       setActionLoading(null);
     }
@@ -680,7 +649,7 @@ export default function AdminProjectsPage() {
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-all text-xs font-medium disabled:opacity-50"
                             >
                               <MoreVertical className="h-3 w-3" />
-                              Statut
+                              Changer statut
                             </button>
                             {statusDropdown === project.id && (
                               <div className="absolute bottom-full left-0 mb-1 bg-gray-800 border border-white/10 rounded-lg shadow-xl z-10 min-w-[180px]">
@@ -715,59 +684,6 @@ export default function AdminProjectsPage() {
                                         'Terminé'}
                                       {(status as string) === 'cancelled' &&
                                         'Annulé'}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Validation status change dropdown */}
-                          <div className="relative">
-                            <button
-                              onClick={() =>
-                                setValidationDropdown(
-                                  validationDropdown === project.id
-                                    ? null
-                                    : project.id
-                                )
-                              }
-                              disabled={isActioning}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-all text-xs font-medium disabled:opacity-50"
-                            >
-                              <MoreVertical className="h-3 w-3" />
-                              Validation
-                            </button>
-                            {validationDropdown === project.id && (
-                              <div className="absolute bottom-full left-0 mb-1 bg-gray-800 border border-white/10 rounded-lg shadow-xl z-10 min-w-[180px]">
-                                <div className="p-1 space-y-1">
-                                  {[
-                                    'pending',
-                                    'in_review',
-                                    'approved',
-                                    'rejected',
-                                    'published',
-                                    'featured',
-                                    'urgent',
-                                  ].map((status) => (
-                                    <button
-                                      key={status}
-                                      onClick={() =>
-                                        handleValidationStatusChange(
-                                          project.id,
-                                          status
-                                        )
-                                      }
-                                      disabled={isActioning}
-                                      className="w-full text-left px-3 py-2 rounded-md text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
-                                    >
-                                      {status === 'pending' && 'En attente'}
-                                      {status === 'in_review' && 'En revue'}
-                                      {status === 'approved' && 'Approuvé'}
-                                      {status === 'rejected' && 'Refusé'}
-                                      {status === 'published' && 'Publié'}
-                                      {status === 'featured' && 'En vedette'}
-                                      {status === 'urgent' && 'Urgent'}
                                     </button>
                                   ))}
                                 </div>
