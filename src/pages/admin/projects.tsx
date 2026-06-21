@@ -242,18 +242,39 @@ export default function AdminProjectsPage() {
     setInfoMessage('');
   };
 
-  const handleStatusChange = async (
-    projectId: string,
-    newStatus: ProjectStatus
-  ) => {
+  const handleStatusChange = async (projectId: string, newStatus: string) => {
     setActionLoading(projectId);
     try {
+      // Detect which column to update based on status value
+      const projectStatusValues = [
+        'draft',
+        'pending',
+        'published',
+        'in_progress',
+        'completed',
+        'cancelled',
+      ];
+      const validationStatusValues = [
+        'in_review',
+        'approved',
+        'rejected',
+        'featured',
+        'urgent',
+      ];
+
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (projectStatusValues.includes(newStatus)) {
+        updateData.status = newStatus;
+      } else if (validationStatusValues.includes(newStatus)) {
+        updateData.validation_status = newStatus;
+      }
+
       const { error } = await supabase
         .from('projects')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', projectId);
 
       if (error) throw error;
@@ -275,7 +296,7 @@ export default function AdminProjectsPage() {
       case 'published':
         return (
           <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-            Validé
+            Publié
           </span>
         );
       case 'pending':
@@ -318,6 +339,30 @@ export default function AdminProjectsPage() {
         return (
           <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
             Annulé
+          </span>
+        );
+      case 'in_review':
+        return (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
+            En revue
+          </span>
+        );
+      case 'approved':
+        return (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">
+            Approuvé
+          </span>
+        );
+      case 'featured':
+        return (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">
+            En vedette
+          </span>
+        );
+      case 'urgent':
+        return (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
+            Urgent
           </span>
         );
       default:
@@ -654,16 +699,19 @@ export default function AdminProjectsPage() {
                             {statusDropdown === project.id && (
                               <div className="absolute bottom-full left-0 mb-1 bg-gray-800 border border-white/10 rounded-lg shadow-xl z-10 min-w-[180px]">
                                 <div className="p-1 space-y-1">
-                                  {(
-                                    [
-                                      'draft',
-                                      'pending',
-                                      'published',
-                                      'in_progress',
-                                      'completed',
-                                      'cancelled',
-                                    ] as ProjectStatus[]
-                                  ).map((status) => (
+                                  {[
+                                    'draft',
+                                    'pending',
+                                    'in_review',
+                                    'published',
+                                    'in_progress',
+                                    'featured',
+                                    'urgent',
+                                    'completed',
+                                    'cancelled',
+                                    'approved',
+                                    'rejected',
+                                  ].map((status) => (
                                     <button
                                       key={status}
                                       onClick={() =>
@@ -672,18 +720,17 @@ export default function AdminProjectsPage() {
                                       disabled={isActioning}
                                       className="w-full text-left px-3 py-2 rounded-md text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-all disabled:opacity-50"
                                     >
-                                      {(status as string) === 'draft' &&
-                                        'Brouillon'}
-                                      {(status as string) === 'pending' &&
-                                        'En attente'}
-                                      {(status as string) === 'published' &&
-                                        'Publié'}
-                                      {(status as string) === 'in_progress' &&
-                                        'En cours'}
-                                      {(status as string) === 'completed' &&
-                                        'Terminé'}
-                                      {(status as string) === 'cancelled' &&
-                                        'Annulé'}
+                                      {status === 'draft' && 'Brouillon'}
+                                      {status === 'pending' && 'En attente'}
+                                      {status === 'in_review' && 'En revue'}
+                                      {status === 'published' && 'Publié'}
+                                      {status === 'in_progress' && 'En cours'}
+                                      {status === 'featured' && 'En vedette'}
+                                      {status === 'urgent' && 'Urgent'}
+                                      {status === 'completed' && 'Terminé'}
+                                      {status === 'cancelled' && 'Annulé'}
+                                      {status === 'approved' && 'Approuvé'}
+                                      {status === 'rejected' && 'Refusé'}
                                     </button>
                                   ))}
                                 </div>
