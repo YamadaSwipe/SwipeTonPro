@@ -395,8 +395,8 @@ export default function AdminProfessionalsValidation() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-600">Approuvé</Badge>;
+      case 'verified':
+        return <Badge className="bg-green-600">Vérifié</Badge>;
       case 'pending':
         return (
           <Badge
@@ -406,16 +406,10 @@ export default function AdminProfessionalsValidation() {
             En attente
           </Badge>
         );
-      case 'in_review':
-        return <Badge className="bg-blue-600">En revue</Badge>;
+      case 'suspended':
+        return <Badge variant="destructive">Suspendu</Badge>;
       case 'rejected':
-        return <Badge variant="destructive">Rejeté</Badge>;
-      case 'published':
-        return <Badge className="bg-purple-600">Publié</Badge>;
-      case 'featured':
-        return <Badge className="bg-yellow-600">En vedette</Badge>;
-      case 'urgent':
-        return <Badge className="bg-red-600">Urgent</Badge>;
+        return <Badge variant="destructive">Refusé</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -423,32 +417,22 @@ export default function AdminProfessionalsValidation() {
 
   const getStats = () => {
     const pending = professionals.filter((p) => p.status === 'pending').length;
-    const in_review = professionals.filter(
-      (p) => p.status === 'in_review'
+    const verified = professionals.filter(
+      (p) => p.status === 'verified'
     ).length;
-    const approved = professionals.filter(
-      (p) => p.status === 'approved'
+    const suspended = professionals.filter(
+      (p) => p.status === 'suspended'
     ).length;
     const rejected = professionals.filter(
       (p) => p.status === 'rejected'
     ).length;
-    const published = professionals.filter(
-      (p) => p.status === 'published'
-    ).length;
-    const featured = professionals.filter(
-      (p) => p.status === 'featured'
-    ).length;
-    const urgent = professionals.filter((p) => p.status === 'urgent').length;
     const total = professionals.length;
 
     return {
       pending,
-      in_review,
-      approved,
+      verified,
+      suspended,
       rejected,
-      published,
-      featured,
-      urgent,
       total,
     };
   };
@@ -510,10 +494,10 @@ export default function AdminProfessionalsValidation() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
-                      Approuvés
+                      Vérifiés
                     </p>
                     <p className="text-2xl font-bold text-green-600">
-                      {stats.approved}
+                      {stats.verified}
                     </p>
                   </div>
                   <CheckCircle className="h-8 w-8 text-green-600" />
@@ -525,13 +509,28 @@ export default function AdminProfessionalsValidation() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
-                      Rejetés
+                      Suspendus
                     </p>
                     <p className="text-2xl font-bold text-orange-600">
-                      {stats.rejected}
+                      {stats.suspended}
                     </p>
                   </div>
                   <AlertCircle className="h-8 w-8 text-orange-600" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Refusés
+                    </p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {stats.rejected}
+                    </p>
+                  </div>
+                  <XCircle className="h-8 w-8 text-red-600" />
                 </div>
               </CardContent>
             </Card>
@@ -544,22 +543,15 @@ export default function AdminProfessionalsValidation() {
               <TabsTrigger value="pending">
                 En attente ({stats.pending})
               </TabsTrigger>
-              <TabsTrigger value="in_review">
-                En revue ({stats.in_review})
+              <TabsTrigger value="verified">
+                Vérifiés ({stats.verified})
               </TabsTrigger>
-              <TabsTrigger value="approved">
-                Approuvés ({stats.approved})
+              <TabsTrigger value="suspended">
+                Suspendus ({stats.suspended})
               </TabsTrigger>
               <TabsTrigger value="rejected">
-                Rejetés ({stats.rejected})
+                Refusés ({stats.rejected})
               </TabsTrigger>
-              <TabsTrigger value="published">
-                Publiés ({stats.published})
-              </TabsTrigger>
-              <TabsTrigger value="featured">
-                En vedette ({stats.featured})
-              </TabsTrigger>
-              <TabsTrigger value="urgent">Urgent ({stats.urgent})</TabsTrigger>
             </TabsList>
 
             <TabsContent value={activeTab} className="space-y-4">
@@ -601,8 +593,8 @@ export default function AdminProfessionalsValidation() {
                                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-[120px]">
                                     {[
                                       'pending',
-                                      'in_review',
-                                      'approved',
+                                      'verified',
+                                      'suspended',
                                       'rejected',
                                     ].map((status) => (
                                       <button
@@ -616,8 +608,8 @@ export default function AdminProfessionalsValidation() {
                                         className="block w-full text-left px-3 py-1 text-sm hover:bg-gray-100"
                                       >
                                         {status === 'pending' && 'En attente'}
-                                        {status === 'in_review' && 'En revue'}
-                                        {status === 'approved' && 'Approuvé'}
+                                        {status === 'verified' && 'Vérifié'}
+                                        {status === 'suspended' && 'Suspendu'}
                                         {status === 'rejected' && 'Refusé'}
                                       </button>
                                     ))}
