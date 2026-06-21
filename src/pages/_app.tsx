@@ -23,7 +23,7 @@ const WhatsAppButton = dynamic(
 );
 
 // Public routes that don't require AuthProvider (landing pages only)
-const PUBLIC_ROUTES = ['/', '/about', '/contact', '/tarifs'];
+const PUBLIC_ROUTES = ['/', '/about', '/contact', '/tarifs', '/projets/[id]'];
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();

@@ -1,7 +1,6 @@
 import { SEO } from '@/components/SEO';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,9 +16,6 @@ import {
   Star,
   CheckCircle,
   Shield,
-  Lock,
-  Info,
-  Bell,
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { Database } from '@/integrations/supabase/types';
@@ -36,8 +32,6 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
   const [isProfessional, setIsProfessional] = useState(false);
-  const [showEscrowInfo, setShowEscrowInfo] = useState(false);
-  const [escrowNotified, setEscrowNotified] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -47,9 +41,11 @@ export default function ProjectDetailPage() {
   }, [id]);
 
   const checkAuth = async () => {
-    const { user, role } = useAuth();
+    // Check if user is authenticated without using useAuth
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     console.log('USER:', user?.id);
-    console.log('ROLE:', role);
     setUser(user);
 
     if (user) {
@@ -87,9 +83,7 @@ export default function ProjectDetailPage() {
           photos,
           ai_analysis,
           created_at,
-          updated_at,
-          payment_security_option,
-          escrow_notified
+          updated_at
         `
         )
         .eq('id', projectId)
@@ -97,53 +91,11 @@ export default function ProjectDetailPage() {
 
       if (error) throw error;
       setProject(toExtendedProject(data));
-      setEscrowNotified(data.escrow_notified || false);
     } catch (err: any) {
       console.error('Error loading project:', err);
       setError(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const notifyEscrowOption = async () => {
-    if (!user || !project) return;
-
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({
-          escrow_notified: true,
-          escrow_notified_at: new Date().toISOString(),
-          escrow_notified_by: user.id,
-        })
-        .eq('id', project.id);
-
-      if (error) throw error;
-
-      setEscrowNotified(true);
-
-      // Notifier les professionnels intéressés
-      const { data: interests } = await supabase
-        .from('project_interests')
-        .select('professional_id')
-        .eq('project_id', project.id)
-        .eq('status', 'pending');
-
-      if (interests && interests.length > 0) {
-        // Envoyer notification aux professionnels
-        await fetch('/api/notify-escrow-option', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            projectId: project.id,
-            professionalIds: interests.map((i) => i.professional_id),
-            paymentOption: (project as any).payment_security_option,
-          }),
-        });
-      }
-    } catch (error) {
-      console.error('Erreur notification séquestration:', error);
     }
   };
 
@@ -421,77 +373,6 @@ export default function ProjectDetailPage() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Escrow Payment Option */}
-              {project.payment_security_option && (
-                <Card className="bg-purple-50 border-purple-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <Lock className="w-5 h-5 text-purple-600 mt-1 flex-shrink-0" />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-purple-800 mb-2">
-                          Paiement séquestré disponible
-                        </h4>
-                        <p className="text-sm text-purple-700 mb-3">
-                          Option:{' '}
-                          {project.payment_security_option === 'deposit_only'
-                            ? 'Acompte uniquement'
-                            : project.payment_security_option === 'full_amount'
-                              ? 'Montant total'
-                              : project.payment_security_option === 'milestones'
-                                ? 'Versement par paliers'
-                                : 'Non spécifiée'}
-                        </p>
-
-                        {user && !isProfessional && (
-                          <div className="space-y-2">
-                            {!escrowNotified ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={notifyEscrowOption}
-                                className="w-full text-purple-700 border-purple-300 hover:bg-purple-100"
-                              >
-                                <Bell className="w-4 h-4 mr-2" />
-                                Notifier les professionnels
-                              </Button>
-                            ) : (
-                              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-2 rounded">
-                                <CheckCircle className="w-4 h-4" />
-                                Professionnels notifiés
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setShowEscrowInfo(!showEscrowInfo)}
-                          className="text-purple-600 hover:text-purple-700 mt-2"
-                        >
-                          <Info className="w-4 h-4 mr-1" />
-                          {showEscrowInfo ? 'Masquer' : 'En savoir plus'}
-                        </Button>
-
-                        {showEscrowInfo && (
-                          <div className="mt-3 p-3 bg-purple-100 rounded text-xs text-purple-700">
-                            <p className="font-medium mb-1">
-                              Protection des fonds garantie :
-                            </p>
-                            <ul className="space-y-1">
-                              <li>• Fonds bloqués via opérateur partenaire</li>
-                              <li>• Libération par étapes validées</li>
-                              <li>• Médiation en cas de litige</li>
-                              <li>• Choix final après discussion</li>
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Trust Badge */}
               <Card className="bg-success/5 border-success/20">
