@@ -505,7 +505,7 @@ function ProfessionalDashboardContent() {
             <h2 className="text-2xl font-bold mb-6">Actions rapides</h2>
             <div className="grid md:grid-cols-3 gap-6">
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <Link href="/projets">
+                <Link href="/projets/parcourir">
                   <CardContent className="p-6">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
@@ -686,7 +686,7 @@ function ProfessionalDashboardContent() {
                 <p className="text-muted-foreground mb-6">
                   Vous n'avez pas encore de projets attribués.
                 </p>
-                <Link href="/projets">
+                <Link href="/projets/parcourir">
                   <Button>Explorer les projets</Button>
                 </Link>
               </div>

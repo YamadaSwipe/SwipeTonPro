@@ -9,7 +9,10 @@ interface NavigationProps {
   contactType?: 'general' | 'support' | 'team';
 }
 
-export default function Navigation({ showContact = true, contactType = 'general' }: NavigationProps) {
+export default function Navigation({
+  showContact = true,
+  contactType = 'general',
+}: NavigationProps) {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -45,15 +48,13 @@ export default function Navigation({ showContact = true, contactType = 'general'
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <HardHat className="h-6 w-6 text-primary" />
-            <span className="font-heading font-bold text-lg">
-              SwipeTonPro
-            </span>
+            <span className="font-heading font-bold text-lg">SwipeTonPro</span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
             <Link
-              href="/projets"
+              href="/projets/parcourir"
               className="text-muted-foreground hover:text-primary transition-colors font-medium"
             >
               Projets
@@ -106,7 +107,7 @@ export default function Navigation({ showContact = true, contactType = 'general'
           <div className="md:hidden border-t border-border">
             <div className="py-4 space-y-4">
               <Link
-                href="/projets"
+                href="/projets/parcourir"
                 className="block text-muted-foreground hover:text-primary transition-colors font-medium py-2"
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -127,7 +128,10 @@ export default function Navigation({ showContact = true, contactType = 'general'
                 Devenir Pro
               </Link>
               {showContact && (
-                <Link href={getContactLink()} onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  href={getContactLink()}
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   <Button
                     variant="outline"
                     size="sm"
