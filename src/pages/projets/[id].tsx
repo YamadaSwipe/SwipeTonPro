@@ -32,6 +32,8 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
   const [isProfessional, setIsProfessional] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applicationMessage, setApplicationMessage] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -83,7 +85,14 @@ export default function ProjectDetailPage() {
           photos,
           ai_analysis,
           created_at,
-          updated_at
+          updated_at,
+          stripe_escrow_active,
+          escrow_enabled,
+          escrow_total_amount,
+          escrow_stripe_payment_intent_id,
+          escrow_status,
+          escrow_notified,
+          client_id
         `
         )
         .eq('id', projectId)
@@ -96,6 +105,61 @@ export default function ProjectDetailPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApply = async () => {
+    if (!user || !isProfessional || !project) return;
+
+    setApplying(true);
+    setApplicationMessage('');
+
+    try {
+      // Get professional ID
+      const { data: professional } = await supabase
+        .from('professionals')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!professional) {
+        setApplicationMessage('Erreur: Profil professionnel non trouvé');
+        return;
+      }
+
+      // Insert into project_interests
+      const { error: insertError } = await supabase
+        .from('project_interests')
+        .insert({
+          project_id: project.id,
+          professional_id: professional.id,
+          status: 'interested',
+          created_at: new Date().toISOString(),
+        });
+
+      if (insertError) {
+        console.error('Erreur création intérêt:', insertError);
+        setApplicationMessage('Erreur lors de la candidature');
+        return;
+      }
+
+      // Insert notification for the client
+      if (project.client_id) {
+        await supabase.from('notifications').insert({
+          user_id: project.client_id,
+          type: 'new_interest',
+          title: 'Un professionnel est intéressé par votre projet',
+          project_id: project.id,
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      setApplicationMessage('Candidature envoyée avec succès !');
+    } catch (err: any) {
+      console.error('Erreur candidature:', err);
+      setApplicationMessage('Erreur lors de la candidature');
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -145,12 +209,14 @@ export default function ProjectDetailPage() {
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-6">
-            <Link href="/">
-              <Button variant="outline" className="mb-4">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour à l'accueil
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              className="mb-4"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Retour
+            </Button>
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
@@ -306,13 +372,22 @@ export default function ProjectDetailPage() {
                   </p>
 
                   {isProfessional ? (
-                    <Link
-                      href={`/professionnel/dashboard?project=${project.id}`}
-                    >
-                      <Button className="w-full gradient-primary text-white">
-                        Postuler à ce projet
+                    <>
+                      <Button
+                        className="w-full gradient-primary text-white"
+                        onClick={handleApply}
+                        disabled={applying}
+                      >
+                        {applying
+                          ? 'Envoi en cours...'
+                          : 'Postuler à ce projet'}
                       </Button>
-                    </Link>
+                      {applicationMessage && (
+                        <p className="text-sm mt-2 text-center">
+                          {applicationMessage}
+                        </p>
+                      )}
+                    </>
                   ) : user ? (
                     <Link href="/professionnel/create-account">
                       <Button className="w-full gradient-primary text-white">

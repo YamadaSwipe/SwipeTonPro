@@ -172,7 +172,11 @@ export default function SwipeMatchingPage() {
 
         // Enregistrer le swipe dans l'historique
         const swipeAction =
-          direction === 'up' ? 'like' : direction === 'right' ? 'maybe' : 'dislike';
+          direction === 'up'
+            ? 'like'
+            : direction === 'right'
+              ? 'maybe'
+              : 'dislike';
 
         await (supabase as any).from('swipe_history').insert({
           swiper_id: pro.id,
@@ -207,6 +211,24 @@ export default function SwipeMatchingPage() {
               variant: 'destructive',
             });
           } else {
+            // Get project client_id for notification
+            const { data: projectData } = await (supabase as any)
+              .from('projects')
+              .select('client_id')
+              .eq('id', currentProject.id)
+              .single();
+
+            if (projectData?.client_id) {
+              // Insert notification for the client
+              await (supabase as any).from('notifications').insert({
+                user_id: projectData.client_id,
+                type: 'new_interest',
+                title: 'Un professionnel est intéressé par votre projet',
+                project_id: currentProject.id,
+                created_at: new Date().toISOString(),
+              });
+            }
+
             toast({
               title: '✅ Intérêt enregistré !',
               description: 'Le client sera notifié de votre candidature',
