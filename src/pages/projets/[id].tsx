@@ -111,48 +111,33 @@ export default function ProjectDetailPage() {
 
   const handleApply = async () => {
     console.log('1 - handleApply started');
-    if (!user || !isProfessional || !project) return;
+    if (!isProfessional || !project) return;
 
     setApplying(true);
     setApplicationMessage('');
 
     try {
-      // Get token from cookies
-      const cookieValue = document.cookie
-        .split(';')
-        .find((c) => c.trim().startsWith('sb-qhuvnpmqlucpjdslnfui-auth-token='))
-        ?.split('=')
-        .slice(1)
-        .join('=');
-      const tokenData = cookieValue
-        ? JSON.parse(atob(cookieValue.replace('base64-', '')))
-        : null;
-      const accessToken = tokenData?.access_token;
+      // Get user from Supabase auth
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
 
-      console.log('2 - token found:', !!accessToken);
-
-      if (!accessToken) {
+      if (!authUser) {
         setApplicationMessage('Erreur: session expirée, reconnectez-vous');
         return;
       }
 
-      // Set session before Supabase queries
-      await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: tokenData?.refresh_token || '',
-      });
-
-      console.log('3 - session set');
+      console.log('2 - user found:', authUser.id);
 
       // Get professional ID
-      console.log('4 - fetching professional');
+      console.log('3 - fetching professional');
       const { data: professional } = await supabase
         .from('professionals')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', authUser.id)
         .single();
 
-      console.log('5 - professional found:', professional);
+      console.log('4 - professional found:', professional);
 
       if (!professional) {
         setApplicationMessage('Erreur: Profil professionnel non trouvé');
@@ -160,7 +145,7 @@ export default function ProjectDetailPage() {
       }
 
       // Insert into project_interests
-      console.log('6 - inserting');
+      console.log('5 - inserting');
       const { error: insertError } = await supabase
         .from('project_interests')
         .insert({
