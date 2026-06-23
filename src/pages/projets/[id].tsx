@@ -110,6 +110,7 @@ export default function ProjectDetailPage() {
   };
 
   const handleApply = async () => {
+    console.log('1 - handleApply started');
     if (!user || !isProfessional || !project) return;
 
     setApplying(true);
@@ -128,6 +129,8 @@ export default function ProjectDetailPage() {
         : null;
       const accessToken = tokenData?.access_token;
 
+      console.log('2 - token found:', !!accessToken);
+
       if (!accessToken) {
         setApplicationMessage('Erreur: session expirée, reconnectez-vous');
         return;
@@ -139,12 +142,17 @@ export default function ProjectDetailPage() {
         refresh_token: tokenData?.refresh_token || '',
       });
 
+      console.log('3 - session set');
+
       // Get professional ID
+      console.log('4 - fetching professional');
       const { data: professional } = await supabase
         .from('professionals')
         .select('id')
         .eq('user_id', user.id)
         .single();
+
+      console.log('5 - professional found:', professional);
 
       if (!professional) {
         setApplicationMessage('Erreur: Profil professionnel non trouvé');
@@ -152,6 +160,7 @@ export default function ProjectDetailPage() {
       }
 
       // Insert into project_interests
+      console.log('6 - inserting');
       const { error: insertError } = await supabase
         .from('project_interests')
         .insert({
