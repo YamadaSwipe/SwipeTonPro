@@ -470,3 +470,9 @@ export default function ProjectDetailPage() {
     </>
   );
 }
+
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
