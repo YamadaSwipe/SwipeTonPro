@@ -1,3 +1,4 @@
+// v2
 import { SEO } from '@/components/SEO';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
