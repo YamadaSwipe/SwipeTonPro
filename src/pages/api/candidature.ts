@@ -64,16 +64,25 @@ export default async function handler(
 
     if (projectData?.client_id) {
       // Insert notification for the client
-      await supabaseAdmin.from('notifications').insert({
-        user_id: projectData.client_id,
-        type: 'new_interest',
-        title: 'Un professionnel est intéressé par votre projet',
-        message:
-          'Un professionnel a manifeste son interet pour votre projet et souhaite vous contacter.',
-        data: { project_id: project_id, professional_id: professional_id },
-        project_id,
-        created_at: new Date().toISOString(),
-      });
+      const { error: notifError } = await supabaseAdmin
+        .from('notifications')
+        .insert({
+          user_id: projectData.client_id,
+          type: 'new_interest',
+          title: 'Un professionnel est intéressé par votre projet',
+          message:
+            'Un professionnel a manifeste son interet pour votre projet et souhaite vous contacter.',
+          data: { project_id: project_id, professional_id: professional_id },
+          project_id,
+          created_at: new Date().toISOString(),
+        });
+
+      if (notifError) {
+        console.error(
+          'Erreur insert notification:',
+          JSON.stringify(notifError)
+        );
+      }
     }
 
     return res.status(200).json({ success: true });
