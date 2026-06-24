@@ -144,34 +144,39 @@ export default function ProjectDetailPage() {
         return;
       }
 
-      // Insert into project_interests
-      console.log('5 - inserting');
-      const { error: insertError } = await supabase
-        .from('project_interests')
-        .insert({
+      // Get session for access token
+      console.log('5 - getting session');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setApplicationMessage('Erreur: session expirée, reconnectez-vous');
+        return;
+      }
+
+      console.log('6 - calling API route');
+      // Call API route to create interest
+      const response = await fetch('/api/candidature', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + session.access_token,
+        },
+        body: JSON.stringify({
           project_id: project.id,
           professional_id: professional.id,
-          status: 'interested',
-          created_at: new Date().toISOString(),
-        });
+        }),
+      });
 
-      if (insertError) {
-        console.error('Erreur création intérêt:', insertError);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API error:', errorData);
         setApplicationMessage('Erreur lors de la candidature');
         return;
       }
 
-      // Insert notification for the client
-      if (project.client_id) {
-        await supabase.from('notifications').insert({
-          user_id: project.client_id,
-          type: 'new_interest',
-          title: 'Un professionnel est intéressé par votre projet',
-          project_id: project.id,
-          created_at: new Date().toISOString(),
-        });
-      }
-
+      console.log('7 - success');
       setApplicationMessage('Candidature envoyée avec succès !');
     } catch (err: any) {
       console.error('Erreur candidature:', err);
