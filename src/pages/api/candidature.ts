@@ -46,7 +46,7 @@ export default async function handler(
       .insert({
         project_id,
         professional_id,
-        status: 'interested',
+        status: 'pre_matched',
         created_at: new Date().toISOString(),
       });
 
