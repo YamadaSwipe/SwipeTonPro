@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Create Supabase client with service role key to bypass RLS
-const supabase = createClient(
+// Create Supabase admin client with service role key to bypass RLS
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -31,14 +31,17 @@ export default async function handler(
     const token = authHeader.replace('Bearer ', '');
 
     // Verify session using the token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid session' });
     }
 
     // Insert into project_interests
-    const { error: insertError } = await supabase
+    const { error: insertError } = await supabaseAdmin
       .from('project_interests')
       .insert({
         project_id,
@@ -53,7 +56,7 @@ export default async function handler(
     }
 
     // Get project client_id for notification
-    const { data: projectData } = await supabase
+    const { data: projectData } = await supabaseAdmin
       .from('projects')
       .select('client_id')
       .eq('id', project_id)
@@ -61,7 +64,7 @@ export default async function handler(
 
     if (projectData?.client_id) {
       // Insert notification for the client
-      await supabase.from('notifications').insert({
+      await supabaseAdmin.from('notifications').insert({
         user_id: projectData.client_id,
         type: 'new_interest',
         title: 'Un professionnel est intéressé par votre projet',
