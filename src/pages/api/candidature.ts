@@ -40,6 +40,20 @@ export default async function handler(
       return res.status(401).json({ error: 'Invalid session' });
     }
 
+    // Check if candidature already exists
+    const { data: existingInterest } = await supabaseAdmin
+      .from('project_interests')
+      .select('id')
+      .eq('project_id', project_id)
+      .eq('professional_id', professional_id)
+      .single();
+
+    if (existingInterest) {
+      return res
+        .status(409)
+        .json({ error: 'Vous avez deja postule a ce projet' });
+    }
+
     // Insert into project_interests
     const { error: insertError } = await supabaseAdmin
       .from('project_interests')

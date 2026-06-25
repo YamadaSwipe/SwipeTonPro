@@ -10,11 +10,12 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ArrowLeft, Check, X } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
-type ProjectInterest = Database['public']['Tables']['project_interests']['Row'] & {
-  professionals: {
-    company_name: string;
+type ProjectInterest =
+  Database['public']['Tables']['project_interests']['Row'] & {
+    professionals: {
+      company_name: string;
+    };
   };
-};
 
 export default function ProjectInterestsPage() {
   const router = useRouter();
@@ -67,12 +68,14 @@ export default function ProjectInterestsPage() {
       // Fetch project_interests with professionals join
       const { data: interestsData, error: interestsError } = await supabase
         .from('project_interests')
-        .select(`
+        .select(
+          `
           *,
           professionals (
             company_name
           )
-        `)
+        `
+        )
         .eq('project_id', id);
 
       if (interestsError) {
@@ -90,13 +93,38 @@ export default function ProjectInterestsPage() {
     }
   };
 
-  const handleStatusUpdate = async (interestId: string, newStatus: string) => {
+  const handleAccept = async (interestId: string) => {
     try {
       setUpdating(interestId);
 
       const { error } = await supabase
         .from('project_interests')
-        .update({ status: newStatus })
+        .update({ client_interested: true })
+        .eq('id', interestId);
+
+      if (error) {
+        console.error('Error updating status:', error);
+        alert('Erreur lors de la mise à jour du statut');
+        return;
+      }
+
+      // Refresh the list
+      await loadProjectAndInterests();
+    } catch (err: any) {
+      console.error('Error updating status:', err);
+      alert('Erreur lors de la mise à jour du statut');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleReject = async (interestId: string) => {
+    try {
+      setUpdating(interestId);
+
+      const { error } = await supabase
+        .from('project_interests')
+        .update({ client_interested: false })
         .eq('id', interestId);
 
       if (error) {
@@ -119,19 +147,28 @@ export default function ProjectInterestsPage() {
     switch (status) {
       case 'pre_matched':
         return (
-          <Badge variant="secondary" className="bg-amber-500/15 text-amber-400 border-amber-500/30">
+          <Badge
+            variant="secondary"
+            className="bg-amber-500/15 text-amber-400 border-amber-500/30"
+          >
             En attente
           </Badge>
         );
       case 'accepted':
         return (
-          <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+          <Badge
+            variant="secondary"
+            className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+          >
             Accepté
           </Badge>
         );
       case 'rejected':
         return (
-          <Badge variant="secondary" className="bg-red-500/15 text-red-400 border-red-500/30">
+          <Badge
+            variant="secondary"
+            className="bg-red-500/15 text-red-400 border-red-500/30"
+          >
             Refusé
           </Badge>
         );
@@ -177,7 +214,9 @@ export default function ProjectInterestsPage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour
             </Button>
-            <h1 className="text-3xl font-bold text-white">Professionnels intéressés</h1>
+            <h1 className="text-3xl font-bold text-white">
+              Professionnels intéressés
+            </h1>
             <p className="text-slate-400 mt-2">
               {interests.length} professionnel(s) intéressé(s) par ce projet
             </p>
@@ -186,7 +225,9 @@ export default function ProjectInterestsPage() {
           {interests.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-slate-400">Aucun professionnel n'a encore manifesté d'intérêt.</p>
+                <p className="text-slate-400">
+                  Aucun professionnel n'a encore manifesté d'intérêt.
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -196,7 +237,8 @@ export default function ProjectInterestsPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-xl">
-                        {interest.professionals?.company_name || 'Professionnel inconnu'}
+                        {interest.professionals?.company_name ||
+                          'Professionnel inconnu'}
                       </CardTitle>
                       {getStatusBadge(interest.status)}
                     </div>
@@ -206,7 +248,7 @@ export default function ProjectInterestsPage() {
                       {interest.status === 'pre_matched' && (
                         <>
                           <Button
-                            onClick={() => handleStatusUpdate(interest.id, 'accepted')}
+                            onClick={() => handleAccept(interest.id)}
                             disabled={updating === interest.id}
                             className="bg-emerald-600 hover:bg-emerald-700"
                           >
@@ -214,7 +256,7 @@ export default function ProjectInterestsPage() {
                             Accepter
                           </Button>
                           <Button
-                            onClick={() => handleStatusUpdate(interest.id, 'rejected')}
+                            onClick={() => handleReject(interest.id)}
                             disabled={updating === interest.id}
                             variant="destructive"
                           >
@@ -224,7 +266,9 @@ export default function ProjectInterestsPage() {
                         </>
                       )}
                       {updating === interest.id && (
-                        <span className="text-slate-400 text-sm">Mise à jour...</span>
+                        <span className="text-slate-400 text-sm">
+                          Mise à jour...
+                        </span>
                       )}
                     </div>
                   </CardContent>

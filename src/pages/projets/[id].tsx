@@ -35,6 +35,7 @@ export default function ProjectDetailPage() {
   const [isProfessional, setIsProfessional] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applicationMessage, setApplicationMessage] = useState('');
+  const [hasApplied, setHasApplied] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -178,6 +179,7 @@ export default function ProjectDetailPage() {
 
       console.log('7 - success');
       setApplicationMessage('Candidature envoyée avec succès !');
+      setHasApplied(true);
     } catch (err: any) {
       console.error('Erreur candidature:', err);
       setApplicationMessage('Erreur lors de la candidature');
@@ -399,11 +401,13 @@ export default function ProjectDetailPage() {
                       <Button
                         className="w-full gradient-primary text-white"
                         onClick={handleApply}
-                        disabled={applying}
+                        disabled={applying || hasApplied}
                       >
-                        {applying
-                          ? 'Envoi en cours...'
-                          : 'Postuler à ce projet'}
+                        {hasApplied
+                          ? 'Candidature envoyée'
+                          : applying
+                            ? 'Envoi en cours...'
+                            : 'Postuler à ce projet'}
                       </Button>
                       {applicationMessage && (
                         <p className="text-sm mt-2 text-center">
