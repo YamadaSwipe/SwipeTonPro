@@ -94,6 +94,7 @@ export default function ProjectInterestsPage() {
   };
 
   const handleAccept = async (interestId: string) => {
+    console.log('handleAccept called with interestId:', interestId);
     try {
       setUpdating(interestId);
 
@@ -119,6 +120,7 @@ export default function ProjectInterestsPage() {
   };
 
   const handleReject = async (interestId: string) => {
+    console.log('handleReject called with interestId:', interestId);
     try {
       setUpdating(interestId);
 
