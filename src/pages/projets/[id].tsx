@@ -61,6 +61,22 @@ export default function ProjectDetailPage() {
         .single();
 
       setIsProfessional(!!professional);
+
+      if (professional && id) {
+        // Check if professional has an active candidature on this project
+        const projectId = Array.isArray(id) ? id[0] : id;
+        const { data: existingInterest } = await supabase
+          .from('project_interests')
+          .select('id')
+          .eq('project_id', projectId)
+          .eq('professional_id', professional.id)
+          .neq('status', 'rejected')
+          .single();
+
+        if (existingInterest) {
+          setHasApplied(true);
+        }
+      }
     }
   };
 
@@ -404,7 +420,7 @@ export default function ProjectDetailPage() {
                         disabled={applying || hasApplied}
                       >
                         {hasApplied
-                          ? 'Candidature envoyée'
+                          ? 'Candidature en cours'
                           : applying
                             ? 'Envoi en cours...'
                             : 'Postuler à ce projet'}

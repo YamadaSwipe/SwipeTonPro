@@ -40,18 +40,19 @@ export default async function handler(
       return res.status(401).json({ error: 'Invalid session' });
     }
 
-    // Check if candidature already exists
+    // Check if active candidature already exists (status != rejected)
     const { data: existingInterest } = await supabaseAdmin
       .from('project_interests')
       .select('id')
       .eq('project_id', project_id)
       .eq('professional_id', professional_id)
+      .neq('status', 'rejected')
       .single();
 
     if (existingInterest) {
-      return res
-        .status(409)
-        .json({ error: 'Vous avez deja postule a ce projet' });
+      return res.status(409).json({
+        error: 'Vous avez deja une candidature active pour ce projet',
+      });
     }
 
     // Insert into project_interests
