@@ -100,7 +100,7 @@ export default function ProjectInterestsPage() {
 
       const { error } = await supabase
         .from('project_interests')
-        .update({ client_interested: true })
+        .update({ status: 'accepted' })
         .eq('id', interestId);
 
       if (error) {
@@ -126,7 +126,7 @@ export default function ProjectInterestsPage() {
 
       const { error } = await supabase
         .from('project_interests')
-        .update({ client_interested: false })
+        .update({ status: 'rejected' })
         .eq('id', interestId);
 
       if (error) {
