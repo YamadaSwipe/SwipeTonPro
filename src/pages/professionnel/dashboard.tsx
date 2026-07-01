@@ -503,18 +503,36 @@ function ProfessionalDashboardContent() {
           {/* Quick Actions */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-6">Actions rapides</h2>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <Link href="/projets/parcourir">
+                <Link href="/professionnel/pro-matches">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                        <CheckCircle className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">Mes candidatures</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Voir mes candidatures en cours
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Link>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Link href="/professionnel/swipe-matching">
                   <CardContent className="p-6">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                         <Briefcase className="w-6 h-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold">Explorer les projets</h3>
+                        <h3 className="font-semibold">Parcourir les projets</h3>
                         <p className="text-sm text-muted-foreground">
-                          Trouvez de nouveaux projets intéressants
+                          Trouvez de nouveaux projets
                         </p>
                       </div>
                     </div>
