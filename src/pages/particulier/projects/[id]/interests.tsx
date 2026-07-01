@@ -116,53 +116,27 @@ export default function ProjectInterestsPage() {
   };
 
   const handleAccept = async (interestId: string) => {
-    console.log('handleAccept called with interestId:', interestId);
-    try {
-      setUpdating(interestId);
-
-      const { error } = await supabase
-        .from('project_interests')
-        .update({ status: 'accepted' })
-        .eq('id', interestId);
-
-      if (error) {
-        console.error('Error updating status:', error);
-        alert('Erreur lors de la mise à jour du statut');
-        return;
-      }
-
-      // Get interest data to retrieve professional_id and project_id
-      const { data: interestData } = await supabase
-        .from('project_interests')
-        .select('professional_id, project_id')
-        .eq('id', interestId)
-        .single();
-
-      if (interestData) {
-        // Get professional's user_id
-        const { data: professionalData } = await supabase
-          .from('professionals')
-          .select('user_id')
-          .eq('id', interestData.professional_id)
-          .single();
-
-        if (professionalData?.user_id) {
-          // Insert notification for the professional
-          await supabase.from('notifications').insert({
-            user_id: professionalData.user_id,
-            type: 'application_accepted',
-            title: 'Votre candidature a été acceptée',
-            message:
-              'Le particulier a accepté votre candidature pour ce projet. Félicitations',
-            data: {
-              project_id: interestData.project_id,
-              professional_id: interestData.professional_id,
-            },
-            project_id: interestData.project_id,
-            created_at: new Date().toISOString(),
-          });
-        }
-      }
+  console.log('handleAccept called with interestId:', interestId);
+  try {
+    setUpdating(interestId);
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch('/api/update-interest', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`
+      },
+      body: JSON.stringify({ interest_id: interestId, action: 'accepted' })
+    });
+    if (!response.ok) throw new Error('Erreur API');
+    await loadProjectAndInterests();
+  } catch (err: any) {
+    console.error('Error accepting:', err);
+    alert('Erreur lors de l\'acceptation');
+  } finally {
+    setUpdating(null);
+  }
+};
 
       // Refresh the list
       await loadProjectAndInterests();
@@ -175,53 +149,27 @@ export default function ProjectInterestsPage() {
   };
 
   const handleReject = async (interestId: string) => {
-    console.log('handleReject called with interestId:', interestId);
-    try {
-      setUpdating(interestId);
-
-      const { error } = await supabase
-        .from('project_interests')
-        .update({ status: 'rejected' })
-        .eq('id', interestId);
-
-      if (error) {
-        console.error('Error updating status:', error);
-        alert('Erreur lors de la mise à jour du statut');
-        return;
-      }
-
-      // Get interest data to retrieve professional_id and project_id
-      const { data: interestData } = await supabase
-        .from('project_interests')
-        .select('professional_id, project_id')
-        .eq('id', interestId)
-        .single();
-
-      if (interestData) {
-        // Get professional's user_id
-        const { data: professionalData } = await supabase
-          .from('professionals')
-          .select('user_id')
-          .eq('id', interestData.professional_id)
-          .single();
-
-        if (professionalData?.user_id) {
-          // Insert notification for the professional
-          await supabase.from('notifications').insert({
-            user_id: professionalData.user_id,
-            type: 'application_rejected',
-            title: "Votre candidature n'a pas été retenue",
-            message:
-              "Le particulier n'a pas retenu votre candidature pour ce projet",
-            data: {
-              project_id: interestData.project_id,
-              professional_id: interestData.professional_id,
-            },
-            project_id: interestData.project_id,
-            created_at: new Date().toISOString(),
-          });
-        }
-      }
+  console.log('handleReject called with interestId:', interestId);
+  try {
+    setUpdating(interestId);
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch('/api/update-interest', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`
+      },
+      body: JSON.stringify({ interest_id: interestId, action: 'rejected' })
+    });
+    if (!response.ok) throw new Error('Erreur API');
+    await loadProjectAndInterests();
+  } catch (err: any) {
+    console.error('Error rejecting:', err);
+    alert('Erreur lors du refus');
+  } finally {
+    setUpdating(null);
+  }
+};
 
       // Refresh the list
       await loadProjectAndInterests();
