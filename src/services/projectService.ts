@@ -27,6 +27,7 @@ type SimpleProject = {
   category?: string;
   city?: string;
   bids_count?: number;
+  has_accepted_interest?: boolean;
   ai_analysis?: string;
   ai_estimation?: string;
 };
@@ -46,7 +47,7 @@ export const projectService = {
       const { data, error } = await supabase
         .from('projects')
         .select(
-          'id, title, status, budget_max, budget_min, estimated_budget_max, estimated_budget_min, created_at, category, city, bids_count, ai_analysis, validation_status'
+          'id, title, status, budget_max, budget_min, estimated_budget_max, estimated_budget_min, created_at, category, city, ai_analysis, validation_status'
         )
         .eq('client_id', session.user.id)
         .order('created_at', { ascending: false });
@@ -62,6 +63,49 @@ export const projectService = {
           })) || [],
         error,
       });
+
+      // Fetch real interest counts and status for each project
+      if (data && data.length > 0) {
+        const projectIds = data.map((p: any) => p.id);
+
+        // Get interest counts and status for all projects
+        const { data: interestsData } = await supabase
+          .from('project_interests')
+          .select('project_id, status')
+          .in('project_id', projectIds)
+          .neq('status', 'rejected');
+
+        // Process interests data
+        const interestMap: Record<
+          string,
+          { count: number; hasAccepted: boolean }
+        > = {};
+
+        if (interestsData) {
+          interestsData.forEach((interest: any) => {
+            if (!interestMap[interest.project_id]) {
+              interestMap[interest.project_id] = {
+                count: 0,
+                hasAccepted: false,
+              };
+            }
+            interestMap[interest.project_id].count++;
+            if (interest.status === 'accepted') {
+              interestMap[interest.project_id].hasAccepted = true;
+            }
+          });
+        }
+
+        // Add interest data to projects
+        const projectsWithInterests = data.map((p: any) => ({
+          ...p,
+          bids_count: interestMap[p.id]?.count || 0,
+          has_accepted_interest: interestMap[p.id]?.hasAccepted || false,
+        }));
+
+        console.log('📊 Projets avec intérêts:', projectsWithInterests);
+        return { data: projectsWithInterests, error };
+      }
 
       // Debug détaillé si aucun projet trouvé
       if (data && data.length === 0) {
