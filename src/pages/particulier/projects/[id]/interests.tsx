@@ -7,13 +7,23 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { ArrowLeft, Check, X } from 'lucide-react';
+import { ArrowLeft, Check, X, User, MapPin, Star, Award } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type ProjectInterest =
   Database['public']['Tables']['project_interests']['Row'] & {
     professionals: {
       company_name: string;
+      description: string | null;
+      specialties: string[] | null;
+      experience_years: number | null;
+      rating_average: number | null;
+      rating_count: number | null;
+      city: string | null;
+      has_rge: boolean | null;
+      has_qualibat: boolean | null;
+      has_qualipac: boolean | null;
+      status: string | null;
     };
   };
 
@@ -25,6 +35,8 @@ export default function ProjectInterestsPage() {
   const [error, setError] = useState('');
   const [isOwner, setIsOwner] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedProfessional, setSelectedProfessional] =
+    useState<ProjectInterest | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -72,7 +84,17 @@ export default function ProjectInterestsPage() {
           `
           *,
           professionals (
-            company_name
+            company_name,
+            description,
+            specialties,
+            experience_years,
+            rating_average,
+            rating_count,
+            city,
+            has_rge,
+            has_qualibat,
+            has_qualipac,
+            status
           )
         `
         )
@@ -179,6 +201,123 @@ export default function ProjectInterestsPage() {
     }
   };
 
+  const renderProfessionalModal = () => {
+    if (!selectedProfessional) return null;
+
+    const prof = selectedProfessional.professionals;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl">
+                Profil du professionnel
+              </CardTitle>
+              <Button
+                variant="ghost"
+                onClick={() => setSelectedProfessional(null)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">
+                {prof.company_name}
+              </h3>
+              {prof.description && (
+                <p className="text-slate-400">{prof.description}</p>
+              )}
+            </div>
+
+            {prof.city && (
+              <div className="flex items-center gap-2 text-slate-400">
+                <MapPin className="w-4 h-4" />
+                <span>{prof.city}</span>
+              </div>
+            )}
+
+            {prof.rating_average && (
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span className="font-semibold">
+                  {prof.rating_average.toFixed(1)}
+                </span>
+                {prof.rating_count && (
+                  <span className="text-slate-400">
+                    ({prof.rating_count} avis)
+                  </span>
+                )}
+              </div>
+            )}
+
+            {prof.experience_years && (
+              <div className="flex items-center gap-2 text-slate-400">
+                <Award className="w-4 h-4" />
+                <span>{prof.experience_years} ans d'expérience</span>
+              </div>
+            )}
+
+            {prof.specialties && prof.specialties.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2">Spécialités</h4>
+                <div className="flex flex-wrap gap-2">
+                  {prof.specialties.map((specialty, index) => (
+                    <Badge key={index} variant="secondary">
+                      {specialty}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h4 className="font-semibold mb-2">Certifications</h4>
+              <div className="flex flex-wrap gap-2">
+                {prof.has_rge && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-blue-500/15 text-blue-400 border-blue-500/30"
+                  >
+                    RGE
+                  </Badge>
+                )}
+                {prof.has_qualibat && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-500/15 text-green-400 border-green-500/30"
+                  >
+                    Qualibat
+                  </Badge>
+                )}
+                {prof.has_qualipac && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-purple-500/15 text-purple-400 border-purple-500/30"
+                  >
+                    Qualipac
+                  </Badge>
+                )}
+                {!prof.has_rge && !prof.has_qualibat && !prof.has_qualipac && (
+                  <span className="text-slate-400">Aucune certification</span>
+                )}
+              </div>
+            </div>
+
+            {prof.status && (
+              <div>
+                <h4 className="font-semibold mb-2">Statut</h4>
+                <Badge variant="secondary">{prof.status}</Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -205,6 +344,7 @@ export default function ProjectInterestsPage() {
   return (
     <ProtectedRoute>
       <SEO title="Intérêts du projet" />
+      {renderProfessionalModal()}
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6">
@@ -247,6 +387,14 @@ export default function ProjectInterestsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-3">
+                      <Button
+                        onClick={() => setSelectedProfessional(interest)}
+                        variant="outline"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        Voir le profil
+                      </Button>
                       {interest.status === 'pre_matched' && (
                         <>
                           <Button
