@@ -131,6 +131,39 @@ export default function ProjectInterestsPage() {
         return;
       }
 
+      // Get interest data to retrieve professional_id and project_id
+      const { data: interestData } = await supabase
+        .from('project_interests')
+        .select('professional_id, project_id')
+        .eq('id', interestId)
+        .single();
+
+      if (interestData) {
+        // Get professional's user_id
+        const { data: professionalData } = await supabase
+          .from('professionals')
+          .select('user_id')
+          .eq('id', interestData.professional_id)
+          .single();
+
+        if (professionalData?.user_id) {
+          // Insert notification for the professional
+          await supabase.from('notifications').insert({
+            user_id: professionalData.user_id,
+            type: 'application_accepted',
+            title: 'Votre candidature a été acceptée',
+            message:
+              'Le particulier a accepté votre candidature pour ce projet. Félicitations',
+            data: {
+              project_id: interestData.project_id,
+              professional_id: interestData.professional_id,
+            },
+            project_id: interestData.project_id,
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
+
       // Refresh the list
       await loadProjectAndInterests();
     } catch (err: any) {
@@ -155,6 +188,39 @@ export default function ProjectInterestsPage() {
         console.error('Error updating status:', error);
         alert('Erreur lors de la mise à jour du statut');
         return;
+      }
+
+      // Get interest data to retrieve professional_id and project_id
+      const { data: interestData } = await supabase
+        .from('project_interests')
+        .select('professional_id, project_id')
+        .eq('id', interestId)
+        .single();
+
+      if (interestData) {
+        // Get professional's user_id
+        const { data: professionalData } = await supabase
+          .from('professionals')
+          .select('user_id')
+          .eq('id', interestData.professional_id)
+          .single();
+
+        if (professionalData?.user_id) {
+          // Insert notification for the professional
+          await supabase.from('notifications').insert({
+            user_id: professionalData.user_id,
+            type: 'application_rejected',
+            title: "Votre candidature n'a pas été retenue",
+            message:
+              "Le particulier n'a pas retenu votre candidature pour ce projet",
+            data: {
+              project_id: interestData.project_id,
+              professional_id: interestData.professional_id,
+            },
+            project_id: interestData.project_id,
+            created_at: new Date().toISOString(),
+          });
+        }
       }
 
       // Refresh the list
