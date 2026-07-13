@@ -116,66 +116,50 @@ export default function ProjectInterestsPage() {
   };
 
   const handleAccept = async (interestId: string) => {
-  console.log('handleAccept called with interestId:', interestId);
-  try {
-    setUpdating(interestId);
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/update-interest', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token}`
-      },
-      body: JSON.stringify({ interest_id: interestId, action: 'accepted' })
-    });
-    if (!response.ok) throw new Error('Erreur API');
-    await loadProjectAndInterests();
-  } catch (err: any) {
-    console.error('Error accepting:', err);
-    alert('Erreur lors de l\'acceptation');
-  } finally {
-    setUpdating(null);
-  }
-};
-
-      // Refresh the list
+    console.log('handleAccept called with interestId:', interestId);
+    try {
+      setUpdating(interestId);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const response = await fetch('/api/update-interest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ interest_id: interestId, action: 'accepted' }),
+      });
+      if (!response.ok) throw new Error('Erreur API');
       await loadProjectAndInterests();
     } catch (err: any) {
-      console.error('Error updating status:', err);
-      alert('Erreur lors de la mise à jour du statut');
+      console.error('Error accepting:', err);
+      alert("Erreur lors de l'acceptation");
     } finally {
       setUpdating(null);
     }
   };
 
   const handleReject = async (interestId: string) => {
-  console.log('handleReject called with interestId:', interestId);
-  try {
-    setUpdating(interestId);
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/update-interest', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token}`
-      },
-      body: JSON.stringify({ interest_id: interestId, action: 'rejected' })
-    });
-    if (!response.ok) throw new Error('Erreur API');
-    await loadProjectAndInterests();
-  } catch (err: any) {
-    console.error('Error rejecting:', err);
-    alert('Erreur lors du refus');
-  } finally {
-    setUpdating(null);
-  }
-};
-
-      // Refresh the list
+    console.log('handleReject called with interestId:', interestId);
+    try {
+      setUpdating(interestId);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const response = await fetch('/api/update-interest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ interest_id: interestId, action: 'rejected' }),
+      });
+      if (!response.ok) throw new Error('Erreur API');
       await loadProjectAndInterests();
     } catch (err: any) {
-      console.error('Error updating status:', err);
-      alert('Erreur lors de la mise à jour du statut');
+      console.error('Error rejecting:', err);
+      alert('Erreur lors du refus');
     } finally {
       setUpdating(null);
     }
