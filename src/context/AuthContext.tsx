@@ -147,7 +147,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .maybeSingle()) as any;
 
       if (!profileData) {
-        // Pas d'erreur, juste pas de profil
+        const { data: byUserId } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (byUserId) profileData = byUserId;
       } else if (profileError && profileError.code !== 'PGRST116') {
         console.error('❌ AuthContext: Profile error:', profileError);
         throw profileError;

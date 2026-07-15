@@ -367,6 +367,19 @@ export default function ProfessionalSignupPage() {
           );
           return false;
         }
+        // Validation mot de passe (minimum 8 caractères)
+        if (!basicInfo.password || basicInfo.password.length < 8) {
+          setError('Le mot de passe doit contenir au moins 8 caractères');
+          return false;
+        }
+        // Validation SIRET (14 chiffres exactement)
+        if (
+          !basicInfo.siret ||
+          !/^\d{14}$/.test(basicInfo.siret.replace(/\s/g, ''))
+        ) {
+          setError('SIRET invalide : doit contenir 14 chiffres');
+          return false;
+        }
         break;
       case 2:
         if (!documents.kbis || !documents.insurance || !documents.idCard) {
