@@ -55,6 +55,32 @@ export default async function handler(
       });
     }
 
+    // Vérifier que le projet est actif
+    const { data: project } = await supabaseAdmin
+      .from('projects')
+      .select('id, status')
+      .eq('id', project_id)
+      .single();
+
+    if (!project || !['published', 'pending', 'in_progress'].includes(project.status)) {
+      return res
+        .status(400)
+        .json({ error: "Ce projet n'accepte plus de candidatures" });
+    }
+
+    // Vérifier que le professionnel est validé
+    const { data: professional } = await supabaseAdmin
+      .from('professionals')
+      .select('id, status')
+      .eq('id', professional_id)
+      .single();
+
+    if (professional?.status !== 'verified') {
+      return res.status(403).json({
+        error: 'Votre compte professionnel doit être vérifié pour candidater',
+      });
+    }
+
     // Insert into project_interests
     const { error: insertError } = await supabaseAdmin
       .from('project_interests')
