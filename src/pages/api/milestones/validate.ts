@@ -1,9 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { milestoneService } from '@/services/milestoneService';
-import { authService } from '@/services/authService';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
+import { createClient } from '@supabase/supabase-js';
 
-export default async function handler(
-  req: NextApiRequest,
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export default withAuth(async function handler(
+  req: AuthenticatedRequest,
   response: NextApiResponse
 ) {
   // Uniquement POST
@@ -12,12 +18,6 @@ export default async function handler(
   }
 
   try {
-    // Vérifier l'authentification
-    const session = await authService.getCurrentSession();
-    if (!session?.user) {
-      return response.status(401).json({ error: 'Non authentifié' });
-    }
-
     const {
       milestoneId,
       validationType, // 'professional' | 'client'
@@ -41,9 +41,51 @@ export default async function handler(
       });
     }
 
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(milestoneId)) {
+      return response.status(400).json({ error: 'milestoneId invalide' });
+    }
+
     if (!['professional', 'client'].includes(validationType)) {
       return response.status(400).json({
         error: 'validationType doit être "professional" ou "client"',
+      });
+    }
+
+    // Contrôle d'accès: vérifier l'appartenance au projet lié à la milestone
+    const { data: milestoneProject, error: milestoneProjectError } = await supabaseAdmin
+      .from('project_milestones')
+      .select('id, project:projects(client_id, professional_id)')
+      .eq('id', milestoneId)
+      .maybeSingle();
+
+    if (milestoneProjectError || !milestoneProject) {
+      return response.status(404).json({ error: 'Milestone introuvable' });
+    }
+
+    const isClientOwner =
+      (milestoneProject as any).project?.client_id === req.user?.id;
+
+    const { data: requesterProfessional } = await supabaseAdmin
+      .from('professionals')
+      .select('id')
+      .eq('user_id', req.user?.id)
+      .maybeSingle();
+
+    const isAssignedProfessional =
+      !!requesterProfessional?.id &&
+      (milestoneProject as any).project?.professional_id === requesterProfessional.id;
+
+    if (validationType === 'professional' && !isAssignedProfessional) {
+      return response.status(403).json({
+        error: 'Seul le professionnel assigné peut valider cette étape',
+      });
+    }
+
+    if (validationType === 'client' && !isClientOwner) {
+      return response.status(403).json({
+        error: 'Seul le client propriétaire peut valider cette étape',
       });
     }
 
@@ -105,4 +147,4 @@ export default async function handler(
       error: 'Erreur serveur lors de la validation de la milestone',
     });
   }
-}
+});

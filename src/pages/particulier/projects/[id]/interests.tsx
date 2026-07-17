@@ -182,7 +182,16 @@ export default function ProjectInterestsPage() {
             variant="secondary"
             className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
           >
-            Accepté
+            Accepté (legacy)
+          </Badge>
+        );
+      case 'payment_pending':
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
+          >
+            Paiement en attente
           </Badge>
         );
       case 'rejected':

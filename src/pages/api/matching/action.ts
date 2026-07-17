@@ -14,7 +14,7 @@ export default withAuth(async function handler(
   if (req.method !== 'POST')
     return res.status(405).json({ error: 'POST only' });
 
-  const { action, match_id, user_id } = req.body;
+  const { action, match_id } = req.body;
   if (!match_id || !action)
     return res.status(400).json({ error: 'match_id et action requis' });
 
@@ -32,7 +32,7 @@ export default withAuth(async function handler(
 
     if (action === 'accept') {
       // Vérifier que c'est le client
-      if (match.project.client_id !== user_id) {
+      if (match.project.client_id !== req.user?.id) {
         return res.status(403).json({ error: 'Seul le client peut accepter' });
       }
 
@@ -55,7 +55,7 @@ export default withAuth(async function handler(
 
       return res.status(200).json({ success: true, match: data });
     } else if (action === 'reject') {
-      if (match.project.client_id !== user_id) {
+      if (match.project.client_id !== req.user?.id) {
         return res.status(403).json({ error: 'Seul le client peut refuser' });
       }
 
@@ -70,7 +70,7 @@ export default withAuth(async function handler(
       return res.status(200).json({ success: true, match: data });
     } else if (action === 'pay') {
       // Vérifier que c'est le pro
-      if (match.professional.user_id !== user_id) {
+      if (match.professional.user_id !== req.user?.id) {
         return res
           .status(403)
           .json({ error: 'Seul le professionnel peut payer' });

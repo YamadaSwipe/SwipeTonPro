@@ -1,27 +1,55 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { estimateToProjectService } from '@/services/estimateToProjectService';
-import { authService } from '@/services/authService';
-import { supabase } from '@/integrations/supabase/client';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
+import { createClient } from '@supabase/supabase-js';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export default withAuth(async function handler(req: AuthenticatedRequest, res: NextApiResponse) {
   // Uniquement POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
   try {
-    // Vérifier l'authentification
-    const session = await authService.getCurrentSession();
-    if (!session?.user) {
-      return res.status(401).json({ error: 'Non authentifié' });
-    }
-
     const { estimateData, professionalId } = req.body;
 
     // Validation des données requises
     if (!estimateData || !professionalId) {
       return res.status(400).json({ 
         error: 'Données manquantes: estimateData et professionalId requis' 
+      });
+    }
+
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(professionalId)) {
+      return res.status(400).json({ error: 'professionalId invalide' });
+    }
+
+    // Vérifier que le pro demandé appartient à l'utilisateur connecté
+    const { data: professional, error: professionalError } = await supabaseAdmin
+      .from('professionals')
+      .select('id, user_id, status')
+      .eq('id', professionalId)
+      .single();
+
+    if (professionalError || !professional) {
+      return res.status(404).json({ error: 'Professionnel introuvable' });
+    }
+
+    if (professional.user_id !== req.user?.id) {
+      return res.status(403).json({
+        error: 'Non autorisé pour ce profil professionnel',
+      });
+    }
+
+    if (professional.status !== 'verified') {
+      return res.status(403).json({
+        error: 'Votre profil professionnel doit être validé pour continuer',
       });
     }
 
@@ -77,4 +105,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Erreur serveur lors de la conversion' 
     });
   }
-}
+});

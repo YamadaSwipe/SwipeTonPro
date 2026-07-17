@@ -22,6 +22,12 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(project_id) || !uuidRegex.test(professional_id)) {
+      return res.status(400).json({ error: 'Invalid IDs format' });
+    }
+
     // Get authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -38,6 +44,23 @@ export default async function handler(
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid session' });
+    }
+
+    // Vérifier que le professional_id appartient bien à l'utilisateur connecté
+    const { data: ownerProfessional, error: ownerError } = await supabaseAdmin
+      .from('professionals')
+      .select('id, user_id, status')
+      .eq('id', professional_id)
+      .single();
+
+    if (ownerError || !ownerProfessional) {
+      return res.status(404).json({ error: 'Professional not found' });
+    }
+
+    if (ownerProfessional.user_id !== user.id) {
+      return res.status(403).json({
+        error: 'Unauthorized: cannot apply for another professional account',
+      });
     }
 
     // Check if active candidature already exists (status != rejected)

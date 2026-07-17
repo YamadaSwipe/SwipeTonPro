@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get interest data to retrieve professional_id and project_id
     const { data: interestData, error: interestError } = await supabaseAdmin
       .from('project_interests')
-      .select('professional_id, project_id')
+      .select('professional_id, project_id, project:projects(client_id)')
       .eq('id', interest_id)
       .single();
 
@@ -51,10 +51,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Interest not found' });
     }
 
+    // Seul le client propriétaire du projet peut accepter/refuser
+    if ((interestData as any).project?.client_id !== user.id) {
+      return res.status(403).json({ error: 'Forbidden: not project owner' });
+    }
+
+    const updatePayload: Record<string, any> = {};
+    if (action === 'accepted') {
+      const deadline = new Date();
+      deadline.setHours(deadline.getHours() + 24);
+
+      updatePayload.status = 'payment_pending';
+      updatePayload.client_interested = true;
+      updatePayload.payment_deadline = deadline.toISOString();
+    } else {
+      updatePayload.status = 'rejected';
+      updatePayload.client_interested = false;
+    }
+
     // Update the status in project_interests
     const { error: updateError } = await supabaseAdmin
       .from('project_interests')
-      .update({ status: action })
+      .update(updatePayload)
       .eq('id', interest_id);
 
     if (updateError) {
@@ -74,13 +92,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Professional not found' });
     }
 
+    // Créer/assurer la conversation anonyme lors de l'acceptation
+    if (action === 'accepted') {
+      await supabaseAdmin.from('conversations').insert(
+        {
+          project_id: interestData.project_id,
+          professional_id: interestData.professional_id,
+          client_id: user.id,
+          status: 'anonymous',
+          phase: 'anonymous',
+        },
+        { onConflict: 'project_id,professional_id', ignoreDuplicates: true }
+      );
+    }
+
     // Insert notification for the professional
     const notificationData = {
       user_id: professionalData.user_id,
       type: action === 'accepted' ? 'application_accepted' : 'application_rejected',
       title: action === 'accepted' ? 'Votre candidature a été acceptée' : 'Votre candidature n\'a pas été retenue',
       message: action === 'accepted' 
-        ? 'Le particulier a accepté votre candidature pour ce projet. Félicitations'
+        ? 'Le particulier a accepté votre candidature. Finalisez le paiement de mise en relation pour débloquer les coordonnées.'
         : 'Le particulier n\'a pas retenu votre candidature pour ce projet',
       data: { project_id: interestData.project_id, professional_id: interestData.professional_id },
       project_id: interestData.project_id,

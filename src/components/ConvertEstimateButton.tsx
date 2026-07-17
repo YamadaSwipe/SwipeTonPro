@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { estimateToProjectService, type EstimateData } from '@/services/estimateToProjectService';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ConvertEstimateButtonProps {
   estimateData: EstimateData;
@@ -56,10 +57,19 @@ export function ConvertEstimateButton({
       }
 
       // Appeler l'API de conversion
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Session expirée, veuillez vous reconnecter');
+      }
+
       const response = await fetch('/api/convert-estimate-to-project', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           estimateData,

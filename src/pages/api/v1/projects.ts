@@ -241,6 +241,14 @@ async function handleCreateProject(
       });
     }
 
+    // Isolation multi-tenant si la clé est liée à un client
+    if (apiKeyData?.client_id && apiKeyData.client_id !== client_id) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'API key is not allowed to create projects for this client',
+      });
+    }
+
     // Create project
     const { data: project, error } = await (supabase as any)
       .from('projects')
@@ -301,6 +309,36 @@ async function handleUpdateProject(
       });
     }
 
+    // Isolation multi-tenant: vérifier le propriétaire projet si la clé est liée
+    if (apiKeyData?.client_id) {
+      const { data: existingProject, error: ownershipError } = await (supabase as any)
+        .from('projects')
+        .select('id, user_id')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (ownershipError) {
+        return res.status(500).json({
+          error: 'Failed to verify project ownership',
+          message: ownershipError.message,
+        });
+      }
+
+      if (!existingProject) {
+        return res.status(404).json({
+          error: 'Project not found',
+          message: 'No project found with the provided ID',
+        });
+      }
+
+      if (existingProject.user_id !== apiKeyData.client_id) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'API key is not allowed to update this project',
+        });
+      }
+    }
+
     const { data: project, error } = await (supabase as any)
       .from('projects')
       .update({
@@ -352,6 +390,36 @@ async function handleDeleteProject(
         error: 'Project ID required',
         message: 'Please provide project ID in query parameters',
       });
+    }
+
+    // Isolation multi-tenant: vérifier le propriétaire projet si la clé est liée
+    if (apiKeyData?.client_id) {
+      const { data: existingProject, error: ownershipError } = await (supabase as any)
+        .from('projects')
+        .select('id, user_id')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (ownershipError) {
+        return res.status(500).json({
+          error: 'Failed to verify project ownership',
+          message: ownershipError.message,
+        });
+      }
+
+      if (!existingProject) {
+        return res.status(404).json({
+          error: 'Project not found',
+          message: 'No project found with the provided ID',
+        });
+      }
+
+      if (existingProject.user_id !== apiKeyData.client_id) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'API key is not allowed to delete this project',
+        });
+      }
     }
 
     const { data: project, error } = await (supabase as any)

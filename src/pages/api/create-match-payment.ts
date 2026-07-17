@@ -44,6 +44,26 @@ export default withAuth(async function handler(
       .single();
 
     if (!interest) return res.status(404).json({ error: 'Match introuvable' });
+
+    // Vérification propriétaire: seul le pro concerné peut initier son paiement
+    if ((interest as any).professional?.user_id !== req.user?.id) {
+      return res.status(403).json({
+        error: 'Non autorisé pour ce paiement',
+      });
+    }
+
+    // Vérifier la cohérence intérêt/projet
+    if (interest.project_id !== projectId) {
+      return res.status(400).json({ error: 'Incohérence interestId/projectId' });
+    }
+
+    // Le paiement ne doit être possible que sur un intérêt accepté côté client
+    if (!['payment_pending', 'accepted', 'pre_matched'].includes(interest.status)) {
+      return res.status(400).json({
+        error: `Statut d'intérêt invalide pour paiement: ${interest.status}`,
+      });
+    }
+
     if (interest.status === 'paid')
       return res.status(400).json({ error: 'Déjà payé' });
 

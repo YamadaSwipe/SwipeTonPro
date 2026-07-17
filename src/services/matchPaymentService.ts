@@ -37,6 +37,9 @@ const FALLBACK_PRICE: MatchPricing = {
   description: 'Prix standard de mise en relation',
 };
 
+const PAID_STATUSES = ['paid', 'completed', 'succeeded'];
+const PENDING_STATUSES = ['pending', 'processing', 'requires_confirmation'];
+
 /**
  * Récupère le prix selon le budget du projet via la fonction RPC
  * Paliers configurables depuis le dashboard admin
@@ -130,32 +133,38 @@ export async function createMatchPaymentIntent(
   pricing: MatchPricing;
 }> {
   try {
-    // Vérifier qu'un match n'existe pas déjà
-    const { data: existingMatch } = await supabase
+    // Vérifier qu'un accès n'existe pas déjà
+    const { data: existingAccess } = await supabase
       .from('project_interests')
       .select('id')
       .eq('professional_id', professionalId)
       .eq('project_id', projectId)
-      .eq('status', 'accepted')
+      .in('status', ['paid', 'matched', 'accepted'])
       .maybeSingle();
 
-    if (existingMatch) {
+    if (existingAccess) {
       throw new Error('Vous avez déjà accès à ce projet');
     }
 
-    // Vérifier qu'un paiement n'est pas déjà en cours
-    const { data: existingPayment } = await supabase
+    // Vérifier qu'un paiement n'est pas déjà en cours ou déjà finalisé
+    const { data: existingPayment, error: existingPaymentError } = await supabase
       .from('match_payments' as any)
       .select('id, status')
       .eq('professional_id', professionalId)
       .eq('project_id', projectId)
-      .in('status', ['pending', 'succeeded'])
+      .in('status', [...PENDING_STATUSES, ...PAID_STATUSES])
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
+    if (existingPaymentError) {
+      throw existingPaymentError;
+    }
+
     const payment = existingPayment as any;
-    if (payment?.status === 'succeeded')
+    if (payment && PAID_STATUSES.includes(payment.status))
       throw new Error('Paiement déjà effectué pour ce projet');
-    if (payment?.status === 'pending')
+    if (payment && PENDING_STATUSES.includes(payment.status))
       throw new Error('Un paiement est déjà en cours pour ce projet');
 
     // Récupérer le projet et son budget
@@ -172,15 +181,29 @@ export async function createMatchPaymentIntent(
     const pricing = await getMatchPriceForBudget(projectBudget);
 
     // Créer le Payment Intent via l'API Next.js
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error('Session expirée, veuillez vous reconnecter');
+    }
+
     const response = await fetch('/api/stripe/create-payment-intent', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({
         amount: pricing.price_cents,
         currency: pricing.currency,
-        professionalId,
-        projectId,
         description: `${pricing.label} - ${project.title}`,
+        metadata: {
+          type: 'mise_en_relation',
+          project_id: projectId,
+          professional_id: professionalId,
+        },
       }),
     });
 
@@ -192,7 +215,7 @@ export async function createMatchPaymentIntent(
     const data = await response.json();
 
     // Enregistrer le paiement en statut pending
-    await supabase.from('match_payments' as any).insert({
+    const { error: insertPaymentError } = await supabase.from('match_payments' as any).insert({
       professional_id: professionalId,
       project_id: projectId,
       stripe_payment_intent_id: data.paymentIntentId,
@@ -201,6 +224,10 @@ export async function createMatchPaymentIntent(
       pricing_key: pricing.key,
       status: 'pending',
     });
+
+    if (insertPaymentError) {
+      throw insertPaymentError;
+    }
 
     return {
       clientSecret: data.clientSecret,
@@ -233,6 +260,13 @@ export async function confirmMatchPayment(
     if (error) throw error;
 
     const result = Array.isArray(data) ? data[0] : data;
+
+    if (!result) {
+      return {
+        success: false,
+        message: 'Réponse invalide du serveur de paiement',
+      };
+    }
 
     if (!result.success) {
       return {
@@ -314,7 +348,7 @@ export async function checkPaymentStatus(
 
     const payment = paymentData as any;
 
-    if (!payment || payment.status !== 'succeeded') {
+    if (!payment || !PAID_STATUSES.includes(payment.status)) {
       return { hasPaid: false };
     }
 
@@ -323,7 +357,7 @@ export async function checkPaymentStatus(
       .select('id')
       .eq('professional_id', professionalId)
       .eq('project_id', projectId)
-      .eq('status', 'accepted')
+      .in('status', ['paid', 'matched', 'accepted'])
       .maybeSingle();
 
     return {
@@ -379,8 +413,8 @@ export async function getPaymentStats(professionalId: string) {
     if (error) throw error;
 
     const payments = (data || []) as any[];
-    const succeeded = payments.filter((p) => p.status === 'succeeded');
-    const total = succeeded.reduce((sum, p) => sum + p.amount_cents, 0);
+    const succeeded = payments.filter((p) => PAID_STATUSES.includes(p.status));
+    const total = succeeded.reduce((sum, p) => sum + (p.amount_cents || 0), 0);
     const now = new Date();
     const thisMonth = succeeded.filter((p) => {
       const date = new Date(p.created_at);
@@ -406,13 +440,21 @@ export const matchPaymentService = {
   createPaymentIntent: async (params: {
     professionalId: string;
     projectId: string;
-    matchId: string;
+    matchId?: string;
   }) => {
-    const price = await getMatchPriceForBudget(1000); // Budget par défaut
-    return createMatchPaymentIntent(
-      params.matchId,
-      price.price_cents.toString()
+    const result = await createMatchPaymentIntent(
+      params.professionalId,
+      params.projectId
     );
+
+    // Compatibilité descendante avec les appels qui attendent un objet `data`
+    return {
+      ...result,
+      data: {
+        clientSecret: result.clientSecret,
+        paymentIntentId: result.paymentIntentId,
+      },
+    };
   },
   getMatchPriceForBudget,
   createMatchPaymentIntent,

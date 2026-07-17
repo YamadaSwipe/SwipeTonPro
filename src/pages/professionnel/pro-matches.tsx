@@ -76,7 +76,7 @@ export default function ProMatchesPage() {
         `
         )
         .eq('professional_id', pro.id)
-        .in('status', ['accepted', 'pre_matched'])
+        .in('status', ['accepted', 'pre_matched', 'payment_pending'])
         .order('updated_at', { ascending: false });
 
       setMatches(data || []);
@@ -90,9 +90,20 @@ export default function ProMatchesPage() {
   const handlePayMiseEnRelation = async (match: any) => {
     setPayingId(match.id);
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Session expirée, veuillez vous reconnecter');
+      }
+
       const res = await fetch('/api/create-match-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           interestId: match.id,
           projectId: match.project_id,

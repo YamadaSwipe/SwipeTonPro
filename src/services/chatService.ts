@@ -26,10 +26,14 @@ export const chatService = {
         .select("*")
         .eq("project_id", projectId)
         .eq("professional_id", professionalId)
-        .single();
+        .maybeSingle();
+
+      if (fetchError && fetchError.code !== "PGRST116") {
+        return { data: null, error: fetchError };
+      }
 
       if (existing) {
-        return { data: existing, error: fetchError };
+        return { data: existing, error: null };
       }
 
       // Get project owner (client)
@@ -54,11 +58,29 @@ export const chatService = {
         pro_message_count: 0,
       } as any;
 
-      const { data, error } = await supabase
+      const { error: insertError } = await supabase
         .from("conversations")
-        .insert(newConversation)
+        .insert(newConversation, {
+          onConflict: "project_id,professional_id",
+          ignoreDuplicates: true,
+        })
         .select()
         .single();
+
+      if (insertError && insertError.code !== "23505") {
+        return { data: null, error: insertError };
+      }
+
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("project_id", projectId)
+        .eq("professional_id", professionalId)
+        .maybeSingle();
+
+      if (!data && !error) {
+        return { data: null, error: new Error("Impossible de créer la conversation") };
+      }
 
       return { data, error };
     } catch (err) {

@@ -1,20 +1,20 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { projectConversionService } from '@/services/projectConversionService';
-import { authService } from '@/services/authService';
+import { withAuth, AuthenticatedRequest } from '@/middleware/withAuth';
+import { createClient } from '@supabase/supabase-js';
 
-export default async function handler(req: NextApiRequest, response: NextApiResponse) {
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export default withAuth(async function handler(req: AuthenticatedRequest, response: NextApiResponse) {
   // Uniquement POST
   if (req.method !== 'POST') {
     return response.status(405).json({ error: 'Méthode non autorisée' });
   }
 
   try {
-    // Vérifier l'authentification
-    const session = await authService.getCurrentSession();
-    if (!session?.user) {
-      return response.status(401).json({ error: 'Non authentifié' });
-    }
-
     const { 
       estimationId, 
       professionalId, 
@@ -34,6 +34,34 @@ export default async function handler(req: NextApiRequest, response: NextApiResp
     if (typeof estimationId !== 'string' || typeof professionalId !== 'string') {
       return response.status(400).json({ 
         error: 'estimationId et professionalId doivent être des chaînes de caractères' 
+      });
+    }
+
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(estimationId) || !uuidRegex.test(professionalId)) {
+      return response.status(400).json({ error: 'IDs invalides' });
+    }
+
+    const { data: professional, error: professionalError } = await supabaseAdmin
+      .from('professionals')
+      .select('id, user_id, status')
+      .eq('id', professionalId)
+      .single();
+
+    if (professionalError || !professional) {
+      return response.status(404).json({ error: 'Professionnel introuvable' });
+    }
+
+    if (professional.user_id !== req.user?.id) {
+      return response.status(403).json({
+        error: 'Non autorisé pour ce profil professionnel',
+      });
+    }
+
+    if (professional.status !== 'verified') {
+      return response.status(403).json({
+        error: 'Profil professionnel non validé',
       });
     }
 
@@ -87,4 +115,4 @@ export default async function handler(req: NextApiRequest, response: NextApiResp
       error: 'Erreur serveur lors de la conversion' 
     });
   }
-}
+});

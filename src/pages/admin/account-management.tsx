@@ -32,7 +32,7 @@ export default function AccountManagementPage() {
           </h3>
           <ul className="text-sm text-blue-800 space-y-1">
             <li>• <strong>Rechercher:</strong> Entrez un email pour trouver les comptes existants</li>
-            <li>• <strong>Réinitialiser:</strong> Le mot de passe temporaire est "TempPassword123!"</li>
+            <li>• <strong>Réinitialiser:</strong> Un mot de passe temporaire unique est généré automatiquement</li>
             <li>• <strong>Créer:</strong> Remplissez tous les champs pour un nouveau compte</li>
             <li>• <strong>Comptes recherchés:</strong> sotbirida@yahoo.fr, sotbirida@gmail.com</li>
           </ul>

@@ -90,7 +90,7 @@ export const projectService = {
               };
             }
             interestMap[interest.project_id].count++;
-            if (interest.status === 'accepted') {
+            if (['accepted', 'payment_pending', 'paid', 'matched'].includes(interest.status)) {
               interestMap[interest.project_id].hasAccepted = true;
             }
           });

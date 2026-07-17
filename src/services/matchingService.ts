@@ -190,17 +190,27 @@ export const matchingService = {
           payment_deadline: deadline.toISOString()
         })
         .eq("id", interestId)
+        .in("status", ["interested", "paused"])
         .select("*, project:projects(id, title, client_id)")
         .single();
 
       if (error || !data) return { data: null, error: error || new Error("Intérêt introuvable") };
 
-      // 2. Passer la conversation en phase "active" (si elle existe)
-      await (supabase as any)
-        .from("conversations")
-        .update({ phase: "active", matched_at: new Date().toISOString() })
-        .eq("project_id", (data as any).project_id)
-        .eq("professional_id", data.professional_id);
+      // 2. S'assurer que la conversation existe en mode anonyme (pas d'activation avant paiement)
+      if ((data as any).project?.client_id) {
+        await (supabase as any)
+          .from("conversations")
+          .insert(
+            {
+              project_id: (data as any).project_id,
+              professional_id: data.professional_id,
+              client_id: (data as any).project.client_id,
+              phase: "anonymous",
+              status: "anonymous",
+            },
+            { onConflict: "project_id,professional_id", ignoreDuplicates: true }
+          );
+      }
 
       // 3. Notifier le pro qu'il a un match
       const { data: pro } = await supabase

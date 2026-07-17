@@ -23,6 +23,13 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // SÉCURITÉ: token de bootstrap requis (évite un endpoint ouvert en dev)
+  const setupToken = process.env.SETUP_ADMIN_TOKEN;
+  const providedToken = req.headers['x-setup-token'];
+  if (!setupToken || providedToken !== setupToken) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
   try {
     // 1. Créer l'utilisateur dans auth.users
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({

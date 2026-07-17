@@ -93,6 +93,23 @@ export default withAuth(async function handler(
       });
     }
 
+    // Vérifier que le professionnel demandé appartient bien à l'utilisateur connecté
+    const { data: professionalOwner, error: ownerError } = await supabaseAdmin
+      .from('professionals')
+      .select('id, user_id')
+      .eq('id', professionalId)
+      .single();
+
+    if (ownerError || !professionalOwner) {
+      return res.status(404).json({ error: 'Professional not found' });
+    }
+
+    if (professionalOwner.user_id !== req.user?.id) {
+      return res.status(403).json({
+        error: 'Unauthorized for this professional account',
+      });
+    }
+
     // Récupérer les infos du projet
     const { data: project, error: projectError } = await supabaseAdmin
       .from('projects')
@@ -104,6 +121,30 @@ export default withAuth(async function handler(
 
     if (projectError || !project) {
       return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Vérifier l'existence d'un intérêt mutuel avant de permettre le paiement
+    const { data: interest, error: interestError } = await supabaseAdmin
+      .from('project_interests')
+      .select('id, status, client_interested')
+      .eq('project_id', projectId)
+      .eq('professional_id', professionalId)
+      .maybeSingle();
+
+    if (interestError) {
+      return res.status(500).json({ error: 'Failed to verify match eligibility' });
+    }
+
+    if (!interest || !interest.client_interested) {
+      return res.status(400).json({
+        error: 'Mutual match is required before payment',
+      });
+    }
+
+    if (['rejected', 'expired'].includes(interest.status)) {
+      return res.status(400).json({
+        error: `Invalid interest status for payment: ${interest.status}`,
+      });
     }
 
     // Vérifier si le paiement matching est activé (setting admin)
@@ -139,7 +180,7 @@ export default withAuth(async function handler(
       .select('id, status')
       .eq('project_id', projectId)
       .eq('professional_id', professionalId)
-      .single();
+      .maybeSingle();
 
     if (
       existingPayment &&
