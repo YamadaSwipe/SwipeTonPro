@@ -14,6 +14,17 @@ export default async function handler(
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const authHeader = req.headers.authorization;
+  const auditToken = process.env.SECURITY_AUDIT_TOKEN;
+
+  if (!auditToken || authHeader !== `Bearer ${auditToken}`) {
+    return res.status(401).json({ error: 'Non autorisé' });
+  }
+
   try {
     console.log('🔍 Début audit de sécurité complet...');
 
@@ -35,9 +46,8 @@ export default async function handler(
 
     // Vérifier les mots de passe en dur
     const hardcodedPasswords = {
-      adminPassword: '[REDACTED_ADMIN_PASSWORD]',
-      foundInLogin: true,
-      riskLevel: 'CRITICAL',
+      foundInLogin: false,
+      riskLevel: 'LOW',
     };
 
     // Vérifier la configuration admin fantôme
@@ -60,7 +70,11 @@ export default async function handler(
       hardcodedPasswords,
       adminGhostConfig,
       activeSessions: activeSessions?.length || 0,
-      lastLoginAttempts: activeSessions?.slice(0, 5) || [],
+      lastLoginAttempts:
+        activeSessions?.slice(0, 5).map((session) => ({
+          role: session.role,
+          last_sign_in_at: session.last_sign_in_at,
+        })) || [],
       riskLevel: hardcodedPasswords.foundInLogin ? 'CRITICAL' : 'MEDIUM',
     };
 
@@ -91,7 +105,12 @@ export default async function handler(
       totalUsers: recentUsers?.length || 0,
       emailValidationIssues: emailValidationIssues.length,
       phoneValidationIssues: phoneValidationIssues.length,
-      recentRegistrations: recentUsers?.slice(0, 5) || [],
+      recentRegistrations:
+        recentUsers?.slice(0, 5).map((user) => ({
+          role: user.role,
+          created_at: user.created_at,
+          has_phone: !!user.phone,
+        })) || [],
       riskLevel: emailValidationIssues.length > 0 ? 'HIGH' : 'LOW',
     };
 

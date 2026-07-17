@@ -15,14 +15,33 @@ export default withAuth(async function handler(
     return res.status(405).json({ error: 'GET only' });
   }
 
-  const { user_id, user_type } = req.query;
+  const requestedUserType = Array.isArray(req.query.user_type)
+    ? req.query.user_type[0]
+    : req.query.user_type;
+  const page = Math.max(
+    1,
+    Number(Array.isArray(req.query.page) ? req.query.page[0] : req.query.page) || 1
+  );
+  const limit = Math.min(
+    50,
+    Math.max(
+      1,
+      Number(Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit) || 20
+    )
+  );
+  const offset = (page - 1) * limit;
+  const userId = req.user?.id;
+  const userRole = req.user?.role;
 
-  if (!user_id) {
-    return res.status(400).json({ error: 'user_id requis' });
+  if (!userId) {
+    return res.status(401).json({ error: 'Utilisateur non authentifié' });
   }
 
+  const isProfessionalRequest =
+    requestedUserType === 'professional' || userRole === 'professional';
+
   try {
-    if (user_type === 'professional') {
+    if (isProfessionalRequest) {
       // Matches du professionnel
       const { data: matches, error } = await supabase
         .from('matches')
@@ -33,30 +52,44 @@ export default withAuth(async function handler(
           professional:professionals(id, company_name)
         `
         )
-        .eq('professional_id', user_id)
-        .order('created_at', { ascending: false });
+        .eq('professional_id', userId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
 
       // Notifications non lues
       const { data: notifications } = await supabase
         .from('match_notifications')
-        .select('*')
-        .eq('recipient_id', user_id)
+        .select('id, type, title, message, created_at, related_match_id')
+        .eq('recipient_id', userId)
         .eq('is_read', false)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-      return res
-        .status(200)
-        .json({ matches, notifications, count: matches?.length || 0 });
+      return res.status(200).json({
+        matches,
+        notifications,
+        count: matches?.length || 0,
+        pagination: { page, limit },
+      });
     } else {
       // Matches du client (par project)
       const { data: projects } = await supabase
         .from('projects')
         .select('id')
-        .eq('client_id', user_id);
+        .eq('client_id', userId);
 
       const projectIds = projects?.map((p) => p.id) || [];
+
+      if (projectIds.length === 0) {
+        return res.status(200).json({
+          matches: [],
+          notifications: [],
+          count: 0,
+          pagination: { page, limit },
+        });
+      }
 
       const { data: matches, error } = await supabase
         .from('matches')
@@ -68,21 +101,26 @@ export default withAuth(async function handler(
         `
         )
         .in('project_id', projectIds)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
 
       // Notifications
       const { data: notifications } = await supabase
         .from('match_notifications')
-        .select('*')
-        .eq('recipient_id', user_id)
+        .select('id, type, title, message, created_at, related_match_id')
+        .eq('recipient_id', userId)
         .eq('is_read', false)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-      return res
-        .status(200)
-        .json({ matches, notifications, count: matches?.length || 0 });
+      return res.status(200).json({
+        matches,
+        notifications,
+        count: matches?.length || 0,
+        pagination: { page, limit },
+      });
     }
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

@@ -16,10 +16,18 @@ export default async function handler(
   }
 
   // Sécurité : Vérifier le secret (optionnel mais recommandé)
-  const { secret } = req.body;
-  const SETUP_SECRET = process.env.SETUP_SECRET || 'swipetonpro-setup-2026';
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
 
-  if (secret !== SETUP_SECRET) {
+  const { secret } = req.body;
+  const setupSecret = process.env.SETUP_SECRET;
+
+  if (!setupSecret) {
+    return res.status(503).json({ error: 'Setup unavailable' });
+  }
+
+  if (secret !== setupSecret) {
     return res.status(403).json({ error: 'Invalid secret' });
   }
 

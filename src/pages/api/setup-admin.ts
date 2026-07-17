@@ -30,11 +30,20 @@ export default async function handler(
     return res.status(403).json({ error: 'Forbidden' });
   }
 
+  const adminEmail = process.env.SETUP_ADMIN_EMAIL;
+  const adminPassword = process.env.SETUP_ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    return res.status(503).json({ error: 'Setup unavailable' });
+  }
+
   try {
+    let userId: string | null = null;
+
     // 1. Créer l'utilisateur dans auth.users
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: 'admin@swipetonpro.fr',
-      password: '[REDACTED_ADMIN_PASSWORD]',
+      email: adminEmail,
+      password: adminPassword,
       email_confirm: true,
       user_metadata: {
         full_name: 'Super Admin',
@@ -47,12 +56,29 @@ export default async function handler(
       return res.status(500).json({ error: 'Erreur création utilisateur auth', details: authError.message });
     }
 
+    if (authData.user?.id) {
+      userId = authData.user.id;
+    } else {
+      const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
+
+      if (usersError) {
+        console.error('❌ Erreur récupération utilisateur auth:', usersError);
+        return res.status(500).json({ error: 'Erreur récupération utilisateur auth', details: usersError.message });
+      }
+
+      userId = usersData.users.find((user) => user.email === adminEmail)?.id ?? null;
+    }
+
+    if (!userId) {
+      return res.status(500).json({ error: 'Impossible de déterminer le compte admin' });
+    }
+
     // 2. Créer ou mettre à jour le profil dans profiles
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
-        id: authData.user?.id || '29a2361d-6568-4d5f-99c6-557b971778cc',
-        email: 'admin@swipetonpro.fr',
+        id: userId,
+        email: adminEmail,
         full_name: 'Super Admin',
         role: 'super_admin',
         updated_at: new Date().toISOString()
