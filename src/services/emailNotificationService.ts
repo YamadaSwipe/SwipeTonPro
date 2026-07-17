@@ -8,6 +8,7 @@
 
 import { getSupabaseClient } from '@/lib/database/core';
 import { databaseService } from './databaseService-v2';
+import { emailService } from './emailService';
 
 /**
  * Email notification service for workflow steps
@@ -583,18 +584,123 @@ export class EmailNotificationService {
     data: any;
   }): Promise<void> {
     try {
-      // This would integrate with your existing emailService
-      // For now, we'll log the email that would be sent
-      console.log(`📧 Email would be sent to ${params.to}:`, {
-        template: params.template,
-        data: params.data,
+      const rendered = this._renderEmailTemplate(params.template, params.data);
+      const result = await emailService.sendEmail({
+        to: params.to,
+        subject: rendered.subject,
+        html: rendered.html,
       });
 
-      // TODO: Integrate with actual email service
-      // await emailService.sendTemplate(params.to, params.template, params.data);
+      if (!result.success) {
+        throw new Error(result.error || 'Email delivery failed');
+      }
     } catch (err) {
       console.error('Error sending email:', err);
       throw err;
+    }
+  }
+
+  private _renderEmailTemplate(
+    template: string,
+    data: Record<string, any>
+  ): { subject: string; html: string } {
+    const ctaUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.swipetonpro.fr'}/particulier/projects/${data.projectId || ''}`;
+
+    const wrap = (title: string, intro: string, details: string[], ctaLabel: string) => ({
+      subject: title,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #1f2937;">
+          <div style="background: linear-gradient(135deg, #ea580c, #f97316); padding: 24px; color: white; border-radius: 12px 12px 0 0;">
+            <h1 style="margin: 0; font-size: 26px;">SwipeTonPro</h1>
+            <p style="margin: 8px 0 0; opacity: 0.92;">${title}</p>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-top: 0; padding: 24px; border-radius: 0 0 12px 12px; background: white;">
+            <p style="line-height: 1.7; margin-top: 0;">${intro}</p>
+            <div style="background: #f9fafb; border-radius: 10px; padding: 16px; margin: 20px 0;">
+              ${details.map((detail) => `<p style="margin: 6px 0;">${detail}</p>`).join('')}
+            </div>
+            <p style="margin: 24px 0 0;">
+              <a href="${ctaUrl}" style="display: inline-block; background: #ea580c; color: white; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600;">${ctaLabel}</a>
+            </p>
+          </div>
+        </div>
+      `,
+    });
+
+    switch (template) {
+      case 'professional_interested':
+        return wrap(
+          `Nouveau professionnel intéressé pour ${data.projectName}`,
+          `Bonjour ${data.clientName || ''}, un professionnel a manifesté son intérêt pour votre projet.`,
+          [
+            `<strong>Professionnel :</strong> ${data.professionalName || ''}`,
+            `<strong>Société :</strong> ${data.professionalCompany || ''}`,
+            `<strong>Projet :</strong> ${data.projectName || ''}`,
+            `<strong>Budget :</strong> ${data.projectBudget || 'Non spécifié'}`,
+            `<strong>Localisation :</strong> ${data.projectLocation || 'Non spécifiée'}`,
+          ],
+          'Voir le projet'
+        );
+      case 'project_accepted':
+        return wrap(
+          `Votre devis a été accepté pour ${data.projectName}`,
+          `Bonjour ${data.professionalName || ''}, ${data.clientName || 'un client'} vous a sélectionné pour son projet.`,
+          [
+            `<strong>Projet :</strong> ${data.projectName || ''}`,
+            `<strong>Client :</strong> ${data.clientName || ''}`,
+            `<strong>Email client :</strong> ${data.clientEmail || ''}`,
+            `<strong>Téléphone client :</strong> ${data.clientPhone || 'Non renseigné'}`,
+          ],
+          'Accéder au projet'
+        );
+      case 'planning_scheduled_client':
+      case 'planning_scheduled_professional':
+        return wrap(
+          `Rendez-vous planifié pour ${data.projectName}`,
+          `Le rendez-vous a été programmé pour votre projet ${data.projectName || ''}.`,
+          [
+            `<strong>Date :</strong> ${data.planningDate || ''}`,
+            `<strong>Heure :</strong> ${data.planningTime || ''}`,
+            `<strong>Interlocuteur :</strong> ${data.professionalName || data.clientName || ''}`,
+            `<strong>Lieu :</strong> ${data.projectLocation || 'Non précisé'}`,
+          ],
+          'Voir le rendez-vous'
+        );
+      case 'project_completed_client':
+      case 'project_completed_professional':
+        return wrap(
+          `Projet terminé: ${data.projectName}`,
+          `Le projet ${data.projectName || ''} est marqué comme terminé.`,
+          [
+            `<strong>Projet :</strong> ${data.projectName || ''}`,
+            `<strong>Client :</strong> ${data.clientName || ''}`,
+            `<strong>Professionnel :</strong> ${data.professionalName || ''}`,
+            `Vous pouvez maintenant laisser un avis sur cette collaboration.`,
+          ],
+          'Laisser un avis'
+        );
+      case 'planning_reminder_client':
+      case 'planning_reminder_professional':
+        return wrap(
+          `Rappel de rendez-vous pour ${data.projectName}`,
+          `Rappel: votre rendez-vous approche pour le projet ${data.projectName || ''}.`,
+          [
+            `<strong>Date :</strong> ${data.planningDate || ''}`,
+            `<strong>Heure :</strong> ${data.planningTime || ''}`,
+            `<strong>Lieu :</strong> ${data.projectLocation || 'Non précisé'}`,
+            `<strong>Contact :</strong> ${data.professionalPhone || data.clientPhone || 'Voir le dashboard'}`,
+          ],
+          'Ouvrir le dashboard'
+        );
+      default:
+        return wrap(
+          'Notification SwipeTonPro',
+          'Une mise à jour importante est disponible sur votre projet.',
+          [
+            `<strong>Projet :</strong> ${data.projectName || 'Projet en cours'}`,
+          ],
+          'Voir le projet'
+        );
     }
   }
 
