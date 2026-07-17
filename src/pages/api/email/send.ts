@@ -1,8 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
 import { emailService, EmailData } from '@/services/emailService';
 
 // Configuration pour différents providers d'email
 const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'development'; // 'sendgrid', 'ses', 'brevo', 'development'
+const supabaseAuth = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -10,13 +15,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const internalToken = req.headers['x-internal-email-token'];
+    const authHeader = req.headers.authorization;
+    const emailApiToken = process.env.INTERNAL_EMAIL_API_TOKEN;
+    const hasInternalAccess = !!emailApiToken && internalToken === emailApiToken;
+
+    if (!hasInternalAccess) {
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authentification requise' });
+      }
+
+      const token = authHeader.substring(7);
+      const {
+        data: { user },
+        error: authError,
+      } = await supabaseAuth.auth.getUser(token);
+
+      if (authError || !user) {
+        return res.status(401).json({ error: 'Token invalide ou expiré' });
+      }
+    }
+
+    if (process.env.NODE_ENV === 'production' && EMAIL_PROVIDER === 'development') {
+      return res.status(503).json({ error: 'Provider email non configuré' });
+    }
+
     const emailData: EmailData = req.body;
+    const recipients = Array.isArray(emailData.to) ? emailData.to : [emailData.to];
 
     // Validation des données requises
     if (!emailData.to || !emailData.subject || !emailData.html) {
       return res.status(400).json({ 
         error: 'Données manquantes: to, subject et html sont requis' 
       });
+    }
+
+    if (recipients.length > 10) {
+      return res.status(400).json({ error: 'Trop de destinataires' });
     }
 
     let result;
@@ -38,9 +73,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         timestamp: new Date().toISOString(),
         to: emailData.to,
         subject: emailData.subject,
-        html: emailData.html,
         from: emailData.from,
-        replyTo: emailData.replyTo
+        replyTo: emailData.replyTo,
+        preview: emailData.html.substring(0, 200),
       };
 
       const logsDir = path.join(process.cwd(), 'logs');

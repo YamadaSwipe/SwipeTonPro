@@ -89,8 +89,7 @@ async function sendResetEmailViaResend(
   }
 
   try {
-    console.log('📧 Envoi email de réinitialisation via Resend à:', email);
-    console.log('🔗 Lien de réinitialisation:', resetLink);
+    console.log('📧 Envoi email de réinitialisation via Resend');
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',

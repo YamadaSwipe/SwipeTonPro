@@ -1,4 +1,6 @@
 // Types pour les emails
+import { authService } from '@/services/authService';
+
 export interface EmailData {
   to: string | string[];
   subject: string;
@@ -253,12 +255,31 @@ class EmailService {
         return { success: true };
       }
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (process.env.INTERNAL_EMAIL_API_TOKEN) {
+        headers['x-internal-email-token'] = process.env.INTERNAL_EMAIL_API_TOKEN;
+      }
+
+      if (typeof window !== 'undefined') {
+        const session = await authService.getCurrentSession();
+
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`;
+        }
+      }
+
+      const endpoint =
+        typeof window === 'undefined'
+          ? `${(process.env.NEXT_PUBLIC_SITE_URL || this.baseUrl).replace(/\/$/, '')}/api/email/send`
+          : '/api/email/send';
+
       // En production, utiliser un vrai service d'email
-      const response = await fetch('/api/email/send', {
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(emailData),
       });
 

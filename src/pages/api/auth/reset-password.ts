@@ -94,8 +94,7 @@ async function sendResetEmailViaSMTP(
   resetLink: string
 ): Promise<boolean> {
   try {
-    console.log('📧 Envoi email de réinitialisation via SMTP OVH à:', email);
-    console.log('🔗 Lien de réinitialisation:', resetLink);
+    console.log('📧 Envoi email de réinitialisation via SMTP OVH');
 
     const htmlContent = `
       <!DOCTYPE html>
