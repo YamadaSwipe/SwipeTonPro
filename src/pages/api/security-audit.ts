@@ -154,7 +154,7 @@ export default async function handler(
       ),
       hasResendKey: !!process.env.RESEND_API_KEY,
       hasSiteUrl: !!process.env.NEXT_PUBLIC_SITE_URL,
-      riskLevel: process.env.NODE_ENV === 'production' ? 'LOW' : 'MEDIUM',
+      riskLevel: 'MEDIUM',
     };
 
     auditResults.security.environment = {
@@ -191,7 +191,7 @@ export default async function handler(
       hasRateLimiting: false, // À implémenter
       hasInputValidation: true,
       hasErrorHandling: true,
-      usesHttps: process.env.NODE_ENV === 'production',
+      usesHttps: req.headers['x-forwarded-proto'] === 'https',
       exposesSensitiveData: false,
       riskLevel: 'MEDIUM',
     };
