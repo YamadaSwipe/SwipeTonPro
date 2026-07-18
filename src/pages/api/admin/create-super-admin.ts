@@ -2,6 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { generateSecurePassword } from '@/lib/passwordGenerator';
 
+type AdminAuthUser = {
+  id: string;
+  email?: string | null;
+};
+
 /**
  * API Route pour créer le compte Super Admin
  * Cette route utilise la clé SERVICE_ROLE pour créer un utilisateur directement
@@ -53,6 +58,7 @@ export default async function handler(
     });
 
     const email = 'admin@swipetonpro.fr';
+    const normalizedEmail = email.toLowerCase();
     const password = generateSecurePassword(16);
 
     console.log("🔍 Vérification si l'utilisateur existe déjà...");
@@ -69,8 +75,10 @@ export default async function handler(
       });
     }
 
-    const users = existingUsers?.users || [];
-    const existingUser = users.find((u: any) => u.email === email);
+    const users = (existingUsers?.users ?? []) as AdminAuthUser[];
+    const existingUser = users.find(
+      (user) => user.email?.toLowerCase() === normalizedEmail
+    );
 
     let userId: string;
 

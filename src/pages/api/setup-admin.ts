@@ -5,6 +5,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
+type AdminAuthUser = {
+  id: string;
+  email?: string | null;
+};
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -32,6 +37,7 @@ export default async function handler(
 
   const adminEmail = process.env.SETUP_ADMIN_EMAIL;
   const adminPassword = process.env.SETUP_ADMIN_PASSWORD;
+  const normalizedAdminEmail = adminEmail?.toLowerCase();
 
   if (!adminEmail || !adminPassword) {
     return res.status(503).json({ error: 'Setup unavailable' });
@@ -66,7 +72,11 @@ export default async function handler(
         return res.status(500).json({ error: 'Erreur récupération utilisateur auth', details: usersError.message });
       }
 
-      userId = usersData.users.find((user) => user.email === adminEmail)?.id ?? null;
+      const users = (usersData?.users ?? []) as AdminAuthUser[];
+      userId =
+        users.find(
+          (user) => user.email?.toLowerCase() === normalizedAdminEmail
+        )?.id ?? null;
     }
 
     if (!userId) {
