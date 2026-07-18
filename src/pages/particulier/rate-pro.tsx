@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ReviewForm } from "@/components/reviews/ReviewForm";
-import { useAuth } from "@/services/authService";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { ArrowLeft } from "lucide-react";
