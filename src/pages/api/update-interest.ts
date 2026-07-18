@@ -94,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Créer/assurer la conversation anonyme lors de l'acceptation
     if (action === 'accepted') {
-      await supabaseAdmin.from('conversations').insert(
+      await supabaseAdmin.from('conversations').upsert(
         {
           project_id: interestData.project_id,
           professional_id: interestData.professional_id,
